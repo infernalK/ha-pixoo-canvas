@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 from typing import Any
 
@@ -10,8 +11,12 @@ import aiohttp
 from .const import (
     CMD_GET_ALL_CONF,
     CMD_ON_OFF_SCREEN,
+    CMD_RESET_HTTP_GIF_ID,
+    CMD_SEND_HTTP_GIF,
     CMD_SET_BRIGHTNESS,
+    DEFAULT_PIC_SPEED_MS,
     DEFAULT_TIMEOUT,
+    PIC_ID_MAX,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,6 +40,7 @@ class PixooClient:
     def __init__(self, session: aiohttp.ClientSession, host: str) -> None:
         self._session = session
         self._url = f"http://{host}/post"
+        self._pic_id = 0
 
     async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:
         """POST a command payload and return the parsed JSON response."""
@@ -71,4 +77,31 @@ class PixooClient:
         """Set the screen brightness (0-100)."""
         await self._send(
             {"Command": CMD_SET_BRIGHTNESS, "Brightness": max(0, min(100, brightness))}
+        )
+
+    async def reset_gif_id(self) -> None:
+        """Reset the device's animation frame counter.
+
+        Divoom firmware can stop accepting SendHttpGif pushes once PicID has
+        climbed high enough without ever being reset; send_gif() calls this
+        automatically before the counter reaches PIC_ID_MAX.
+        """
+        await self._send({"Command": CMD_RESET_HTTP_GIF_ID})
+        self._pic_id = 0
+
+    async def send_gif(self, width: int, rgb_bytes: bytes) -> None:
+        """Push a single-frame RGB buffer to the screen."""
+        if self._pic_id >= PIC_ID_MAX:
+            await self.reset_gif_id()
+        self._pic_id += 1
+        await self._send(
+            {
+                "Command": CMD_SEND_HTTP_GIF,
+                "PicNum": 1,
+                "PicWidth": width,
+                "PicOffset": 0,
+                "PicID": self._pic_id,
+                "PicSpeed": DEFAULT_PIC_SPEED_MS,
+                "PicData": base64.b64encode(rgb_bytes).decode("ascii"),
+            }
         )

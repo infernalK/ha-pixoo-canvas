@@ -4,8 +4,8 @@ Intégration Home Assistant (custom component, compatible HACS) pour piloter un 
 état authoritatif de l'écran via `Channel/GetAllConf`, configuration des pages directement
 dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar).
 
-> ⚠️ Projet en cours de développement (Phase 2 terminée). Pas encore de rendu de pages —
-> voir [État actuel](#état-actuel) ci-dessous avant d'installer.
+> ⚠️ Projet en cours de développement (Phase 3 terminée). Voir
+> [État actuel](#état-actuel) ci-dessous avant d'installer.
 
 ## État actuel
 
@@ -16,9 +16,11 @@ dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar
   - `switch.pixoo_screen_power` — allumage/extinction de l'écran, authoritatif (plus de flapping)
   - `light.pixoo_brightness` — luminosité uniquement, découplée du power (plus d'ambiguïté brightness/on-off)
   - 3 capteurs diagnostic : rotation, mirroir, ID de l'horloge/page courante
-- ❌ Pas encore de rendu de pages (`pixoo_canvas.render_page`, Phase 3+) : le `rest_command`
-  actuel reste nécessaire pour l'affichage de contenu, cette intégration ne gère pour
-  l'instant que l'état de l'écran (power/brightness).
+- ✅ Rendu de pages : service `pixoo_canvas.render_page` (composants `text`, `image`,
+  `rectangle`, `templatable`), pages configurables dans les options de l'intégration
+  (éditeur YAML brut). Le `rest_command` externe peut être remplacé progressivement.
+- ❌ Pas encore : icônes MDI/progress bar enrichis (Phase 4), rotation automatique des
+  pages (Phase 5), publication HACS (Phase 7).
 
 ## Installation
 
@@ -32,6 +34,36 @@ Pas encore publiée sur HACS (aucune release taguée). En attendant, installatio
 Depuis l'UI : **Paramètres → Appareils et services → Ajouter une intégration → Pixoo Canvas**,
 puis renseigner l'adresse IP du Pixoo sur le réseau local. Une connexion de test
 (`Channel/GetAllConf`) est effectuée avant la création de l'entrée.
+
+### Pages
+
+Les pages se configurent depuis les options de l'intégration (**Configurer** sur la carte
+Pixoo Canvas) sous forme de YAML brut, une liste de pages nommées :
+
+```yaml
+- name: Températures
+  components:
+    - type: rectangle
+      position: [0, 0]
+      size: [64, 64]
+      color: black
+    - type: text
+      position: [2, 2]
+      content: "{{ states('sensor.salon_temperature') }}°C"
+      color: [255, 255, 255]
+```
+
+Puis, pour l'afficher :
+
+```yaml
+service: pixoo_canvas.render_page
+data:
+  device_id: <ton device Pixoo Canvas>
+  page: Températures
+```
+
+`render_page` accepte aussi `components` (liste inline) à la place de `page`, pour un
+affichage ponctuel sans passer par la config des pages.
 
 ## Licence
 

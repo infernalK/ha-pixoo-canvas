@@ -1,0 +1,35 @@
+render_page:
+  name: Render page
+  description: >-
+    Composes a page (a list of components, or a page configured in the
+    integration's options) onto the Pixoo 64 and pushes it to the screen.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to render on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+    page:
+      name: Page name
+      description: >-
+        Name of a page configured in the integration's options. Provide
+        this or 'components', not both.
+      required: false
+      selector:
+        text:
+    components:
+      name: Components
+      description: >-
+        Inline list of page components (text/image/rectangle/templatable).
+        Provide this or 'page', not both.
+      required: false
+      selector:
+        object:
+    variables:
+      name: Variables
+      description: Extra variables made available to the page's Jinja templates.
+      required: false
+      selector:
+        object:

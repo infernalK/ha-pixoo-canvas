@@ -39,6 +39,7 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
         )
         self.client = client
+        self.config_entry = entry
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name="Pixoo 64",
