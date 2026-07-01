@@ -56,6 +56,9 @@ class PixooClient:
             raise PixooConnectionError(f"Timeout contacting {self._url}") from err
         except aiohttp.ClientError as err:
             raise PixooConnectionError(f"Cannot connect to {self._url}: {err}") from err
+        except ValueError as err:
+            # The device occasionally returns a truncated/malformed body.
+            raise PixooResponseError(f"Malformed response from {self._url}: {err}") from err
 
         error_code = data.get("error_code")
         if error_code not in (0, None):
