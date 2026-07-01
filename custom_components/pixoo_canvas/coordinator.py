@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import PixooApiError, PixooClient
@@ -38,6 +39,12 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
         )
         self.client = client
+        self.device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="Pixoo 64",
+            manufacturer="Divoom",
+            model="Pixoo 64",
+        )
 
     async def _async_update_data(self) -> PixooState:
         try:

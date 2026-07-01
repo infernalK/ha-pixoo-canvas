@@ -4,7 +4,7 @@ Intégration Home Assistant (custom component, compatible HACS) pour piloter un 
 état authoritatif de l'écran via `Channel/GetAllConf`, configuration des pages directement
 dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar).
 
-> ⚠️ Projet en cours de développement (Phase 1 terminée). Pas encore d'entités —
+> ⚠️ Projet en cours de développement (Phase 2 terminée). Pas encore de rendu de pages —
 > voir [État actuel](#état-actuel) ci-dessous avant d'installer.
 
 ## État actuel
@@ -12,9 +12,13 @@ dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar
 - ✅ L'intégration est ajoutable depuis l'UI Home Assistant (IP manuelle, test de connexion).
 - ✅ Un coordinator interroge le Pixoo toutes les 15 secondes et lit l'état authoritatif
   de l'écran (`LightSwitch`, `Brightness`, rotation, mirroir, page courante).
-- ❌ **Aucune entité n'est encore créée** (`switch`, `light`, `sensor` arrivent en Phase 2) :
-  l'intégration se configure mais ne pilote rien dans HA pour l'instant.
-- ❌ Pas encore de rendu de pages (Phase 3+).
+- ✅ Entités disponibles :
+  - `switch.pixoo_screen_power` — allumage/extinction de l'écran, authoritatif (plus de flapping)
+  - `light.pixoo_brightness` — luminosité uniquement, découplée du power (plus d'ambiguïté brightness/on-off)
+  - 3 capteurs diagnostic : rotation, mirroir, ID de l'horloge/page courante
+- ❌ Pas encore de rendu de pages (`pixoo_canvas.render_page`, Phase 3+) : le `rest_command`
+  actuel reste nécessaire pour l'affichage de contenu, cette intégration ne gère pour
+  l'instant que l'état de l'écran (power/brightness).
 
 ## Installation
 
