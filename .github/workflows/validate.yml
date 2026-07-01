@@ -24,3 +24,5 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # brands: soumission à home-assistant/brands prévue en Phase 7 (cf. DEV_PLAN.md)
+          ignore: "brands"
