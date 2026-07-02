@@ -22,7 +22,7 @@ async def draw(
 ) -> None:
     """Render a text component's content and draw it at its position."""
     content = str(component.get("content", ""))
-    text = Template(content, hass).async_render(variables=variables)
+    text = str(Template(content, hass).async_render(variables=variables))
 
     x, y = component.get("position", [0, 0])
     color = resolve_color(component.get("color"), hass, variables, default=(255, 255, 255))

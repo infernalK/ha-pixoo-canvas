@@ -22,7 +22,7 @@ render_page:
     components:
       name: Components
       description: >-
-        Inline list of page components (text/image/rectangle/templatable).
+        Inline list of page components (text/image/rectangle/icon/progress_bar/templatable).
         Provide this or 'page', not both.
       required: false
       selector:

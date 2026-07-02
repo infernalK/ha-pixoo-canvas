@@ -11,7 +11,9 @@ from homeassistant.core import HomeAssistant
 
 from ..api import PixooClient
 from ..const import PIC_WIDTH
+from .components import icon as icon_component
 from .components import image as image_component
+from .components import progress_bar as progress_bar_component
 from .components import rectangle as rectangle_component
 from .components import templatable as templatable_component
 from .components import text as text_component
@@ -22,6 +24,8 @@ _COMPONENT_DRAWERS = {
     "text": text_component.draw,
     "rectangle": rectangle_component.draw,
     "image": image_component.draw,
+    "icon": icon_component.draw,
+    "progress_bar": progress_bar_component.draw,
 }
 
 
