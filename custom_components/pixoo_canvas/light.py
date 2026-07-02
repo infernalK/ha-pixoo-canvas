@@ -26,7 +26,7 @@ class PixooBrightnessLight(CoordinatorEntity[PixooCoordinator], LightEntity):
     """Screen brightness control, decoupled from the power switch."""
 
     _attr_has_entity_name = True
-    _attr_name = "Brightness"
+    _attr_translation_key = "brightness"
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 

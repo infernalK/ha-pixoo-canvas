@@ -6,14 +6,14 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-import yaml
 
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 
-from .const import CONF_PAGES_YAML, DOMAIN, SERVICE_RENDER_PAGE
+from .const import DOMAIN, SERVICE_RENDER_PAGE
 from .coordinator import PixooCoordinator
+from .pages import PagesYamlError, get_page
 from .render.engine import render_page
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,17 +44,10 @@ def _get_coordinator(hass: HomeAssistant, device_id: str) -> PixooCoordinator:
 
 def _get_page_components(coordinator: PixooCoordinator, page_name: str) -> list[dict[str, Any]]:
     """Look up a named page's components from the config entry's stored pages YAML."""
-    pages_yaml = coordinator.config_entry.options.get(CONF_PAGES_YAML, "")
     try:
-        pages = yaml.safe_load(pages_yaml) or []
-    except yaml.YAMLError as err:
-        raise HomeAssistantError(f"Invalid pages YAML: {err}") from err
-
-    for page in pages:
-        if page.get("name") == page_name:
-            return page.get("components", [])
-
-    raise HomeAssistantError(f"No page named {page_name!r} configured")
+        return get_page(coordinator.config_entry, page_name).get("components", [])
+    except PagesYamlError as err:
+        raise HomeAssistantError(str(err)) from err
 
 
 async def _async_handle_render_page(hass: HomeAssistant, call: ServiceCall) -> None:

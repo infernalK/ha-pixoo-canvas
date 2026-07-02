@@ -26,19 +26,19 @@ class PixooSensorEntityDescription(SensorEntityDescription):
 SENSOR_DESCRIPTIONS: tuple[PixooSensorEntityDescription, ...] = (
     PixooSensorEntityDescription(
         key="rotation_flag",
-        name="Rotation",
+        translation_key="rotation_flag",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda state: state.rotation_flag,
     ),
     PixooSensorEntityDescription(
         key="mirror_flag",
-        name="Mirror",
+        translation_key="mirror_flag",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda state: state.mirror_flag,
     ),
     PixooSensorEntityDescription(
         key="cur_clock_id",
-        name="Current clock ID",
+        translation_key="cur_clock_id",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda state: state.cur_clock_id,
     ),

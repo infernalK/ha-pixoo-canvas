@@ -1,0 +1,60 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to your Pixoo 64",
+        "description": "Enter the local IP address of your Divoom Pixoo 64. A test connection (Channel/GetAllConf) is made before the entry is created.",
+        "data": {
+          "host": "IP address"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the device. Check the IP address and that it's on the same network."
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure pages",
+        "description": "Raw YAML list of named pages, each with a `components` list. Optional per-page fields: `enabled` (Jinja template), `duration` (seconds shown, default 15), `scan_interval` (seconds between refreshes while shown).",
+        "data": {
+          "pages_yaml": "Pages (YAML)"
+        }
+      }
+    },
+    "error": {
+      "invalid_yaml": "This is not valid YAML.",
+      "invalid_schema": "Each page needs a `name` (text) and a `components` (list) field."
+    }
+  },
+  "entity": {
+    "switch": {
+      "screen_power": {
+        "name": "Screen power"
+      },
+      "page_rotation": {
+        "name": "Page rotation"
+      }
+    },
+    "light": {
+      "brightness": {
+        "name": "Brightness"
+      }
+    },
+    "sensor": {
+      "rotation_flag": {
+        "name": "Screen rotation"
+      },
+      "mirror_flag": {
+        "name": "Mirror"
+      },
+      "cur_clock_id": {
+        "name": "Current clock ID"
+      }
+    }
+  }
+}

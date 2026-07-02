@@ -13,6 +13,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import PixooApiError, PixooClient
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .rotation import PageRotator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
         )
         self.client = client
         self.config_entry = entry
+        self.rotator = PageRotator(hass, entry, client)
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name="Pixoo 64",
