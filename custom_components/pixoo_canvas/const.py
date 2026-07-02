@@ -4,13 +4,14 @@ from homeassistant.const import Platform
 
 DOMAIN = "pixoo_canvas"
 
-PLATFORMS = [Platform.SWITCH, Platform.LIGHT, Platform.SENSOR]
+PLATFORMS = [Platform.SWITCH, Platform.LIGHT, Platform.SENSOR, Platform.SELECT]
 
 CMD_GET_ALL_CONF = "Channel/GetAllConf"
 CMD_ON_OFF_SCREEN = "Channel/OnOffScreen"
 CMD_SET_BRIGHTNESS = "Channel/SetBrightness"
 CMD_SEND_HTTP_GIF = "Draw/SendHttpGif"
 CMD_RESET_HTTP_GIF_ID = "Draw/ResetHttpGifId"
+CMD_SET_ROTATION_ANGLE = "Device/SetScreenRotationAngle"
 
 DEFAULT_SCAN_INTERVAL = 15
 DEFAULT_TIMEOUT = 10

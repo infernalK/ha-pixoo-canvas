@@ -28,6 +28,12 @@ class PixooState:
     rotation_flag: bool
     mirror_flag: bool
     cur_clock_id: int
+    # Physical screen mounting orientation (0=0°, 1=90°, 2=180°, 3=270°),
+    # set via Device/SetScreenRotationAngle. Distinct from `rotation_flag`
+    # above, whose exact meaning is unconfirmed (likely gallery auto-cycle,
+    # not screen orientation, based on its position next to Gallery* fields
+    # in GetAllConf's response).
+    gyrate_angle: int
 
 
 class PixooCoordinator(DataUpdateCoordinator[PixooState]):
@@ -64,6 +70,7 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
                 rotation_flag=bool(raw.get("RotationFlag", 0)),
                 mirror_flag=bool(raw.get("MirrorFlag", 0)),
                 cur_clock_id=int(raw.get("CurClockId", -1)),
+                gyrate_angle=int(raw.get("GyrateAngle", 0)),
             )
         except (KeyError, TypeError, ValueError) as err:
             raise UpdateFailed(f"Unexpected response from device: {err}") from err

@@ -14,6 +14,7 @@ from .const import (
     CMD_RESET_HTTP_GIF_ID,
     CMD_SEND_HTTP_GIF,
     CMD_SET_BRIGHTNESS,
+    CMD_SET_ROTATION_ANGLE,
     DEFAULT_PIC_SPEED_MS,
     DEFAULT_TIMEOUT,
     PIC_ID_MAX,
@@ -81,6 +82,10 @@ class PixooClient:
         await self._send(
             {"Command": CMD_SET_BRIGHTNESS, "Brightness": max(0, min(100, brightness))}
         )
+
+    async def set_rotation_angle(self, mode: int) -> None:
+        """Set the physical screen orientation: 0=0°, 1=90°, 2=180°, 3=270°."""
+        await self._send({"Command": CMD_SET_ROTATION_ANGLE, "Mode": mode})
 
     async def reset_gif_id(self) -> None:
         """Reset the device's animation frame counter.

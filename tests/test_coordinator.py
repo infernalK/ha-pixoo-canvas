@@ -32,6 +32,7 @@ async def test_coordinator_parses_state(hass, aioclient_mock):
             "RotationFlag": 0,
             "MirrorFlag": 1,
             "CurClockId": 5,
+            "GyrateAngle": 2,
         },
     )
 
@@ -43,6 +44,7 @@ async def test_coordinator_parses_state(hass, aioclient_mock):
     assert coordinator.data.brightness == 80
     assert coordinator.data.mirror_flag is True
     assert coordinator.data.cur_clock_id == 5
+    assert coordinator.data.gyrate_angle == 2
 
 
 async def test_coordinator_missing_light_switch(hass, aioclient_mock):

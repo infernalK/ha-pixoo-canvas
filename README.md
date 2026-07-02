@@ -21,7 +21,10 @@ dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar
   - `light.pixoo_brightness` — luminosité uniquement, découplée du power (plus d'ambiguïté brightness/on-off)
   - `switch.pixoo_page_rotation` — active/désactive la rotation automatique des pages, état
     restauré après redémarrage
-  - 3 capteurs diagnostic : rotation écran, mirroir, ID de l'horloge/page courante
+  - `select.pixoo_screen_orientation` — orientation physique de l'écran (0°/90°/180°/270°),
+    à régler selon le montage de ton cadre — authoritatif via `GyrateAngle`
+  - 3 capteurs diagnostic : indicateur de rotation (signification exacte non confirmée, probablement
+    liée à la rotation auto de la galerie), mirroir, ID de l'horloge/page courante
 - ✅ Rendu de pages : service `pixoo_canvas.render_page` (composants `text`, `image`,
   `rectangle`, `icon`, `progress_bar`, `templatable`), pages configurables dans les options
   de l'intégration (éditeur YAML brut). Le `rest_command` externe peut être remplacé

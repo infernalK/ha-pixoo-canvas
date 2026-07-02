@@ -57,13 +57,24 @@
     },
     "sensor": {
       "rotation_flag": {
-        "name": "Rotation de l'écran"
+        "name": "Indicateur de rotation"
       },
       "mirror_flag": {
         "name": "Miroir"
       },
       "cur_clock_id": {
         "name": "ID de l'horloge actuelle"
+      }
+    },
+    "select": {
+      "screen_orientation": {
+        "name": "Orientation de l'écran",
+        "state": {
+          "0": "0°",
+          "90": "90°",
+          "180": "180°",
+          "270": "270°"
+        }
       }
     }
   }
