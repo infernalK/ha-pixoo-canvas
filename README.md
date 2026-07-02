@@ -112,27 +112,37 @@ inférieur ou égal à `value`.
 
 #### Polices
 
-Le composant `text` accepte un champ `font` optionnel (par défaut `silkscreen`) :
+Le composant `text` accepte un champ `font` optionnel (par défaut `press_start_2p`) :
 
-| `font` | Style | Largeur (pour "Fete du jour" à `font_size: 6`) |
-| --- | --- | --- |
-| `silkscreen` (défaut) | fine, très compacte | 52px |
-| `silkscreen_bold` | comme `silkscreen`, en gras | 52px |
-| `press_start_2p` | bloc large, style arcade | 72px (déborde d'un écran 64px !) |
+| `font` | Style | Hauteur à `font_size: 6` | Largeur (pour "Fete du jour") |
+| --- | --- | --- | --- |
+| `press_start_2p` (défaut) | bloc large, style arcade | 7px | 72px |
+| `silkscreen` | fine, compacte | 4px | 52px |
+| `silkscreen_bold` | comme `silkscreen`, en gras | 4px | 56px |
 
-`silkscreen` est le défaut depuis la Phase 5 justement parce que `press_start_2p` (l'unique
-police de la Phase 3) déborde de l'écran 64px dès qu'un texte dépasse une dizaine de
-caractères. Si une de tes pages existantes affichait un titre tronqué, elle est
-automatiquement corrigée sans rien changer à sa config — sinon, force `font: press_start_2p`
-sur un composant précis si tu préfères ce style pour un texte court.
+`press_start_2p` reste le défaut : sur l'écran LED physique, c'est la **hauteur** du glyphe qui
+détermine la lisibilité (le flou de diffusion des LED rend une police fine illisible), pas
+juste la largeur. `silkscreen` est plus étroite mais nettement moins lisible sur l'écran réel
+à taille égale — à réserver aux cas où tu as vraiment besoin de caser plus de caractères et où
+tu acceptes ce compromis (idéalement avec une `font_size` plus grande pour compenser la
+hauteur, ex. `font_size: 10`).
+
+**Le vrai problème que tu as vu** (texte coupé) vient du fait qu'à `font_size: 6` (le défaut),
+`press_start_2p` déborde de l'écran 64px dès qu'un titre dépasse ~10 caractères. Sur tes 7
+pages, ça concerne concrètement les titres **Alerte météo**, **Fête du jour**,
+**Températures**, **Poubelles !** et **~ PISCINE ~** (pas seulement "Fête du jour"). Le fix
+n'est pas de changer de police mais de réduire `font_size` sur ces titres précis :
 
 ```yaml
 - type: text
   position: [0, 0]
-  content: "Fete du jour"
-  font: press_start_2p   # optionnel, silkscreen par défaut
+  content: "Temperatures"
+  font_size: 5   # au lieu du défaut (6) qui déborde pour ce titre précis
   color: yellow
 ```
+
+À `font_size: 5`, ces 5 titres tiennent tous dans les 64px (max 60px de large), avec une perte
+de lisibilité minime par rapport à la taille 6.
 
 Puis, pour l'afficher :
 

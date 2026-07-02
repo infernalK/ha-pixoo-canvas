@@ -8,16 +8,18 @@ from PIL import ImageFont
 
 FONTS_DIR = Path(__file__).parent / "fonts"
 
-# Silkscreen is the default: at the same pixel size, it is roughly 30% narrower
-# than Press Start 2P, which matters a lot on a 64px-wide display (a 12-character
-# title in Press Start 2P at size 6 is already 72px wide and gets clipped).
+# Press Start 2P stays the default: it renders taller (7px at size 6) than
+# Silkscreen (4px at the same size), and glyph height is what makes text
+# legible on a real, diffused LED matrix, not just width. Silkscreen is
+# narrower and useful when a specific line needs to fit more characters, but
+# it reads as blurry/illegible on the physical display at small sizes.
 FONT_PATHS: dict[str, Path] = {
+    "press_start_2p": FONTS_DIR / "press_start_2p" / "PressStart2P-Regular.ttf",
     "silkscreen": FONTS_DIR / "silkscreen" / "Silkscreen-Regular.ttf",
     "silkscreen_bold": FONTS_DIR / "silkscreen" / "Silkscreen-Bold.ttf",
-    "press_start_2p": FONTS_DIR / "press_start_2p" / "PressStart2P-Regular.ttf",
 }
 
-DEFAULT_FONT_NAME = "silkscreen"
+DEFAULT_FONT_NAME = "press_start_2p"
 DEFAULT_FONT_SIZE = 6
 
 _cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}

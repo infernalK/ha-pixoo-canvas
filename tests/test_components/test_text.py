@@ -70,18 +70,18 @@ async def test_text_font_field_selects_alternate_font(hass):
         hass,
         None,
     )
-    ctx_press_start = RenderContext()
+    ctx_silkscreen = RenderContext()
     await text.draw(
         {
             "type": "text",
             "position": [0, 0],
             "content": "Fete du jour",
-            "font": "press_start_2p",
+            "font": "silkscreen",
         },
-        ctx_press_start,
+        ctx_silkscreen,
         hass,
         None,
     )
 
-    # Silkscreen (the default) is narrower than Press Start 2P at the same size.
-    assert last_lit_column(ctx_default.image) < last_lit_column(ctx_press_start.image)
+    # Silkscreen is narrower than Press Start 2P (the default) at the same size.
+    assert last_lit_column(ctx_silkscreen.image) < last_lit_column(ctx_default.image)

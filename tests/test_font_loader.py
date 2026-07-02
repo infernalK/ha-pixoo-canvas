@@ -8,15 +8,15 @@ from custom_components.pixoo_canvas.render.font_loader import (
 )
 
 
-def test_load_font_default_is_silkscreen():
-    """The default font is Silkscreen, chosen for its narrower glyphs."""
-    assert DEFAULT_FONT_NAME == "silkscreen"
+def test_load_font_default_is_press_start_2p():
+    """The default font is Press Start 2P: taller glyphs read better on a real LED matrix."""
+    assert DEFAULT_FONT_NAME == "press_start_2p"
     load_font()  # does not raise
 
 
 def test_load_font_known_alternate_font():
-    """press_start_2p is available as an explicit alternate font."""
-    load_font(size=8, font="press_start_2p")  # does not raise
+    """silkscreen is available as an explicit alternate, narrower font."""
+    load_font(size=8, font="silkscreen")  # does not raise
 
 
 def test_load_font_unknown_name_falls_back_to_default():
