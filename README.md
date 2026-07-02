@@ -10,8 +10,10 @@ dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar
 ## État actuel
 
 - ✅ L'intégration est ajoutable depuis l'UI Home Assistant (IP manuelle, test de connexion).
-- ✅ Un coordinator interroge le Pixoo toutes les 15 secondes et lit l'état authoritatif
-  de l'écran (`LightSwitch`, `Brightness`, rotation, mirroir, page courante).
+- ✅ Un coordinator interroge le Pixoo (toutes les 15 secondes par défaut, configurable) et lit
+  l'état authoritatif de l'écran (`LightSwitch`, `Brightness`, rotation, mirroir, page courante).
+- ✅ IP et intervalle d'interrogation modifiables après coup depuis les options de l'intégration
+  (rechargement automatique à la sauvegarde).
 - ✅ Entités disponibles :
   - `switch.pixoo_screen_power` — allumage/extinction de l'écran, authoritatif (plus de flapping)
   - `light.pixoo_brightness` — luminosité uniquement, découplée du power (plus d'ambiguïté brightness/on-off)
@@ -41,10 +43,16 @@ Depuis l'UI : **Paramètres → Appareils et services → Ajouter une intégrati
 puis renseigner l'adresse IP du Pixoo sur le réseau local. Une connexion de test
 (`Channel/GetAllConf`) est effectuée avant la création de l'entrée.
 
+Ensuite, tout se règle depuis un seul écran d'options (**Configurer** sur la carte Pixoo
+Canvas) : adresse IP de l'appareil (modifiable après coup, utile si le Pixoo change d'IP),
+intervalle d'interrogation de l'état authoritatif de l'écran, et pages. Chaque sauvegarde
+teste la connexion à l'IP indiquée avant d'appliquer les changements ; si l'adresse ou
+l'intervalle change, l'intégration se recharge automatiquement pour en tenir compte.
+
 ### Pages
 
-Les pages se configurent depuis les options de l'intégration (**Configurer** sur la carte
-Pixoo Canvas) sous forme de YAML brut, une liste de pages nommées :
+Les pages se configurent dans la même fenêtre d'options, sous forme de YAML brut, une liste
+de pages nommées :
 
 ```yaml
 - name: Températures

@@ -19,14 +19,17 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configurer les pages",
-        "description": "Liste YAML brute de pages nommées, chacune avec une liste `components`. Champs optionnels par page : `enabled` (template Jinja), `duration` (secondes d'affichage, défaut 15), `scan_interval` (secondes entre rafraîchissements pendant l'affichage).",
+        "title": "Configurer ton appareil Pixoo",
+        "description": "Modifie l'adresse IP de l'appareil, la fréquence d'interrogation de son état authoritatif, et ses pages. Les pages sont une liste YAML brute d'entrées nommées, chacune avec une liste `components`. Champs optionnels par page : `enabled` (template Jinja), `duration` (secondes d'affichage, défaut 15), `scan_interval` (secondes entre rafraîchissements pendant l'affichage — à ne pas confondre avec l'intervalle d'interrogation de l'appareil ci-dessus).",
         "data": {
+          "host": "Adresse IP de l'appareil",
+          "scan_interval": "Intervalle d'interrogation de l'appareil (secondes)",
           "pages_yaml": "Pages (YAML)"
         }
       }
     },
     "error": {
+      "cannot_connect": "Impossible de se connecter à l'appareil. Vérifie l'adresse IP et qu'il est sur le même réseau.",
       "invalid_yaml": "Ceci n'est pas un YAML valide.",
       "invalid_schema": "Chaque page doit avoir un champ `name` (texte) et un champ `components` (liste)."
     }

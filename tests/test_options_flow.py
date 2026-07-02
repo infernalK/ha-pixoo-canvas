@@ -1,14 +1,20 @@
-"""Tests for the Pixoo Canvas options flow (pages YAML editor)."""
+"""Tests for the Pixoo Canvas options flow (device IP, poll interval, pages)."""
 
 from __future__ import annotations
 
-from homeassistant.const import CONF_HOST
+from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pixoo_canvas.const import CONF_PAGES_YAML, DOMAIN
+from custom_components.pixoo_canvas.coordinator import PixooCoordinator
 
 HOST = "192.168.1.101"
+NEW_HOST = "192.168.1.102"
+URL = f"http://{HOST}/post"
+NEW_URL = f"http://{NEW_HOST}/post"
+
+GET_ALL_CONF_RESPONSE = {"error_code": 0, "LightSwitch": 1, "Brightness": 80}
 
 
 def _make_entry(hass) -> MockConfigEntry:
@@ -17,8 +23,9 @@ def _make_entry(hass) -> MockConfigEntry:
     return entry
 
 
-async def test_options_flow_accepts_valid_pages_yaml(hass):
-    """A well-formed pages list is saved to entry.options."""
+async def test_options_flow_accepts_valid_input(hass, aioclient_mock):
+    """A well-formed host/scan_interval/pages submission is saved."""
+    aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
     entry = _make_entry(hass)
     pages_yaml = (
         "- name: Temperatures\n  components:\n    - type: text\n      position: [0, 0]\n"
@@ -28,34 +35,89 @@ async def test_options_flow_accepts_valid_pages_yaml(hass):
     assert result["type"] == FlowResultType.FORM
 
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_PAGES_YAML: pages_yaml}
+        result["flow_id"],
+        {CONF_HOST: HOST, CONF_SCAN_INTERVAL: 20, CONF_PAGES_YAML: pages_yaml},
     )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"] == {CONF_PAGES_YAML: pages_yaml}
+    assert result["data"] == {CONF_SCAN_INTERVAL: 20, CONF_PAGES_YAML: pages_yaml}
 
 
-async def test_options_flow_rejects_invalid_yaml(hass):
-    """Unparsable YAML re-shows the form with an error."""
+async def test_options_flow_changing_host_updates_entry_data(hass, aioclient_mock):
+    """Submitting a different host updates entry.data, not just entry.options."""
+    aioclient_mock.post(NEW_URL, json=GET_ALL_CONF_RESPONSE)
     entry = _make_entry(hass)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_PAGES_YAML: "foo: [unterminated"}
+        result["flow_id"],
+        {CONF_HOST: NEW_HOST, CONF_SCAN_INTERVAL: 15, CONF_PAGES_YAML: ""},
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.data[CONF_HOST] == NEW_HOST
+
+
+async def test_options_flow_rejects_unreachable_host(hass, aioclient_mock):
+    """An unreachable new host re-shows the form with a connection error."""
+    aioclient_mock.post(NEW_URL, exc=TimeoutError)
+    entry = _make_entry(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_HOST: NEW_HOST, CONF_SCAN_INTERVAL: 15, CONF_PAGES_YAML: ""},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "cannot_connect"}
+    assert entry.data[CONF_HOST] == HOST  # unchanged
+
+
+async def test_options_flow_rejects_invalid_yaml(hass, aioclient_mock):
+    """Unparsable pages YAML re-shows the form with an error, without testing the connection."""
+    entry = _make_entry(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_HOST: HOST, CONF_SCAN_INTERVAL: 15, CONF_PAGES_YAML: "foo: [unterminated"},
     )
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_yaml"}
 
 
-async def test_options_flow_rejects_wrong_schema(hass):
+async def test_options_flow_rejects_wrong_schema(hass, aioclient_mock):
     """Valid YAML that isn't a list of {name, components} pages is rejected."""
     entry = _make_entry(hass)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_PAGES_YAML: "just_a_string"}
+        result["flow_id"],
+        {CONF_HOST: HOST, CONF_SCAN_INTERVAL: 15, CONF_PAGES_YAML: "just_a_string"},
     )
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_schema"}
+
+
+async def test_options_flow_reloads_entry_with_new_scan_interval(hass, aioclient_mock):
+    """Saving a new scan_interval reloads the entry so the coordinator picks it up."""
+    aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
+    entry = _make_entry(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    coordinator_before: PixooCoordinator = hass.data[DOMAIN][entry.entry_id]
+    assert coordinator_before.update_interval.total_seconds() == 15
+
+    aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_HOST: HOST, CONF_SCAN_INTERVAL: 42, CONF_PAGES_YAML: ""}
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    coordinator_after: PixooCoordinator = hass.data[DOMAIN][entry.entry_id]
+    assert coordinator_after.update_interval.total_seconds() == 42

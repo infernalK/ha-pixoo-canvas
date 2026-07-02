@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -33,11 +34,12 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
     """Coordinator polling Channel/GetAllConf for the authoritative device state."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, client: PixooClient) -> None:
+        scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN} ({entry.title})",
-            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
+            update_interval=timedelta(seconds=scan_interval),
         )
         self.client = client
         self.config_entry = entry

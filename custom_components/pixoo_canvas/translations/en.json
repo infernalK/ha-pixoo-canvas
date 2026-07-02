@@ -19,14 +19,17 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configure pages",
-        "description": "Raw YAML list of named pages, each with a `components` list. Optional per-page fields: `enabled` (Jinja template), `duration` (seconds shown, default 15), `scan_interval` (seconds between refreshes while shown).",
+        "title": "Configure your Pixoo device",
+        "description": "Update the device IP, how often it's polled for its authoritative state, and its pages. Pages are a raw YAML list of named entries, each with a `components` list. Optional per-page fields: `enabled` (Jinja template), `duration` (seconds shown, default 15), `scan_interval` (seconds between refreshes while shown — not the same as the device poll interval above).",
         "data": {
+          "host": "IP address of the device",
+          "scan_interval": "Device poll interval (seconds)",
           "pages_yaml": "Pages (YAML)"
         }
       }
     },
     "error": {
+      "cannot_connect": "Cannot connect to the device. Check the IP address and that it's on the same network.",
       "invalid_yaml": "This is not valid YAML.",
       "invalid_schema": "Each page needs a `name` (text) and a `components` (list) field."
     }
