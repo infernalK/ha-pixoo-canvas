@@ -9,7 +9,9 @@ dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar
 
 ## État actuel
 
-- ✅ L'intégration est ajoutable depuis l'UI Home Assistant (IP manuelle, test de connexion).
+- ✅ L'intégration est ajoutable depuis l'UI Home Assistant, avec détection automatique du
+  Pixoo sur le réseau local (via le service de découverte cloud de Divoom, comme les autres
+  intégrations Pixoo) — repli sur saisie manuelle de l'IP si rien n'est trouvé ou en cas d'échec.
 - ✅ Un coordinator interroge le Pixoo (toutes les 15 secondes par défaut, configurable) et lit
   l'état authoritatif de l'écran (`LightSwitch`, `Brightness`, rotation, mirroir, page courante).
 - ✅ IP et intervalle d'interrogation modifiables après coup depuis les options de l'intégration
@@ -39,9 +41,12 @@ Pas encore publiée sur HACS (aucune release taguée). En attendant, installatio
 
 ## Configuration
 
-Depuis l'UI : **Paramètres → Appareils et services → Ajouter une intégration → Pixoo Canvas**,
-puis renseigner l'adresse IP du Pixoo sur le réseau local. Une connexion de test
-(`Channel/GetAllConf`) est effectuée avant la création de l'entrée.
+Depuis l'UI : **Paramètres → Appareils et services → Ajouter une intégration → Pixoo Canvas**.
+Si un ou plusieurs Pixoo sont détectés sur le réseau (via l'API de découverte de Divoom), une
+liste à choisir apparaît, avec une option "Enter IP manually" ; sinon le formulaire de saisie
+manuelle de l'IP s'affiche directement. Une connexion de test (`Channel/GetAllConf`) est
+effectuée avant la création de l'entrée, que l'IP vienne de la détection ou d'une saisie
+manuelle.
 
 Ensuite, tout se règle depuis un seul écran d'options (**Configurer** sur la carte Pixoo
 Canvas) : adresse IP de l'appareil (modifiable après coup, utile si le Pixoo change d'IP),

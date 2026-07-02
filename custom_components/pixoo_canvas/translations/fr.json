@@ -1,7 +1,14 @@
 {
   "config": {
     "step": {
-      "user": {
+      "pick_device": {
+        "title": "Sélectionne ton Pixoo 64",
+        "description": "Ces appareils ont été trouvés sur ton réseau via le service de découverte Divoom. Choisis-en un, ou saisis une adresse IP manuellement.",
+        "data": {
+          "host": "Appareil"
+        }
+      },
+      "manual": {
         "title": "Connexion à ton Pixoo 64",
         "description": "Entre l'adresse IP locale de ton Divoom Pixoo 64. Une connexion de test (Channel/GetAllConf) est effectuée avant la création de l'entrée.",
         "data": {

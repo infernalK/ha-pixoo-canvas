@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
 import yaml
 
@@ -17,6 +18,9 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
 )
@@ -26,7 +30,13 @@ from .const import CONF_PAGES_YAML, DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
+# Divoom's cloud service, used to look up devices it has seen on the same LAN
+# as whoever calls it (this is the same endpoint other Pixoo HA integrations,
+# e.g. gickowtf/pixoo-homeassistant, use for discovery — Divoom devices don't
+# support local mDNS/SSDP). Discovery is best-effort: any failure here just
+# falls back to manual IP entry, same as if it had never been attempted.
+DISCOVERY_URL = "https://app.divoom-gz.com/Device/ReturnSameLANDevice"
+MANUAL_ENTRY_VALUE = "__manual__"
 
 
 class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -34,13 +44,45 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        self._discovered: list[dict[str, str]] = []
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step: manual IP entry + connection test."""
+        """Try to discover a device on the LAN; fall back to manual IP entry."""
+        self._discovered = await self._async_discover_devices()
+        if self._discovered:
+            return await self.async_step_pick_device()
+        return await self.async_step_manual()
+
+    async def async_step_pick_device(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let the user pick a discovered device, or fall back to manual entry."""
+        if user_input is not None:
+            selected = user_input[CONF_HOST]
+            if selected == MANUAL_ENTRY_VALUE:
+                return await self.async_step_manual()
+            return await self.async_step_manual({CONF_HOST: selected})
+
+        options = [*self._discovered, {"value": MANUAL_ENTRY_VALUE, "label": "Enter IP manually"}]
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_HOST): SelectSelector(
+                    SelectSelectorConfig(options=options, mode=SelectSelectorMode.LIST)
+                )
+            }
+        )
+        return self.async_show_form(step_id="pick_device", data_schema=schema)
+
+    async def async_step_manual(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle manual IP entry (or a pre-filled, discovered IP) + connection test."""
         errors: dict[str, str] = {}
 
-        if user_input is not None:
+        if user_input is not None and CONF_HOST in user_input:
             host = user_input[CONF_HOST]
             self._async_abort_entries_match({CONF_HOST: host})
 
@@ -54,9 +96,34 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_create_entry(title=host, data={CONF_HOST: host})
 
-        return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+        schema = vol.Schema(
+            {vol.Required(CONF_HOST, default=(user_input or {}).get(CONF_HOST, "")): str}
         )
+        return self.async_show_form(step_id="manual", data_schema=schema, errors=errors)
+
+    async def _async_discover_devices(self) -> list[dict[str, str]]:
+        """Look up Pixoo devices Divoom's cloud has seen on the same LAN, best-effort."""
+        session = async_get_clientsession(self.hass)
+        try:
+            async with session.get(
+                DISCOVERY_URL, timeout=aiohttp.ClientTimeout(total=5)
+            ) as resp:
+                data = await resp.json(content_type=None)
+        except Exception:  # noqa: BLE001 - discovery is optional, never blocks setup
+            _LOGGER.debug("Pixoo LAN discovery failed, falling back to manual IP", exc_info=True)
+            return []
+
+        configured_hosts = {
+            entry.data.get(CONF_HOST) for entry in self._async_current_entries()
+        }
+        options = []
+        for device in data.get("DeviceList", []) if isinstance(data, dict) else []:
+            ip = device.get("DevicePrivateIP")
+            if not ip or ip in configured_hosts:
+                continue
+            name = device.get("DeviceName") or "Pixoo"
+            options.append({"value": ip, "label": f"{name} ({ip})"})
+        return options
 
     @staticmethod
     @callback
