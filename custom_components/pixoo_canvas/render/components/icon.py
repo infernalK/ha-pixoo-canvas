@@ -1,19 +1,14 @@
-"""Icon component: MDI icon fetched as SVG, tinted, rasterized, and pasted."""
+"""Icon component: MDI icon glyph drawn from the bundled webfont, tinted by value."""
 
 from __future__ import annotations
 
 import logging
-import re
-from io import BytesIO
 from typing import TYPE_CHECKING, Any
 
-import resvg_py
-from PIL import Image
-
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from ..colors import RGB, resolve_color
+from ..colors import resolve_color
+from ..mdi import load_icon_font, resolve_glyph
 from ..values import resolve_threshold_color, resolve_value
 
 if TYPE_CHECKING:
@@ -21,26 +16,7 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-_MDI_SVG_URL = "https://cdn.jsdelivr.net/npm/@mdi/svg@latest/svg/{name}.svg"
 _DEFAULT_SIZE = 16
-
-
-def _tint_svg(svg_text: str, color: RGB) -> str:
-    """Force the icon's fill color by setting it on the root <svg> element."""
-    hex_color = "#{:02x}{:02x}{:02x}".format(*color)
-    return re.sub(r"<svg ", f'<svg fill="{hex_color}" ', svg_text, count=1)
-
-
-def _rasterize(svg_text: str, size: int) -> Image.Image:
-    """Render tinted SVG markup to an RGBA raster of `size`x`size`.
-
-    Uses resvg_py (a statically-linked Rust binding) rather than cairosvg:
-    cairosvg needs the system libcairo shared library, which isn't present on
-    stock Home Assistant OS/Container images and isn't installable via a
-    manifest.json pip requirement, breaking the whole integration on import.
-    """
-    png_bytes = resvg_py.svg_to_bytes(svg_string=svg_text, width=size, height=size)
-    return Image.open(BytesIO(png_bytes)).convert("RGBA")
 
 
 async def draw(
@@ -49,11 +25,12 @@ async def draw(
     hass: HomeAssistant,
     variables: dict[str, Any] | None,
 ) -> None:
-    """Fetch an MDI icon, tint it per `color`/`color_thresholds`, and paste it."""
+    """Draw an MDI icon glyph, tinted per `color`/`color_thresholds`."""
     icon = str(component.get("icon", ""))
     name = icon.split(":", 1)[-1]
-    if not name:
-        _LOGGER.warning("Icon component missing 'icon', skipping")
+    glyph = resolve_glyph(name)
+    if glyph is None:
+        _LOGGER.warning("Unknown MDI icon %r, skipping", name)
         return
 
     default_color = resolve_color(component.get("color"), hass, variables, default=(255, 255, 255))
@@ -64,14 +41,7 @@ async def draw(
     else:
         color = default_color
 
-    session = async_get_clientsession(hass)
-    async with session.get(_MDI_SVG_URL.format(name=name)) as resp:
-        resp.raise_for_status()
-        svg_text = await resp.text()
-
     size = int(component.get("size", _DEFAULT_SIZE))
-    tinted = _tint_svg(svg_text, color)
-    icon_img = await hass.async_add_executor_job(_rasterize, tinted, size)
-
+    font = load_icon_font(size)
     x, y = component.get("position", [0, 0])
-    ctx.image.paste(icon_img, (int(x), int(y)), icon_img)
+    ctx.draw.text((int(x), int(y)), glyph, font=font, fill=color)

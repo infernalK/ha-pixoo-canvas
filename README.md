@@ -98,10 +98,11 @@ Les composants `icon` (icône MDI, avec couleur conditionnelle) et `progress_bar
 ```
 
 `icon` résout un nom [Material Design Icons](https://pictogrammers.com/library/mdi/) (avec ou
-sans préfixe `mdi:`) en SVG, le colore et le rasterise à la taille demandée (`size`, en pixels).
-`color_thresholds` (commun à `icon` et `progress_bar`) prend une liste ascendante
-`{value, color}` : la couleur retenue est celle du seuil le plus élevé encore inférieur ou égal
-à `value`.
+sans préfixe `mdi:`) en glyphe de la police MDI embarquée dans l'intégration (aucun appel
+réseau, aucune dépendance système — juste Pillow), coloré et dessiné à la taille demandée
+(`size`, en pixels). `color_thresholds` (commun à `icon` et `progress_bar`) prend une liste
+ascendante `{value, color}` : la couleur retenue est celle du seuil le plus élevé encore
+inférieur ou égal à `value`.
 
 Puis, pour l'afficher :
 
