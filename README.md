@@ -112,37 +112,83 @@ inférieur ou égal à `value`.
 
 #### Polices
 
-Le composant `text` accepte un champ `font` optionnel (par défaut `press_start_2p`) :
+Le composant `text` accepte un champ `font` optionnel (par défaut `pico_8`) :
 
-| `font` | Style | Hauteur à `font_size: 6` | Largeur (pour "Fete du jour") |
+| `font` | Type | Hauteur native | Largeur (pour "Temperatures") |
 | --- | --- | --- | --- |
-| `press_start_2p` (défaut) | bloc large, style arcade | 7px | 72px |
-| `silkscreen` | fine, compacte | 4px | 52px |
-| `silkscreen_bold` | comme `silkscreen`, en gras | 4px | 56px |
+| `pico_8` (défaut) | bitmap pixel natif | 5px | 47px |
+| `gicko` | bitmap pixel natif, plus large | 6px | 83px |
+| `press_start_2p` | TrueType (`font_size`, défaut 6) | 7px | 72px |
+| `silkscreen` | TrueType (`font_size`, défaut 6) | 4px | 55px |
+| `silkscreen_bold` | TrueType (`font_size`, défaut 6) | 4px | 61px |
 
-`press_start_2p` reste le défaut : sur l'écran LED physique, c'est la **hauteur** du glyphe qui
-détermine la lisibilité (le flou de diffusion des LED rend une police fine illisible), pas
-juste la largeur. `silkscreen` est plus étroite mais nettement moins lisible sur l'écran réel
-à taille égale — à réserver aux cas où tu as vraiment besoin de caser plus de caractères et où
-tu acceptes ce compromis (idéalement avec une `font_size` plus grande pour compenser la
-hauteur, ex. `font_size: 10`).
+`pico_8` et `gicko` sont de vraies polices bitmap (chaque glyphe est une grille de pixels
+fixe, comme sur un vrai écran LED) portées depuis
+[gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant) (licence MIT,
+voir `render/fonts/bitmap/`) — l'intégration qui a inspiré ce projet et dont tes pages
+utilisaient déjà `font: pico_8` à l'origine. `pico_8` est maintenant le défaut : c'est la seule
+police qui reste à la fois compacte (~47px pour un titre de 12 caractères, contre 72px pour
+`press_start_2p`) **et** assez haute (5px) pour rester lisible sur l'écran physique — contrairement
+à `silkscreen`, plus étroite mais trop fine (4px) pour bien se voir derrière la diffusion des LED.
 
-**Le vrai problème que tu as vu** (texte coupé) vient du fait qu'à `font_size: 6` (le défaut),
-`press_start_2p` déborde de l'écran 64px dès qu'un titre dépasse ~10 caractères. Sur tes 7
-pages, ça concerne concrètement les titres **Alerte météo**, **Fête du jour**,
-**Températures**, **Poubelles !** et **~ PISCINE ~** (pas seulement "Fête du jour"). Le fix
-n'est pas de changer de police mais de réduire `font_size` sur ces titres précis :
+Pour les polices bitmap, `font_size` n'est pas une taille de point mais un **facteur d'échelle
+entier** (`font_size: 2` double chaque pixel du glyphe, défaut `1`). Pour les polices
+TrueType (`press_start_2p`, `silkscreen`, `silkscreen_bold`), `font_size` reste une taille de
+police classique (défaut `6`).
+
+##### Page de test des polices
+
+Colle ça comme page (ou en `components` inline pour un test ponctuel via `render_page`) pour
+comparer les 6 combinaisons sur ton écran réel avec le texte qui posait problème :
 
 ```yaml
-- type: text
-  position: [0, 0]
-  content: "Temperatures"
-  font_size: 5   # au lieu du défaut (6) qui déborde pour ce titre précis
-  color: yellow
+- name: Test polices
+  components:
+    - type: rectangle
+      position: [0, 0]
+      size: [64, 64]
+      color: black
+    - type: text          # ligne 1 : défaut (pico_8, échelle 1)
+      position: [0, 0]
+      content: Temperatures
+      font: pico_8
+      color: white
+    - type: text          # ligne 2 : gicko, échelle 1 (plus large, déborde ici)
+      position: [0, 8]
+      content: Temperatures
+      font: gicko
+      color: yellow
+    - type: text          # ligne 3 : press_start_2p réduit (l'option de repli suggérée avant)
+      position: [0, 16]
+      content: Temperatures
+      font: press_start_2p
+      font_size: 5
+      color: cyan
+    - type: text          # ligne 4 : press_start_2p taille par défaut (déborde volontairement, pour comparaison)
+      position: [0, 24]
+      content: Temperatures
+      font: press_start_2p
+      font_size: 6
+      color: orange
+    - type: text          # ligne 5 : silkscreen agrandie pour compenser sa finesse
+      position: [0, 34]
+      content: Temperatures
+      font: silkscreen
+      font_size: 8
+      color: lime
+    - type: text          # ligne 6 : silkscreen_bold agrandie
+      position: [0, 44]
+      content: Temperatures
+      font: silkscreen_bold
+      font_size: 8
+      color: magenta
 ```
 
-À `font_size: 5`, ces 5 titres tiennent tous dans les 64px (max 60px de large), avec une perte
-de lisibilité minime par rapport à la taille 6.
+Ordre des lignes de haut en bas : **pico_8** (blanc) · **gicko** (jaune) · **press_start_2p@5**
+(cyan) · **press_start_2p@6** (orange, déborde volontairement) · **silkscreen@8** (vert) ·
+**silkscreen_bold@8** (magenta). Regarde laquelle est la plus lisible *sur l'écran*, pas sur une
+capture d'écran — dis-moi ton verdict et j'ajuste le défaut si `pico_8` ne te convainc pas non
+plus.
 
 Puis, pour l'afficher :
 

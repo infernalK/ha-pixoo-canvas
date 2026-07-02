@@ -23,8 +23,8 @@ render_page:
       name: Components
       description: >-
         Inline list of page components (text/image/rectangle/icon/progress_bar/templatable).
-        Text components accept an optional `font` (silkscreen, the default and most compact;
-        silkscreen_bold; press_start_2p). Provide this or 'page', not both.
+        Text components accept an optional `font` (pico_8, the default bitmap font; gicko;
+        press_start_2p; silkscreen; silkscreen_bold). Provide this or 'page', not both.
       required: false
       selector:
         object:

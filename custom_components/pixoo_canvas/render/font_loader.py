@@ -8,11 +8,11 @@ from PIL import ImageFont
 
 FONTS_DIR = Path(__file__).parent / "fonts"
 
-# Press Start 2P stays the default: it renders taller (7px at size 6) than
-# Silkscreen (4px at the same size), and glyph height is what makes text
-# legible on a real, diffused LED matrix, not just width. Silkscreen is
-# narrower and useful when a specific line needs to fit more characters, but
-# it reads as blurry/illegible on the physical display at small sizes.
+# These are the scalable TrueType alternatives to the default bitmap font
+# (see components/text.py, DEFAULT_FONT_NAME = "pico_8"). Press Start 2P is
+# this module's own fallback for an unrecognized TTF font name: it renders
+# taller (7px at size 6) than Silkscreen (4px at the same size), and glyph
+# height is what makes text legible on a real, diffused LED matrix.
 FONT_PATHS: dict[str, Path] = {
     "press_start_2p": FONTS_DIR / "press_start_2p" / "PressStart2P-Regular.ttf",
     "silkscreen": FONTS_DIR / "silkscreen" / "Silkscreen-Regular.ttf",

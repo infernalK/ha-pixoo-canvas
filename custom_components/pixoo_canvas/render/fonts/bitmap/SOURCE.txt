@@ -1,0 +1,12 @@
+FONT_PICO_8 and FONT_GICKO in gickowtf_fonts.json are pixel-bitmap glyph
+tables extracted from:
+
+  https://github.com/gickowtf/pixoo-homeassistant
+  custom_components/divoom_pixoo/pixoo64/_font.py
+  Copyright (c) 2023 gickowtf, MIT License (see LICENSE.txt in this folder)
+
+Each glyph is stored as a flat array of 0/1 pixels in row-major order,
+terminated by the glyph's pixel width (see render/bitmap_font.py for the
+renderer). Only the two general-purpose alphanumeric font tables were
+ported; the clock/large-digit-only tables (FIVE_PIX, ELEVEN_PIX, CLOCK,
+PIX24) were not, as this project doesn't render standalone clock faces.

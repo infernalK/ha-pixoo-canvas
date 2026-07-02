@@ -53,16 +53,16 @@ async def test_text_center_alignment_shifts_left_of_position(hass):
     assert first_lit_column(ctx_center.image) < first_lit_column(ctx_left.image)
 
 
+def _last_lit_column(image):
+    for x in reversed(range(image.size[0])):
+        for y in range(image.size[1]):
+            if image.getpixel((x, y)) != (0, 0, 0):
+                return x
+    return None
+
+
 async def test_text_font_field_selects_alternate_font(hass):
     """The optional `font` field switches to a different bundled font."""
-
-    def last_lit_column(image):
-        for x in reversed(range(image.size[0])):
-            for y in range(image.size[1]):
-                if image.getpixel((x, y)) != (0, 0, 0):
-                    return x
-        return None
-
     ctx_default = RenderContext()
     await text.draw(
         {"type": "text", "position": [0, 0], "content": "Fete du jour"},
@@ -70,18 +70,39 @@ async def test_text_font_field_selects_alternate_font(hass):
         hass,
         None,
     )
-    ctx_silkscreen = RenderContext()
+    ctx_press_start = RenderContext()
     await text.draw(
         {
             "type": "text",
             "position": [0, 0],
             "content": "Fete du jour",
-            "font": "silkscreen",
+            "font": "press_start_2p",
         },
-        ctx_silkscreen,
+        ctx_press_start,
         hass,
         None,
     )
 
-    # Silkscreen is narrower than Press Start 2P (the default) at the same size.
-    assert last_lit_column(ctx_silkscreen.image) < last_lit_column(ctx_default.image)
+    # pico_8 (the default, a native pixel-bitmap font) is narrower than the
+    # scaled TrueType Press Start 2P at the same nominal size.
+    assert _last_lit_column(ctx_default.image) < _last_lit_column(ctx_press_start.image)
+
+
+async def test_text_bitmap_font_size_acts_as_integer_scale(hass):
+    """For bitmap fonts, `font_size` is an integer scale factor, not a point size."""
+    ctx_scale1 = RenderContext()
+    await text.draw(
+        {"type": "text", "position": [0, 0], "content": "SPA", "font_size": 1},
+        ctx_scale1,
+        hass,
+        None,
+    )
+    ctx_scale2 = RenderContext()
+    await text.draw(
+        {"type": "text", "position": [0, 0], "content": "SPA", "font_size": 2},
+        ctx_scale2,
+        hass,
+        None,
+    )
+
+    assert _last_lit_column(ctx_scale2.image) > _last_lit_column(ctx_scale1.image)
