@@ -21,6 +21,15 @@ async def test_resolve_value_invalid_falls_back_to_default(hass):
     assert resolve_value(None, hass, None, default=7.0) == 7.0
 
 
+async def test_resolve_value_template_error_falls_back_to_default(hass):
+    """A template that fails to render (e.g. |int on an unavailable sensor) uses the default."""
+    result = resolve_value(
+        "{{ states('sensor.does_not_exist')|int }}", hass, None, default=-1.0
+    )
+
+    assert result == -1.0
+
+
 async def test_resolve_threshold_color_picks_highest_matching_threshold(hass):
     """The color of the highest threshold at or below the value wins."""
     thresholds = [

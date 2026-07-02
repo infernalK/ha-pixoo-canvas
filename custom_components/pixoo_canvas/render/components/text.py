@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import TemplateError
 from homeassistant.helpers.template import Template
 
 from ..bitmap_font import BITMAP_FONT_NAMES, bitmap_text_size, draw_bitmap_text
@@ -13,6 +15,8 @@ from ..font_loader import DEFAULT_FONT_SIZE, load_font
 
 if TYPE_CHECKING:
     from ..engine import RenderContext
+
+_LOGGER = logging.getLogger(__name__)
 
 # pico_8 is the default: a true pixel-bitmap font (not a scaled TrueType
 # outline) that stays narrow *and* a full 5px tall at native scale, which
@@ -29,7 +33,11 @@ async def draw(
 ) -> None:
     """Render a text component's content and draw it at its position."""
     content = str(component.get("content", ""))
-    text = str(Template(content, hass).async_render(variables=variables))
+    try:
+        text = str(Template(content, hass).async_render(variables=variables))
+    except TemplateError as err:
+        _LOGGER.warning("Text content template failed to render, skipping: %s", err)
+        return
 
     x, y = component.get("position", [0, 0])
     color = resolve_color(component.get("color"), hass, variables, default=(255, 255, 255))

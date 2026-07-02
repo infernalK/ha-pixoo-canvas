@@ -36,3 +36,15 @@ async def test_expand_uses_variables(hass):
     result = await templatable.expand(component, hass, {"my_x": 7})
 
     assert result[0]["position"] == [7, 0]
+
+
+async def test_expand_returns_empty_list_on_template_error(hass):
+    """A template that fails to render (e.g. |int on an unavailable sensor) is skipped, not raised."""
+    component = {
+        "type": "templatable",
+        "template": "{{ states('sensor.does_not_exist')|int <= 1 }}",
+    }
+
+    result = await templatable.expand(component, hass, None)
+
+    assert result == []

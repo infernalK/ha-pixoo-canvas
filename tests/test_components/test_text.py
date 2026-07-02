@@ -106,3 +106,18 @@ async def test_text_bitmap_font_size_acts_as_integer_scale(hass):
     )
 
     assert _last_lit_column(ctx_scale2.image) > _last_lit_column(ctx_scale1.image)
+
+
+async def test_text_content_template_error_is_skipped(hass):
+    """A content template that fails to render (e.g. |int on an unavailable sensor) draws nothing."""
+    ctx = RenderContext()
+    component = {
+        "type": "text",
+        "position": [0, 0],
+        "content": "{{ states('sensor.does_not_exist')|int }}",
+        "color": [255, 255, 255],
+    }
+
+    await text.draw(component, ctx, hass, None)
+
+    assert ctx.image.getpixel((0, 0)) == (0, 0, 0)
