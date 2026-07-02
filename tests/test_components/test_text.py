@@ -51,3 +51,37 @@ async def test_text_center_alignment_shifts_left_of_position(hass):
         return None
 
     assert first_lit_column(ctx_center.image) < first_lit_column(ctx_left.image)
+
+
+async def test_text_font_field_selects_alternate_font(hass):
+    """The optional `font` field switches to a different bundled font."""
+
+    def last_lit_column(image):
+        for x in reversed(range(image.size[0])):
+            for y in range(image.size[1]):
+                if image.getpixel((x, y)) != (0, 0, 0):
+                    return x
+        return None
+
+    ctx_default = RenderContext()
+    await text.draw(
+        {"type": "text", "position": [0, 0], "content": "Fete du jour"},
+        ctx_default,
+        hass,
+        None,
+    )
+    ctx_press_start = RenderContext()
+    await text.draw(
+        {
+            "type": "text",
+            "position": [0, 0],
+            "content": "Fete du jour",
+            "font": "press_start_2p",
+        },
+        ctx_press_start,
+        hass,
+        None,
+    )
+
+    # Silkscreen (the default) is narrower than Press Start 2P at the same size.
+    assert last_lit_column(ctx_default.image) < last_lit_column(ctx_press_start.image)

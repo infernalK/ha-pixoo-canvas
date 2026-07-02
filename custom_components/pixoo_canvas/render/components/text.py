@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.template import Template
 
 from ..colors import resolve_color
-from ..font_loader import DEFAULT_FONT_SIZE, load_font
+from ..font_loader import DEFAULT_FONT_NAME, DEFAULT_FONT_SIZE, load_font
 
 if TYPE_CHECKING:
     from ..engine import RenderContext
@@ -27,7 +27,9 @@ async def draw(
     x, y = component.get("position", [0, 0])
     color = resolve_color(component.get("color"), hass, variables, default=(255, 255, 255))
     font = await hass.async_add_executor_job(
-        load_font, int(component.get("font_size", DEFAULT_FONT_SIZE))
+        load_font,
+        int(component.get("font_size", DEFAULT_FONT_SIZE)),
+        str(component.get("font", DEFAULT_FONT_NAME)),
     )
     align = str(component.get("align", "left")).lower()
 

@@ -110,6 +110,30 @@ réseau, aucune dépendance système — juste Pillow), coloré et dessiné à l
 ascendante `{value, color}` : la couleur retenue est celle du seuil le plus élevé encore
 inférieur ou égal à `value`.
 
+#### Polices
+
+Le composant `text` accepte un champ `font` optionnel (par défaut `silkscreen`) :
+
+| `font` | Style | Largeur (pour "Fete du jour" à `font_size: 6`) |
+| --- | --- | --- |
+| `silkscreen` (défaut) | fine, très compacte | 52px |
+| `silkscreen_bold` | comme `silkscreen`, en gras | 52px |
+| `press_start_2p` | bloc large, style arcade | 72px (déborde d'un écran 64px !) |
+
+`silkscreen` est le défaut depuis la Phase 5 justement parce que `press_start_2p` (l'unique
+police de la Phase 3) déborde de l'écran 64px dès qu'un texte dépasse une dizaine de
+caractères. Si une de tes pages existantes affichait un titre tronqué, elle est
+automatiquement corrigée sans rien changer à sa config — sinon, force `font: press_start_2p`
+sur un composant précis si tu préfères ce style pour un texte court.
+
+```yaml
+- type: text
+  position: [0, 0]
+  content: "Fete du jour"
+  font: press_start_2p   # optionnel, silkscreen par défaut
+  color: yellow
+```
+
 Puis, pour l'afficher :
 
 ```yaml
