@@ -6,6 +6,6 @@
   "documentation": "https://github.com/infernalK/ha-pixoo-canvas",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/infernalK/ha-pixoo-canvas/issues",
-  "requirements": ["Pillow", "cairosvg"],
+  "requirements": ["Pillow", "resvg_py"],
   "version": "0.1.0"
 }

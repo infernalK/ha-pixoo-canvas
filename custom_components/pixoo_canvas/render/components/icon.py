@@ -7,7 +7,7 @@ import re
 from io import BytesIO
 from typing import TYPE_CHECKING, Any
 
-import cairosvg
+import resvg_py
 from PIL import Image
 
 from homeassistant.core import HomeAssistant
@@ -32,10 +32,14 @@ def _tint_svg(svg_text: str, color: RGB) -> str:
 
 
 def _rasterize(svg_text: str, size: int) -> Image.Image:
-    """Render tinted SVG markup to an RGBA raster of `size`x`size`."""
-    png_bytes = cairosvg.svg2png(
-        bytestring=svg_text.encode("utf-8"), output_width=size, output_height=size
-    )
+    """Render tinted SVG markup to an RGBA raster of `size`x`size`.
+
+    Uses resvg_py (a statically-linked Rust binding) rather than cairosvg:
+    cairosvg needs the system libcairo shared library, which isn't present on
+    stock Home Assistant OS/Container images and isn't installable via a
+    manifest.json pip requirement, breaking the whole integration on import.
+    """
+    png_bytes = resvg_py.svg_to_bytes(svg_string=svg_text, width=size, height=size)
     return Image.open(BytesIO(png_bytes)).convert("RGBA")
 
 
