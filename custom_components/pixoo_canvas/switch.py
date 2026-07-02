@@ -8,7 +8,6 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -52,8 +51,16 @@ class PixooScreenPowerSwitch(CoordinatorEntity[PixooCoordinator], SwitchEntity):
         await self.coordinator.async_request_refresh()
 
 
-class PixooPageRotationSwitch(RestoreEntity, SwitchEntity):
-    """Enables/disables automatic page rotation, restored across restarts."""
+class PixooPageRotationSwitch(SwitchEntity):
+    """Enables/disables automatic page rotation.
+
+    Its on/off preference is restored across restarts via PageRotator's own
+    storage (see rotation.py), applied in __init__.py at setup time — not
+    via RestoreEntity, whose shared hass-wide restore-state task can leave
+    this waiting minutes behind on a busy install. By the time this entity
+    is added, rotation has already resumed if it was on before, so is_on
+    just reflects the rotator's live state.
+    """
 
     _attr_has_entity_name = True
     _attr_translation_key = "page_rotation"
@@ -69,14 +76,6 @@ class PixooPageRotationSwitch(RestoreEntity, SwitchEntity):
         """Return whether rotation is currently running."""
         return self._rotator.is_running
 
-    async def async_added_to_hass(self) -> None:
-        """Resume rotation on startup if it was on before the last restart."""
-        await super().async_added_to_hass()
-        last_state = await self.async_get_last_state()
-        if last_state is not None and last_state.state == "on":
-            await self._rotator.async_start()
-            self.async_write_ha_state()
-
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Start rotating through the configured pages."""
         await self._rotator.async_start()
@@ -84,5 +83,5 @@ class PixooPageRotationSwitch(RestoreEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Stop rotation, leaving the last rendered page on screen."""
-        self._rotator.async_stop()
+        await self._rotator.async_disable()
         self.async_write_ha_state()

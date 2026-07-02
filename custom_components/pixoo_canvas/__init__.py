@@ -19,6 +19,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     client = PixooClient(session, entry.data[CONF_HOST])
     coordinator = PixooCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
+    await coordinator.rotator.async_restore()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -37,6 +38,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         coordinator: PixooCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
-        coordinator.rotator.async_stop()
+        await coordinator.rotator.async_stop()
         await async_unload_services(hass)
     return unloaded

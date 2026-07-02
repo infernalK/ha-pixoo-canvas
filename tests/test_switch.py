@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from homeassistant.const import CONF_HOST, STATE_ON
-from homeassistant.core import State
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry, mock_restore_cache
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pixoo_canvas.const import CONF_PAGES_YAML, DOMAIN
 
@@ -80,28 +79,58 @@ async def test_page_rotation_switch_turn_off_stops_rotation(hass, aioclient_mock
     assert hass.states.get(entity_id).state == "off"
 
 
-async def test_page_rotation_switch_restores_on_state(hass, aioclient_mock):
-    """A page rotation switch that was on before restart resumes automatically."""
-    # First setup just to learn the entity_id HA assigns (device-name based slug),
-    # without guessing it, then unload and re-setup with a seeded restore cache.
+async def test_page_rotation_switch_resumes_after_restart(hass, aioclient_mock):
+    """Rotation that was on before a restart (unload + setup) resumes automatically.
+
+    This exercises PageRotator's own storage (rotation.py), applied at
+    __init__.py setup time, rather than RestoreEntity: an earlier version
+    used RestoreEntity, which depends on a single hass-wide restore-state
+    loading task shared by every restorable entity on the instance, and on
+    a busy real install that left rotation waiting minutes after a restart.
+    """
     aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
     entry = MockConfigEntry(
-        domain=DOMAIN,
-        entry_id="mock-entry-id",
-        data={CONF_HOST: HOST},
-        options={CONF_PAGES_YAML: _ONE_PAGE},
+        domain=DOMAIN, data={CONF_HOST: HOST}, options={CONF_PAGES_YAML: _ONE_PAGE}
     )
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     entity_id = _rotation_entity_id(hass, entry)
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": entity_id}, blocking=True
+    )
+    assert hass.states.get(entity_id).state == STATE_ON
+
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
 
-    mock_restore_cache(hass, [State(entity_id, STATE_ON)])
     aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
     aioclient_mock.post(URL, json={"error_code": 0})
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
     assert hass.states.get(entity_id).state == STATE_ON
+
+
+async def test_page_rotation_switch_stays_off_after_restart(hass, aioclient_mock):
+    """Rotation left off before a restart stays off, it doesn't default to on."""
+    aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={CONF_HOST: HOST}, options={CONF_PAGES_YAML: _ONE_PAGE}
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    entity_id = _rotation_entity_id(hass, entry)
+    assert hass.states.get(entity_id).state == "off"
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get(entity_id).state == "off"

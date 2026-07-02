@@ -67,7 +67,7 @@ async def test_async_start_renders_first_page_immediately(hass):
 
     assert len(client.calls) == 1
     assert rotator.is_running is True
-    rotator.async_stop()
+    await rotator.async_stop()
 
 
 async def test_rotation_advances_after_duration(hass):
@@ -82,7 +82,7 @@ async def test_rotation_advances_after_duration(hass):
     await hass.async_block_till_done()
 
     assert len(client.calls) == 2
-    rotator.async_stop()
+    await rotator.async_stop()
 
 
 async def test_scan_interval_refreshes_mid_duration(hass):
@@ -107,7 +107,7 @@ async def test_scan_interval_refreshes_mid_duration(hass):
     await hass.async_block_till_done()
 
     assert len(client.calls) == 2
-    rotator.async_stop()
+    await rotator.async_stop()
 
 
 async def test_disabled_page_is_skipped(hass):
@@ -135,7 +135,7 @@ async def test_disabled_page_is_skipped(hass):
 
     assert len(client.calls) == 1
     assert client.calls[0][:3] == bytes([0, 0, 255])  # page B (blue), A was skipped
-    rotator.async_stop()
+    await rotator.async_stop()
 
 
 async def test_no_pages_configured_is_idle_noop(hass):
@@ -148,7 +148,7 @@ async def test_no_pages_configured_is_idle_noop(hass):
 
     assert len(client.calls) == 0
     assert rotator.is_running is True
-    rotator.async_stop()
+    await rotator.async_stop()
 
 
 async def test_async_stop_halts_further_rendering(hass):
@@ -159,7 +159,7 @@ async def test_async_stop_halts_further_rendering(hass):
     await rotator.async_start()
     assert len(client.calls) == 1
 
-    rotator.async_stop()
+    await rotator.async_stop()
     _advance(hass, 30)
     await hass.async_block_till_done()
 
@@ -189,7 +189,7 @@ async def test_device_error_does_not_stall_rotation(hass):
     await hass.async_block_till_done()
 
     assert client.calls == 2
-    rotator.async_stop()
+    await rotator.async_stop()
 
 
 async def test_invalid_pages_yaml_is_idle_noop(hass):
@@ -202,4 +202,4 @@ async def test_invalid_pages_yaml_is_idle_noop(hass):
 
     assert len(client.calls) == 0
     assert rotator.is_running is True
-    rotator.async_stop()
+    await rotator.async_stop()

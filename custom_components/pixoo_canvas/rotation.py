@@ -10,14 +10,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.exceptions import TemplateError
 from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.template import Template
 
 from .api import PixooApiError, PixooClient
-from .const import DEFAULT_PAGE_DURATION, MIN_PAGE_DURATION, ROTATION_IDLE_POLL_INTERVAL
+from .const import DEFAULT_PAGE_DURATION, DOMAIN, MIN_PAGE_DURATION, ROTATION_IDLE_POLL_INTERVAL
 from .pages import PagesYamlError, parse_pages
 from .render.engine import render_page
 
 _LOGGER = logging.getLogger(__name__)
+
+_STORAGE_VERSION = 1
 
 
 def _parse_duration(value: Any) -> float:
@@ -67,11 +70,26 @@ class PageRotator:
         self._page_index = 0
         self._elapsed = 0.0
         self._pending_step = 0.0
+        # Deliberately not HA's entity-level RestoreEntity: that awaits a
+        # single hass-wide restore-state loading task shared by every
+        # restorable entity on the instance, which can leave rotation
+        # waiting minutes after a restart on a busy install. This is a
+        # small integration-private store, read synchronously at setup
+        # time in __init__.py instead of from an entity's lifecycle hook.
+        self._store: Store[dict[str, bool]] = Store(
+            hass, _STORAGE_VERSION, f"{DOMAIN}_{entry.entry_id}_rotation"
+        )
 
     @property
     def is_running(self) -> bool:
         """Whether the rotation loop is currently active."""
         return self._running
+
+    async def async_restore(self) -> None:
+        """Resume rotation if it was running before the last restart/reload."""
+        data = await self._store.async_load()
+        if data and data.get("enabled"):
+            await self.async_start()
 
     async def async_start(self) -> None:
         """Start the rotation loop, if not already running."""
@@ -81,14 +99,25 @@ class PageRotator:
         self._pages = []
         self._page_index = 0
         self._elapsed = 0.0
+        await self._store.async_save({"enabled": True})
         await self._select_page()
 
-    def async_stop(self) -> None:
-        """Stop the rotation loop."""
+    async def async_stop(self) -> None:
+        """Stop the rotation loop without changing the persisted on/off preference.
+
+        Used for unload/reload (including a plain HA restart): the loop must
+        stop, but whether it resumes on the next setup is a separate,
+        user-driven decision (see async_disable) that must survive this.
+        """
         self._running = False
         if self._unsub is not None:
             self._unsub()
             self._unsub = None
+
+    async def async_disable(self) -> None:
+        """Stop rotation and persist that it should stay off across restarts."""
+        await self.async_stop()
+        await self._store.async_save({"enabled": False})
 
     def _enabled_pages(self) -> list[dict[str, Any]]:
         try:
