@@ -26,7 +26,9 @@ async def draw(
 
     x, y = component.get("position", [0, 0])
     color = resolve_color(component.get("color"), hass, variables, default=(255, 255, 255))
-    font = load_font(int(component.get("font_size", DEFAULT_FONT_SIZE)))
+    font = await hass.async_add_executor_job(
+        load_font, int(component.get("font_size", DEFAULT_FONT_SIZE))
+    )
     align = str(component.get("align", "left")).lower()
 
     if align in ("center", "right"):

@@ -28,7 +28,7 @@ async def draw(
     """Draw an MDI icon glyph, tinted per `color`/`color_thresholds`."""
     icon = str(component.get("icon", ""))
     name = icon.split(":", 1)[-1]
-    glyph = resolve_glyph(name)
+    glyph = await hass.async_add_executor_job(resolve_glyph, name)
     if glyph is None:
         _LOGGER.warning("Unknown MDI icon %r, skipping", name)
         return
@@ -42,6 +42,6 @@ async def draw(
         color = default_color
 
     size = int(component.get("size", _DEFAULT_SIZE))
-    font = load_icon_font(size)
+    font = await hass.async_add_executor_job(load_icon_font, size)
     x, y = component.get("position", [0, 0])
     ctx.draw.text((int(x), int(y)), glyph, font=font, fill=color)
