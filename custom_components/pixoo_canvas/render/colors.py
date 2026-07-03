@@ -44,6 +44,9 @@ def resolve_color(
         return int(value[0]), int(value[1]), int(value[2])
 
     try:
-        return ImageColor.getrgb(str(value))
+        rgb = ImageColor.getrgb(str(value))
     except ValueError:
         return default
+    # getrgb() returns 4 components (RGBA) for some inputs (e.g. "#RRGGBBAA");
+    # every caller expects a plain 3-tuple, so drop any alpha channel.
+    return rgb[0], rgb[1], rgb[2]

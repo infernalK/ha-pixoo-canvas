@@ -27,3 +27,10 @@ async def test_resolve_color_template_error_falls_back_to_default(hass):
     )
 
     assert result == (9, 9, 9)
+
+
+async def test_resolve_color_hex_with_alpha_drops_alpha_channel(hass):
+    """A #RRGGBBAA hex string resolves to a plain 3-tuple, alpha dropped."""
+    result = resolve_color("#FF000080", hass, None, default=(9, 9, 9))
+
+    assert result == (255, 0, 0)
