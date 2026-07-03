@@ -194,16 +194,21 @@ class PixooCanvasOptionsFlowHandler(config_entries.OptionsFlow):
                 if not _is_valid_pages(pages):
                     errors["base"] = "invalid_schema"
                 else:
-                    session = async_get_clientsession(self.hass)
-                    try:
-                        await PixooClient(session, host).get_all_conf()
-                    except PixooApiError:
-                        _LOGGER.debug(
-                            "Connection test failed for host %s", host, exc_info=True
-                        )
-                        errors["base"] = "cannot_connect"
-                    else:
-                        if host != self.config_entry.data.get(CONF_HOST):
+                    host_changed = host != self.config_entry.data.get(CONF_HOST)
+                    connection_ok = True
+                    if host_changed:
+                        session = async_get_clientsession(self.hass)
+                        try:
+                            await PixooClient(session, host).get_all_conf()
+                        except PixooApiError:
+                            _LOGGER.debug(
+                                "Connection test failed for host %s", host, exc_info=True
+                            )
+                            errors["base"] = "cannot_connect"
+                            connection_ok = False
+
+                    if connection_ok:
+                        if host_changed:
                             self.hass.config_entries.async_update_entry(
                                 self.config_entry,
                                 data={**self.config_entry.data, CONF_HOST: host},

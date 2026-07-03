@@ -79,6 +79,22 @@ async def test_options_flow_rejects_unreachable_host(hass, aioclient_mock):
     assert entry.data[CONF_HOST] == HOST  # unchanged
 
 
+async def test_options_flow_saves_without_connection_when_host_unchanged(hass, aioclient_mock):
+    """Saving pages/duration with an unchanged host doesn't require the device to be reachable."""
+    entry = _make_entry(hass)
+    pages_yaml = "- name: Temperatures\n  components:\n    - type: text\n      position: [0, 0]\n"
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_HOST: HOST, CONF_DEFAULT_PAGE_DURATION: 20, CONF_PAGES_YAML: pages_yaml},
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"] == {CONF_DEFAULT_PAGE_DURATION: 20, CONF_PAGES_YAML: pages_yaml}
+    assert len(aioclient_mock.mock_calls) == 0
+
+
 async def test_options_flow_rejects_invalid_yaml(hass, aioclient_mock):
     """Unparsable pages YAML re-shows the form with an error, without testing the connection."""
     entry = _make_entry(hass)
