@@ -27,10 +27,10 @@
     "step": {
       "init": {
         "title": "Configurer ton appareil Pixoo",
-        "description": "Modifie l'adresse IP de l'appareil, la fréquence d'interrogation de son état authoritatif, et ses pages. Les pages sont une liste YAML brute d'entrées nommées, chacune avec une liste `components`. Champs optionnels par page : `enabled` (template Jinja), `duration` (secondes d'affichage, défaut 15), `scan_interval` (secondes entre rafraîchissements pendant l'affichage — à ne pas confondre avec l'intervalle d'interrogation de l'appareil ci-dessus).",
+        "description": "Modifie l'adresse IP de l'appareil, la durée d'affichage par défaut des pages, et les pages elles-mêmes. Les pages sont une liste YAML brute d'entrées nommées, chacune avec une liste `components`. La durée par défaut s'applique à toute page qui ne précise pas sa propre `duration`. Autres champs optionnels par page : `enabled` (template Jinja), `scan_interval` (secondes entre rafraîchissements pendant l'affichage).",
         "data": {
           "host": "Adresse IP de l'appareil",
-          "scan_interval": "Intervalle d'interrogation de l'appareil (secondes)",
+          "default_page_duration": "Durée d'affichage par défaut des pages (secondes)",
           "pages_yaml": "Pages (YAML)"
         }
       }

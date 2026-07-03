@@ -10,7 +10,7 @@ import voluptuous as vol
 import yaml
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -26,7 +26,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .api import PixooApiError, PixooClient
-from .const import CONF_PAGES_YAML, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_DEFAULT_PAGE_DURATION, CONF_PAGES_YAML, DEFAULT_PAGE_DURATION, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -147,17 +147,17 @@ def _is_valid_pages(pages: Any) -> bool:
 
 
 class PixooCanvasOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle Pixoo Canvas options: device IP, poll interval, and the pages YAML editor."""
+    """Handle Pixoo Canvas options: device IP, default page duration, and the pages YAML."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Edit the device IP/scan interval/pages, validating everything before saving."""
+        """Edit the device IP/default page duration/pages, validating before saving."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             host = user_input[CONF_HOST]
-            scan_interval = user_input[CONF_SCAN_INTERVAL]
+            default_page_duration = user_input[CONF_DEFAULT_PAGE_DURATION]
             pages_yaml = user_input[CONF_PAGES_YAML]
 
             try:
@@ -184,15 +184,15 @@ class PixooCanvasOptionsFlowHandler(config_entries.OptionsFlow):
                             )
                         return self.async_create_entry(
                             data={
-                                CONF_SCAN_INTERVAL: scan_interval,
+                                CONF_DEFAULT_PAGE_DURATION: default_page_duration,
                                 CONF_PAGES_YAML: pages_yaml,
                             }
                         )
 
         current = user_input or {
             CONF_HOST: self.config_entry.data.get(CONF_HOST, ""),
-            CONF_SCAN_INTERVAL: self.config_entry.options.get(
-                CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+            CONF_DEFAULT_PAGE_DURATION: self.config_entry.options.get(
+                CONF_DEFAULT_PAGE_DURATION, DEFAULT_PAGE_DURATION
             ),
             CONF_PAGES_YAML: self.config_entry.options.get(CONF_PAGES_YAML, ""),
         }
@@ -200,9 +200,11 @@ class PixooCanvasOptionsFlowHandler(config_entries.OptionsFlow):
             {
                 vol.Required(CONF_HOST, default=current[CONF_HOST]): TextSelector(),
                 vol.Required(
-                    CONF_SCAN_INTERVAL, default=current[CONF_SCAN_INTERVAL]
+                    CONF_DEFAULT_PAGE_DURATION, default=current[CONF_DEFAULT_PAGE_DURATION]
                 ): NumberSelector(
-                    NumberSelectorConfig(min=5, max=3600, step=1, mode=NumberSelectorMode.BOX)
+                    NumberSelectorConfig(
+                        min=1, max=3600, step=1, mode=NumberSelectorMode.BOX
+                    )
                 ),
                 vol.Required(
                     CONF_PAGES_YAML, default=current[CONF_PAGES_YAML]

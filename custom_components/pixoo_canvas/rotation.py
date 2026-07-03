@@ -14,7 +14,13 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.template import Template
 
 from .api import PixooApiError, PixooClient
-from .const import DEFAULT_PAGE_DURATION, DOMAIN, MIN_PAGE_DURATION, ROTATION_IDLE_POLL_INTERVAL
+from .const import (
+    CONF_DEFAULT_PAGE_DURATION,
+    DEFAULT_PAGE_DURATION,
+    DOMAIN,
+    MIN_PAGE_DURATION,
+    ROTATION_IDLE_POLL_INTERVAL,
+)
 from .pages import PagesYamlError, parse_pages
 from .render.engine import render_page
 
@@ -23,15 +29,15 @@ _LOGGER = logging.getLogger(__name__)
 _STORAGE_VERSION = 1
 
 
-def _parse_duration(value: Any) -> float:
-    """Parse a page's `duration` field, falling back to the default on bad input."""
+def _parse_duration(value: Any, default: float) -> float:
+    """Parse a page's `duration` field, falling back to `default` on bad input."""
     if value is None:
-        return DEFAULT_PAGE_DURATION
+        return default
     try:
         return max(MIN_PAGE_DURATION, float(value))
     except (TypeError, ValueError):
         _LOGGER.warning("Invalid page duration %r, using the default", value)
-        return DEFAULT_PAGE_DURATION
+        return default
 
 
 def _parse_scan_interval(value: Any) -> float | None:
@@ -119,6 +125,12 @@ class PageRotator:
         await self.async_stop()
         await self._store.async_save({"enabled": False})
 
+    def _default_duration(self) -> float:
+        """Return the configured default page duration, or the built-in fallback."""
+        return float(
+            self._entry.options.get(CONF_DEFAULT_PAGE_DURATION, DEFAULT_PAGE_DURATION)
+        )
+
     def _enabled_pages(self) -> list[dict[str, Any]]:
         try:
             pages = parse_pages(self._entry)
@@ -156,7 +168,7 @@ class PageRotator:
     def _schedule_next(self) -> None:
         """Schedule the next tick: either a scan_interval refresh or the page's end."""
         page = self._pages[self._page_index]
-        duration = _parse_duration(page.get("duration"))
+        duration = _parse_duration(page.get("duration"), self._default_duration())
         scan_interval = _parse_scan_interval(page.get("scan_interval"))
         remaining = max(0.0, duration - self._elapsed)
         self._pending_step = min(scan_interval, remaining) if scan_interval else remaining
@@ -173,7 +185,7 @@ class PageRotator:
 
         self._elapsed += self._pending_step
         page = self._pages[self._page_index]
-        duration = _parse_duration(page.get("duration"))
+        duration = _parse_duration(page.get("duration"), self._default_duration())
 
         if self._elapsed >= duration:
             self._page_index += 1

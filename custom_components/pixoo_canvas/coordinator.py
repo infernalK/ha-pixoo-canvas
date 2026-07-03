@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -40,12 +39,15 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
     """Coordinator polling Channel/GetAllConf for the authoritative device state."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, client: PixooClient) -> None:
-        scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        # Not user-configurable: how often the integration reads the
+        # device's authoritative state is an internal implementation
+        # detail, unrelated to how long pages stay on screen (see
+        # rotation.py's CONF_DEFAULT_PAGE_DURATION for the user-facing knob).
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN} ({entry.title})",
-            update_interval=timedelta(seconds=scan_interval),
+            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
         )
         self.client = client
         self.config_entry = entry

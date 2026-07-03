@@ -12,10 +12,11 @@ dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar
 - ✅ L'intégration est ajoutable depuis l'UI Home Assistant, avec détection automatique du
   Pixoo sur le réseau local (via le service de découverte cloud de Divoom, comme les autres
   intégrations Pixoo) — repli sur saisie manuelle de l'IP si rien n'est trouvé ou en cas d'échec.
-- ✅ Un coordinator interroge le Pixoo (toutes les 15 secondes par défaut, configurable) et lit
-  l'état authoritatif de l'écran (`LightSwitch`, `Brightness`, rotation, mirroir, page courante).
-- ✅ IP et intervalle d'interrogation modifiables après coup depuis les options de l'intégration
-  (rechargement automatique à la sauvegarde).
+- ✅ Un coordinator interroge le Pixoo toutes les 15 secondes (fixe, détail interne — pas un
+  réglage utilisateur) et lit l'état authoritatif de l'écran (`LightSwitch`, `Brightness`,
+  rotation, mirroir, page courante).
+- ✅ IP modifiable après coup depuis les options de l'intégration (rechargement automatique à la
+  sauvegarde).
 - ✅ Entités disponibles :
   - `switch.pixoo_screen_power` — allumage/extinction de l'écran, authoritatif (plus de flapping)
   - `light.pixoo_brightness` — luminosité uniquement, découplée du power (plus d'ambiguïté brightness/on-off)
@@ -29,9 +30,10 @@ dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar
   `rectangle`, `icon`, `progress_bar`, `scroll_text`, `templatable`), pages configurables dans
   les options de l'intégration (éditeur YAML brut). Le `rest_command` externe peut être remplacé
   progressivement.
-- ✅ Rotation automatique des pages : chaque page peut définir `duration` (durée d'affichage),
-  `scan_interval` (rafraîchissement pendant l'affichage) et `enabled` (condition Jinja) —
-  voir [Rotation automatique](#rotation-automatique) ci-dessous.
+- ✅ Rotation automatique des pages : durée d'affichage par défaut réglable dans les options
+  (s'applique à toutes les pages), chaque page pouvant la surcharger avec sa propre `duration`.
+  Aussi disponibles par page : `scan_interval` (rafraîchissement pendant l'affichage) et
+  `enabled` (condition Jinja) — voir [Rotation automatique](#rotation-automatique) ci-dessous.
 - ✅ Interface traduite (FR/EN) pour la configuration et les entités.
 - ❌ Pas encore : publication HACS (Phase 7).
 
@@ -53,9 +55,10 @@ manuelle.
 
 Ensuite, tout se règle depuis un seul écran d'options (**Configurer** sur la carte Pixoo
 Canvas) : adresse IP de l'appareil (modifiable après coup, utile si le Pixoo change d'IP),
-intervalle d'interrogation de l'état authoritatif de l'écran, et pages. Chaque sauvegarde
-teste la connexion à l'IP indiquée avant d'appliquer les changements ; si l'adresse ou
-l'intervalle change, l'intégration se recharge automatiquement pour en tenir compte.
+durée d'affichage par défaut des pages, et pages. Chaque sauvegarde teste la connexion à l'IP
+indiquée avant d'appliquer les changements ; l'intégration se recharge automatiquement pour en
+tenir compte. (La fréquence à laquelle l'intégration lit l'état de l'appareil — allumé/éteint,
+luminosité... — est un détail interne fixe, pas un réglage utilisateur.)
 
 ### Pages
 
@@ -266,18 +269,21 @@ affichage ponctuel sans passer par la config des pages.
 ### Rotation automatique
 
 Active `switch.pixoo_page_rotation` pour faire défiler automatiquement toutes les pages
-activées de la config. Chaque page accepte trois champs optionnels :
+activées de la config. La durée d'affichage par défaut se règle dans les options de
+l'intégration (**Durée d'affichage par défaut des pages**, s'applique à toute page qui ne
+précise pas sa propre `duration`). Chaque page accepte aussi trois champs optionnels :
 
 ```yaml
 - name: SPA
-  duration: 20          # secondes d'affichage avant de passer à la page suivante (défaut : 15)
+  duration: 20          # secondes d'affichage avant de passer à la page suivante — surcharge la durée par défaut des options pour cette page uniquement
   scan_interval: 10      # secondes entre rafraîchissements pendant que la page est affichée
   enabled: "{{ not is_state('sensor.spa_temperature_eau', 'unavailable') }}"  # condition Jinja, défaut : toujours activée
   components:
     - ...
 ```
 
-- `duration` : combien de temps cette page reste à l'écran avant de passer à la suivante.
+- `duration` : combien de temps cette page reste à l'écran avant de passer à la suivante. Si
+  absent, utilise la durée par défaut réglée dans les options de l'intégration.
 - `scan_interval` : si présent, la page est repoussée (mêmes composants, valeurs Jinja
   re-évaluées) à cet intervalle pendant qu'elle est affichée — utile pour les pages avec des
   valeurs qui changent souvent (température, minuteries...). Sans ce champ, la page n'est

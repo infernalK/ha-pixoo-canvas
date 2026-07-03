@@ -12,7 +12,11 @@ from pytest_homeassistant_custom_component.common import (
 )
 
 from custom_components.pixoo_canvas.api import PixooConnectionError
-from custom_components.pixoo_canvas.const import CONF_PAGES_YAML, DOMAIN
+from custom_components.pixoo_canvas.const import (
+    CONF_DEFAULT_PAGE_DURATION,
+    CONF_PAGES_YAML,
+    DOMAIN,
+)
 from custom_components.pixoo_canvas.rotation import PageRotator
 
 HOST = "192.168.1.101"
@@ -107,6 +111,71 @@ async def test_scan_interval_refreshes_mid_duration(hass):
     await hass.async_block_till_done()
 
     assert len(client.calls) == 2
+    await rotator.async_stop()
+
+
+async def test_entry_default_page_duration_applies_when_page_has_none(hass):
+    """A page without its own `duration` uses the entry's configured default, not the built-in 15s."""
+    pages_yaml = (
+        "- name: A\n"
+        "  components:\n"
+        "    - type: rectangle\n"
+        "      position: [0, 0]\n"
+        "      size: [1, 1]\n"
+        "      color: red\n"
+        "- name: B\n"
+        "  components:\n"
+        "    - type: rectangle\n"
+        "      position: [0, 0]\n"
+        "      size: [1, 1]\n"
+        "      color: blue\n"
+    )
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_HOST: HOST},
+        options={CONF_PAGES_YAML: pages_yaml, CONF_DEFAULT_PAGE_DURATION: 5},
+    )
+    entry.add_to_hass(hass)
+    client = _FakeClient()
+    rotator = PageRotator(hass, entry, client)
+    await rotator.async_start()
+    assert len(client.calls) == 1
+
+    # Past the entry's 5s default, well short of the built-in 15s fallback.
+    _advance(hass, 6)
+    await hass.async_block_till_done()
+
+    assert len(client.calls) == 2
+    await rotator.async_stop()
+
+
+async def test_page_duration_overrides_entry_default(hass):
+    """A page with its own `duration` ignores the entry's default page duration."""
+    pages_yaml = (
+        "- name: A\n"
+        "  duration: 20\n"
+        "  components:\n"
+        "    - type: rectangle\n"
+        "      position: [0, 0]\n"
+        "      size: [1, 1]\n"
+        "      color: red\n"
+    )
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_HOST: HOST},
+        options={CONF_PAGES_YAML: pages_yaml, CONF_DEFAULT_PAGE_DURATION: 5},
+    )
+    entry.add_to_hass(hass)
+    client = _FakeClient()
+    rotator = PageRotator(hass, entry, client)
+    await rotator.async_start()
+    assert len(client.calls) == 1
+
+    # Past the entry's 5s default, but short of the page's own 20s duration.
+    _advance(hass, 6)
+    await hass.async_block_till_done()
+
+    assert len(client.calls) == 1  # still showing page A
     await rotator.async_stop()
 
 

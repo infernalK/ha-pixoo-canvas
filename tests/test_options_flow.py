@@ -1,12 +1,17 @@
-"""Tests for the Pixoo Canvas options flow (device IP, poll interval, pages)."""
+"""Tests for the Pixoo Canvas options flow (device IP, default page duration, pages)."""
 
 from __future__ import annotations
 
-from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.pixoo_canvas.const import CONF_PAGES_YAML, DOMAIN
+from custom_components.pixoo_canvas.const import (
+    CONF_DEFAULT_PAGE_DURATION,
+    CONF_PAGES_YAML,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+)
 from custom_components.pixoo_canvas.coordinator import PixooCoordinator
 
 HOST = "192.168.1.101"
@@ -24,7 +29,7 @@ def _make_entry(hass) -> MockConfigEntry:
 
 
 async def test_options_flow_accepts_valid_input(hass, aioclient_mock):
-    """A well-formed host/scan_interval/pages submission is saved."""
+    """A well-formed host/default_page_duration/pages submission is saved."""
     aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
     entry = _make_entry(hass)
     pages_yaml = (
@@ -36,11 +41,11 @@ async def test_options_flow_accepts_valid_input(hass, aioclient_mock):
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {CONF_HOST: HOST, CONF_SCAN_INTERVAL: 20, CONF_PAGES_YAML: pages_yaml},
+        {CONF_HOST: HOST, CONF_DEFAULT_PAGE_DURATION: 20, CONF_PAGES_YAML: pages_yaml},
     )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"] == {CONF_SCAN_INTERVAL: 20, CONF_PAGES_YAML: pages_yaml}
+    assert result["data"] == {CONF_DEFAULT_PAGE_DURATION: 20, CONF_PAGES_YAML: pages_yaml}
 
 
 async def test_options_flow_changing_host_updates_entry_data(hass, aioclient_mock):
@@ -51,7 +56,7 @@ async def test_options_flow_changing_host_updates_entry_data(hass, aioclient_moc
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {CONF_HOST: NEW_HOST, CONF_SCAN_INTERVAL: 15, CONF_PAGES_YAML: ""},
+        {CONF_HOST: NEW_HOST, CONF_DEFAULT_PAGE_DURATION: 15, CONF_PAGES_YAML: ""},
     )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -66,7 +71,7 @@ async def test_options_flow_rejects_unreachable_host(hass, aioclient_mock):
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {CONF_HOST: NEW_HOST, CONF_SCAN_INTERVAL: 15, CONF_PAGES_YAML: ""},
+        {CONF_HOST: NEW_HOST, CONF_DEFAULT_PAGE_DURATION: 15, CONF_PAGES_YAML: ""},
     )
 
     assert result["type"] == FlowResultType.FORM
@@ -81,7 +86,7 @@ async def test_options_flow_rejects_invalid_yaml(hass, aioclient_mock):
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {CONF_HOST: HOST, CONF_SCAN_INTERVAL: 15, CONF_PAGES_YAML: "foo: [unterminated"},
+        {CONF_HOST: HOST, CONF_DEFAULT_PAGE_DURATION: 15, CONF_PAGES_YAML: "foo: [unterminated"},
     )
 
     assert result["type"] == FlowResultType.FORM
@@ -95,29 +100,29 @@ async def test_options_flow_rejects_wrong_schema(hass, aioclient_mock):
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {CONF_HOST: HOST, CONF_SCAN_INTERVAL: 15, CONF_PAGES_YAML: "just_a_string"},
+        {CONF_HOST: HOST, CONF_DEFAULT_PAGE_DURATION: 15, CONF_PAGES_YAML: "just_a_string"},
     )
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_schema"}
 
 
-async def test_options_flow_reloads_entry_with_new_scan_interval(hass, aioclient_mock):
-    """Saving a new scan_interval reloads the entry so the coordinator picks it up."""
+async def test_coordinator_poll_interval_is_not_user_configurable(hass, aioclient_mock):
+    """The device poll interval stays fixed regardless of options - it's internal, not a user setting."""
     aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
     entry = _make_entry(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    coordinator_before: PixooCoordinator = hass.data[DOMAIN][entry.entry_id]
-    assert coordinator_before.update_interval.total_seconds() == 15
+    coordinator: PixooCoordinator = hass.data[DOMAIN][entry.entry_id]
+    assert coordinator.update_interval.total_seconds() == DEFAULT_SCAN_INTERVAL
 
     aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {CONF_HOST: HOST, CONF_SCAN_INTERVAL: 42, CONF_PAGES_YAML: ""}
+        result["flow_id"], {CONF_HOST: HOST, CONF_DEFAULT_PAGE_DURATION: 42, CONF_PAGES_YAML: ""}
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
 
     coordinator_after: PixooCoordinator = hass.data[DOMAIN][entry.entry_id]
-    assert coordinator_after.update_interval.total_seconds() == 42
+    assert coordinator_after.update_interval.total_seconds() == DEFAULT_SCAN_INTERVAL
