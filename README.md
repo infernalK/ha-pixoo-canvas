@@ -1,72 +1,120 @@
-# ha-pixoo-canvas
+# Pixoo Canvas — Intégration Home Assistant pour Divoom Pixoo 64
 
-Intégration Home Assistant (custom component, compatible HACS) pour piloter un Divoom Pixoo 64 :
-état authoritatif de l'écran via `Channel/GetAllConf`, configuration des pages directement
-dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar).
+Intégration Home Assistant (custom component, compatible HACS) pour piloter un Divoom
+Pixoo 64 depuis Home Assistant : allumage/luminosité, et surtout un système de **pages**
+personnalisées affichant tes capteurs, textes et images, avec rotation automatique entre
+elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant).
 
-> ⚠️ Projet en cours de développement (Phase 5 terminée). Voir
-> [État actuel](#état-actuel) ci-dessous avant d'installer.
+> ⚠️ Pas encore publiée sur le store par défaut HACS (voir [Installation](#installation)
+> pour l'installer quand même dès maintenant).
 
-## État actuel
+## Sommaire
 
-- ✅ L'intégration est ajoutable depuis l'UI Home Assistant, avec détection automatique du
-  Pixoo sur le réseau local (via le service de découverte cloud de Divoom, comme les autres
-  intégrations Pixoo) — repli sur saisie manuelle de l'IP si rien n'est trouvé ou en cas d'échec.
-- ✅ Un coordinator interroge le Pixoo toutes les 15 secondes (fixe, détail interne — pas un
-  réglage utilisateur) et lit l'état authoritatif de l'écran (`LightSwitch`, `Brightness`,
-  rotation, mirroir, page courante).
-- ✅ IP modifiable après coup depuis les options de l'intégration (rechargement automatique à la
-  sauvegarde).
-- ✅ Entités disponibles :
-  - `switch.pixoo_screen_power` — allumage/extinction de l'écran, authoritatif (plus de flapping)
-  - `light.pixoo_brightness` — luminosité uniquement, découplée du power (plus d'ambiguïté brightness/on-off)
-  - `switch.pixoo_page_rotation` — active/désactive la rotation automatique des pages, état
-    restauré après redémarrage
-  - `select.pixoo_screen_orientation` — orientation physique de l'écran (0°/90°/180°/270°),
-    à régler selon le montage de ton cadre — authoritatif via `GyrateAngle`
-  - 3 capteurs diagnostic : indicateur de rotation (signification exacte non confirmée, probablement
-    liée à la rotation auto de la galerie), mirroir, ID de l'horloge/page courante
-- ✅ Rendu de pages : service `pixoo_canvas.render_page` (composants `text`, `image`,
-  `rectangle`, `icon`, `progress_bar`, `scroll_text`, `templatable`), pages configurables dans
-  les options de l'intégration (éditeur YAML brut). Le `rest_command` externe peut être remplacé
-  progressivement.
-- ✅ Rotation automatique des pages : durée d'affichage par défaut réglable dans les options
-  (s'applique à toutes les pages), chaque page pouvant la surcharger avec sa propre `duration`.
-  Aussi disponibles par page : `scan_interval` (rafraîchissement pendant l'affichage) et
-  `enabled` (condition Jinja) — voir [Rotation automatique](#rotation-automatique) ci-dessous.
-- ✅ Interface traduite (FR/EN) pour la configuration et les entités.
-- ❌ Pas encore : publication HACS (Phase 7).
+- [Installation](#installation)
+- [Configuration de base](#configuration-de-base)
+- [Ce que tu obtiens](#ce-que-tu-obtiens)
+- [Les pages](#les-pages)
+  - [Page : Components (ton propre design)](#page--components-ton-propre-design)
+  - [Page : Clock (horloge native)](#page--clock-horloge-native)
+  - [Page : Channel (channel personnalisé Divoom)](#page--channel-channel-personnalisé-divoom)
+  - [Page : Visualizer (visualiseur audio)](#page--visualizer-visualiseur-audio)
+  - [Page : PV (solaire)](#page--pv-solaire)
+  - [Page : Fuel (station-service)](#page--fuel-station-service)
+- [Rotation automatique des pages](#rotation-automatique-des-pages)
+- [Service : afficher une page à la demande](#service--afficher-une-page-à-la-demande)
+- [Licence](#licence)
 
 ## Installation
 
-Pas encore publiée sur HACS (aucune release taguée). En attendant, installation manuelle :
+**Via HACS** (dépôt personnalisé, en attendant la publication sur le store par défaut) :
 
-1. Copier le dossier `custom_components/pixoo_canvas` dans `<config_dir>/custom_components/`.
-2. Redémarrer Home Assistant.
+1. Dans HACS → menu (⋮) → **Dépôts personnalisés**, ajoute
+   `https://github.com/infernalK/ha-pixoo-canvas` en catégorie **Intégration**.
+2. Installe "Pixoo Canvas" depuis HACS.
+3. Redémarre Home Assistant.
 
-## Configuration
+**Manuellement**, si tu n'utilises pas HACS :
 
-Depuis l'UI : **Paramètres → Appareils et services → Ajouter une intégration → Pixoo Canvas**.
-Si un ou plusieurs Pixoo sont détectés sur le réseau (via l'API de découverte de Divoom), une
-liste à choisir apparaît, avec une option "Enter IP manually" ; sinon le formulaire de saisie
-manuelle de l'IP s'affiche directement. Une connexion de test (`Channel/GetAllConf`) est
-effectuée avant la création de l'entrée, que l'IP vienne de la détection ou d'une saisie
-manuelle.
+1. Copie le dossier `custom_components/pixoo_canvas` de ce dépôt dans le dossier
+   `custom_components` de ta config Home Assistant.
+2. Redémarre Home Assistant.
 
-Ensuite, tout se règle depuis un seul écran d'options (**Configurer** sur la carte Pixoo
-Canvas) : adresse IP de l'appareil (modifiable après coup, utile si le Pixoo change d'IP),
-durée d'affichage par défaut des pages, et pages. Chaque sauvegarde teste la connexion à l'IP
-indiquée avant d'appliquer les changements ; l'intégration se recharge automatiquement pour en
-tenir compte. (La fréquence à laquelle l'intégration lit l'état de l'appareil — allumé/éteint,
-luminosité... — est un détail interne fixe, pas un réglage utilisateur.)
+## Configuration de base
 
-### Pages
+**Paramètres → Appareils et services → Ajouter une intégration → Pixoo Canvas.**
 
-Les pages se configurent dans la même fenêtre d'options, sous forme de YAML brut, une liste
-de pages nommées :
+Si un Pixoo est détecté sur ton réseau, choisis-le dans la liste (ou "Enter IP
+manually" sinon). Une fois ajoutée, clique sur **Configurer** sur la carte Pixoo Canvas
+pour régler :
+
+| Réglage | Description |
+| --- | --- |
+| Adresse IP | Modifiable après coup si ton Pixoo change d'IP. |
+| Durée d'affichage par défaut | Combien de temps chaque page reste à l'écran pendant la rotation automatique, sauf si elle précise sa propre `duration` (voir [Rotation automatique](#rotation-automatique-des-pages)). |
+| Pages (YAML) | La liste de tes pages — voir [Les pages](#les-pages) ci-dessous. |
+
+Chaque sauvegarde teste la connexion à l'appareil avant d'appliquer les changements.
+
+## Ce que tu obtiens
+
+Une fois l'intégration configurée, tu as accès à :
+
+- `switch.pixoo_screen_power` — allumer/éteindre l'écran.
+- `light.pixoo_brightness` — régler la luminosité.
+- `switch.pixoo_page_rotation` — activer/désactiver le défilement automatique des pages.
+- `select.pixoo_screen_orientation` — orientation physique de l'écran (0°/90°/180°/270°),
+  à régler selon le montage de ton cadre.
+- 3 capteurs de diagnostic (rotation, effet miroir, ID de l'horloge affichée) — utiles
+  pour du dépannage, pas pour un usage quotidien.
+
+## Les pages
+
+Une **page**, c'est un bloc YAML avec au minimum un `name`. Le champ `page_type`
+détermine comment elle s'affiche — s'il est absent, c'est `components` (ton propre
+design, voir ci-dessous). Colle tes pages dans le champ **Pages (YAML)** des options,
+sous forme de liste :
+
+```yaml
+- name: Ma première page
+  page_type: components   # optionnel, c'est le défaut
+  components:
+    - type: text
+      position: [2, 2]
+      content: "Bonjour !"
+```
+
+**Champs communs à toutes les pages**, quel que soit leur `page_type` :
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `name` | Oui | | Nom de la page (utilisé pour l'appeler via le service `render_page`). |
+| `page_type` | Non | `components` | `components`, `clock`, `channel`, `visualizer`, `pv`, `fuel`. |
+| `enabled` | Non | activée | `true`/`false` ou template `{{ }}` — pages désactivées sautées par la rotation. |
+| `duration` | Non | (le réglage global) | Secondes d'affichage avant de passer à la page suivante, en rotation. |
+| `scan_interval` | Non | | Secondes entre rafraîchissements pendant que la page est affichée (utile pour des valeurs qui changent souvent). |
+
+```yaml
+- name: SPA
+  enabled: "{{ states('input_boolean.spa_actif') }}"
+  duration: 20
+  scan_interval: 10
+  page_type: components
+  components: [...]
+```
+
+Si tu débutes, commence par une page `components` : c'est la plus flexible, et les
+autres types (`clock`, `channel`, `visualizer`, `pv`, `fuel`) s'utilisent exactement de
+la même façon une fois que tu as compris le principe.
+
+### Page : Components (ton propre design)
+
+Le Pixoo devient ta toile : tu empiles des **composants** (texte, image, rectangle...) à
+des positions précises sur un écran de 64×64 pixels. `(0, 0)` est le coin en haut à
+gauche, `(63, 63)` le coin en bas à droite.
 
 ```yaml
 - name: Températures
+  page_type: components
   components:
     - type: rectangle
       position: [0, 0]
@@ -75,63 +123,117 @@ de pages nommées :
     - type: text
       position: [2, 2]
       content: "{{ states('sensor.salon_temperature') }}°C"
-      color: [255, 255, 255]
+      color: white
 ```
 
-Les composants `icon` (icône MDI, avec couleur conditionnelle) et `progress_bar`
-(barre horizontale/verticale) évitent la gymnastique Jinja pour ces cas fréquents :
+#### Composant : `text`
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `position` | Oui | | `[x, y]` |
+| `content` | Oui | | Texte, avec support des templates `{{ }}` et des retours à la ligne. |
+| `font` | Non | `pico_8` | Voir [Polices](#polices) ci-dessous. |
+| `color` | Non | `white` | `[R, G, B]` ou nom de couleur — voir [Couleurs](#couleurs). |
+| `align` | Non | `left` | `left`, `center`, `right`. |
+
+#### Composant : `image`
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `position` | Oui | | `[x, y]` |
+| `image_url` ou `image_path` | Oui (une des deux) | | URL (ou template `{{ }}`) ou chemin local, ex. `/config/www/logo.png`. |
+
+#### Composant : `rectangle`
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `position` | Oui | | `[x, y]` |
+| `size` | Oui | | `[largeur, hauteur]` |
+| `color` | Non | `white` | `[R, G, B]` ou nom de couleur. |
+| `filled` | Non | `true` | `true` (rempli) ou `false` (contour seul). |
+
+#### Composant : `icon`
+
+Icône [Material Design Icons](https://pictogrammers.com/library/mdi/) (avec ou sans
+préfixe `mdi:`), coloriée et redimensionnée — aucun appel réseau, tout est embarqué dans
+l'intégration.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `position` | Oui | | `[x, y]` |
+| `icon` | Oui | | Nom MDI, ex. `mdi:thermometer` ou juste `thermometer`. |
+| `size` | Non | `16` | Taille en pixels. |
+| `color` | Non | `white` | `[R, G, B]` ou nom de couleur. |
+| `value` + `color_thresholds` | Non | | Colore l'icône selon une valeur — voir ci-dessous. |
+
+#### Composant : `progress_bar`
+
+Barre de progression horizontale ou verticale.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `position` | Oui | | `[x, y]` |
+| `size` | Oui | | `[largeur, hauteur]` |
+| `orientation` | Non | `horizontal` | `horizontal`, `vertical` |
+| `transition` | Non | `hard` | `hard` (bord net) ou `smooth` (dégradé au bord) |
+| `min` / `max` | Non | `0` / `100` | Bornes de la valeur. |
+| `value` | Oui | | Valeur actuelle, brute ou template. |
+| `background_color` | Non | gris foncé | `[R, G, B]` ou nom de couleur. |
+| `color` + `color_thresholds` | Non | vert | Couleur de la barre — voir ci-dessous. |
+
+**`color_thresholds`** (commun à `icon` et `progress_bar`) : une liste croissante de
+paliers `{value, color}`. La couleur retenue est celle du palier le plus élevé encore
+inférieur ou égal à `value` :
 
 ```yaml
-- name: SPA
-  components:
-    - type: rectangle
-      position: [0, 0]
-      size: [64, 64]
-      color: black
-    - type: icon
-      icon: mdi:thermometer
-      position: [2, 2]
-      size: 16
-      value: "{{ states('sensor.spa_temperature') }}"
-      color_thresholds:
-        - value: 0
-          color: blue
-        - value: 30
-          color: green
-        - value: 38
-          color: red
-    - type: text
-      position: [20, 6]
-      content: "{{ states('sensor.spa_temperature') }}°C"
-      color: [255, 255, 255]
-    - type: progress_bar
-      position: [2, 50]
-      size: [60, 6]
-      orientation: horizontal
-      transition: smooth
-      min: 0
-      max: 100
-      value: "{{ states('sensor.spa_filtration_pct') }}"
-      background_color: [40, 40, 40]
-      color_thresholds:
-        - value: 0
-          color: red
-        - value: 50
-          color: orange
-        - value: 90
-          color: green
+- type: progress_bar
+  position: [2, 50]
+  size: [60, 6]
+  value: "{{ states('sensor.spa_filtration_pct') }}"
+  color_thresholds:
+    - value: 0
+      color: red
+    - value: 50
+      color: orange
+    - value: 90
+      color: green
 ```
 
-`icon` résout un nom [Material Design Icons](https://pictogrammers.com/library/mdi/) (avec ou
-sans préfixe `mdi:`) en glyphe de la police MDI embarquée dans l'intégration (aucun appel
-réseau, aucune dépendance système — juste Pillow), coloré et dessiné à la taille demandée
-(`size`, en pixels). `color_thresholds` (commun à `icon` et `progress_bar`) prend une liste
-ascendante `{value, color}` : la couleur retenue est celle du seuil le plus élevé encore
-inférieur ou égal à `value`.
+#### Composant : `scroll_text`
+
+Texte défilant, animé nativement par l'écran (pas par nous) — utile pour un message plus
+long que l'écran.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `position` | Oui | | `[x, y]` |
+| `content` | Oui | | Texte, avec support des templates. |
+| `color` | Non | `white` | `[R, G, B]` ou nom de couleur. |
+| `direction` | Non | `left` | `left`, `right` |
+| `width` | Non | `64` | Largeur de la zone de défilement en pixels. |
+| `speed` | Non | `100` | Millisecondes par pas — plus petit = plus rapide. |
+| `align` | Non | `left` | `left`, `center`, `right` |
+| `text_id` | Non | | Identifiant du slot (0-19), pour superposer plusieurs textes défilants. |
+
+#### Composant : `templatable`
+
+Pour les cas avancés : un template Jinja qui génère lui-même une liste de composants
+(utile pour des grilles répétitives). Réservé à qui est déjà à l'aise avec les templates
+Home Assistant.
+
+```yaml
+- type: templatable
+  template: >-
+    {% set output = namespace(list=[]) %}
+    {% for i in range(5) %}
+      {% set output.list = output.list + [{"type": "rectangle", "position": [i * 10, 0], "size": [8, 8], "color": "red"}] %}
+    {% endfor %}
+    {{ output.list }}
+```
 
 #### Polices
 
-Le composant `text` accepte un champ `font` optionnel (par défaut `pico_8`) :
+Le composant `text` accepte un champ `font` optionnel :
 
 | `font` | Type | Hauteur native | Largeur (pour "Temperatures") |
 | --- | --- | --- | --- |
@@ -141,179 +243,99 @@ Le composant `text` accepte un champ `font` optionnel (par défaut `pico_8`) :
 | `silkscreen` | TrueType (`font_size`, défaut 6) | 4px | 55px |
 | `silkscreen_bold` | TrueType (`font_size`, défaut 6) | 4px | 61px |
 
-`pico_8` et `gicko` sont de vraies polices bitmap (chaque glyphe est une grille de pixels
-fixe, comme sur un vrai écran LED) portées depuis
-[gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant) (licence MIT,
-voir `render/fonts/bitmap/`) — l'intégration qui a inspiré ce projet et dont tes pages
-utilisaient déjà `font: pico_8` à l'origine. `pico_8` est maintenant le défaut : c'est la seule
-police qui reste à la fois compacte (~47px pour un titre de 12 caractères, contre 72px pour
-`press_start_2p`) **et** assez haute (5px) pour rester lisible sur l'écran physique — contrairement
-à `silkscreen`, plus étroite mais trop fine (4px) pour bien se voir derrière la diffusion des LED.
+`pico_8` et `gicko` sont de vraies polices bitmap (portées depuis
+[gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant), licence
+MIT) : chaque glyphe est une grille de pixels fixe, comme sur un vrai écran LED — c'est
+ce qui reste le plus lisible sur l'écran physique. Pour ces deux polices, `font_size` est
+un facteur d'échelle entier (`font_size: 2` double chaque pixel, défaut `1`) plutôt
+qu'une taille de police classique.
 
-Pour les polices bitmap, `font_size` n'est pas une taille de point mais un **facteur d'échelle
-entier** (`font_size: 2` double chaque pixel du glyphe, défaut `1`). Pour les polices
-TrueType (`press_start_2p`, `silkscreen`, `silkscreen_bold`), `font_size` reste une taille de
-police classique (défaut `6`).
+#### Couleurs
 
-##### Page de test des polices
+Partout où une couleur est attendue, tu peux utiliser :
+- Une liste `[R, G, B]`, ex. `[255, 0, 0]`.
+- Un nom de couleur CSS, ex. `red`, `orange`, `deepskyblue`.
+- Un code hexadécimal, ex. `"#FF0000"`.
+- Un template `{{ }}` qui produit l'un des trois ci-dessus.
 
-Colle ça comme page (ou en `components` inline pour un test ponctuel via `render_page`) pour
-comparer les 6 combinaisons sur ton écran réel avec le texte qui posait problème :
+### Page : Clock (horloge native)
 
-```yaml
-- name: Test polices
-  components:
-    - type: rectangle
-      position: [0, 0]
-      size: [64, 64]
-      color: black
-    - type: text          # ligne 1 : défaut (pico_8, échelle 1)
-      position: [0, 0]
-      content: Temperatures
-      font: pico_8
-      color: white
-    - type: text          # ligne 2 : gicko, échelle 1 (plus large, déborde ici)
-      position: [0, 8]
-      content: Temperatures
-      font: gicko
-      color: yellow
-    - type: text          # ligne 3 : press_start_2p réduit (l'option de repli suggérée avant)
-      position: [0, 16]
-      content: Temperatures
-      font: press_start_2p
-      font_size: 5
-      color: cyan
-    - type: text          # ligne 4 : press_start_2p taille par défaut (déborde volontairement, pour comparaison)
-      position: [0, 24]
-      content: Temperatures
-      font: press_start_2p
-      font_size: 6
-      color: orange
-    - type: text          # ligne 5 : silkscreen agrandie pour compenser sa finesse
-      position: [0, 34]
-      content: Temperatures
-      font: silkscreen
-      font_size: 8
-      color: lime
-    - type: text          # ligne 6 : silkscreen_bold agrandie
-      position: [0, 44]
-      content: Temperatures
-      font: silkscreen_bold
-      font_size: 8
-      color: magenta
-```
+Bascule l'écran sur une des horloges intégrées au Pixoo (celles que tu choisirais dans
+l'app Divoom) — aucun composant à dessiner, l'appareil gère tout lui-même.
 
-Ordre des lignes de haut en bas : **pico_8** (blanc) · **gicko** (jaune) · **press_start_2p@5**
-(cyan) · **press_start_2p@6** (orange, déborde volontairement) · **silkscreen@8** (vert) ·
-**silkscreen_bold@8** (magenta). Regarde laquelle est la plus lisible *sur l'écran*, pas sur une
-capture d'écran — dis-moi ton verdict et j'ajuste le défaut si `pico_8` ne te convainc pas non
-plus.
-
-#### Texte défilant
-
-`scroll_text` pousse un défilement animé **nativement par le firmware du Pixoo**
-(`Draw/SendHttpText`), au lieu d'être dessiné statiquement dans le buffer comme `text` — utile
-pour un texte plus long que l'écran (un message, un flux d'infos) sans avoir à le tronquer ou à
-gérer l'animation nous-mêmes :
-
-```yaml
-- type: scroll_text
-  position: [0, 40]
-  content: "{{ states('sensor.dernier_message') }}"
-  color: [255, 255, 0]
-  direction: left       # left (défaut) ou right
-  width: 64              # largeur de la zone de défilement en pixels
-  speed: 100              # ms par pas de défilement, plus petit = plus rapide
-  align: left            # left (défaut) / center / right
-  divoom_font: 0          # police interne du Pixoo (0-7), indépendante de `font` sur `text`
-  text_id: 0              # identifiant du slot de texte (0-19), pour en superposer plusieurs
-```
-
-⚠️ Points à connaître (comportement matériel) :
-- D'après la doc Divoom, `scroll_text` **ne fonctionne que quand l'écran est en train d'afficher
-  une image poussée par nous** (ce qui est déjà le cas juste après le push du buffer de la page,
-  donc ça marche directement) — mais si l'écran est sur une horloge ou un autre channel intégré
-  au moment de l'appel, Divoom dit que la commande est silencieusement ignorée.
-- **Confirmé sur device réel** : le firmware ne retire pas un texte défilant tout seul quand une
-  nouvelle page est poussée — il continue de défiler par-dessus la page suivante tant qu'il n'est
-  pas explicitement effacé. `ClearHttpText` est donc envoyé au tout début de chaque rendu de page
-  (que la page ait ou non un `scroll_text`), regroupé avec le push de l'image en une seule requête
-  (voir [Fiabilité côté appareil](#fiabilité-côté-appareil) ci-dessous) pour repartir d'un écran
-  propre à chaque fois.
-- Un court délai sépare le push de l'image du texte défilant, pour laisser le temps à l'appareil
-  de vraiment basculer en mode dessin (sinon `SendHttpText` peut être silencieusement ignoré).
-
-#### Fiabilité côté appareil
-
-Le Pixoo expose `Draw/CommandList`, qui permet d'envoyer plusieurs commandes en une seule requête
-HTTP au lieu de les enchaîner séparément — utile car certains appareils ont tendance à redémarrer
-seuls quand ils reçoivent trop de requêtes rapprochées. Chaque rendu de page en profite :
-`ClearHttpText` + le push de l'image sont regroupés en **une seule requête**, et s'il y a un ou
-plusieurs `scroll_text` sur la page, ils sont eux aussi regroupés ensemble en une seconde requête
-(après le court délai de bascule en mode dessin). Une page sans `scroll_text` ne fait donc plus
-qu'un seul appel HTTP par rendu (au lieu de deux avant), et une page avec plusieurs `scroll_text`
-n'en fait que deux au total, quel que soit le nombre de textes.
-
-Puis, pour l'afficher :
-
-```yaml
-service: pixoo_canvas.render_page
-data:
-  device_id: <ton device Pixoo Canvas>
-  page: Températures
-```
-
-`render_page` accepte aussi `components` (liste inline) à la place de `page`, pour un
-affichage ponctuel sans passer par la config des pages (dans ce cas uniquement une liste
-de `components`, pas un autre `page_type` — voir ci-dessous).
-
-### Types de page
-
-Chaque page accepte un champ optionnel `page_type` (défaut `components`, donc toutes les
-pages existantes continuent de marcher sans rien changer). En plus de `components` (la
-liste de composants habituelle), trois types pilotent un écran **natif** du Pixoo — aucun
-buffer n'est composé ni poussé, l'appareil bascule simplement sur un de ses écrans
-intégrés — et deux sont des layouts **préconstruits**, à champs fixes plutôt qu'une liste
-de `components` à écrire soi-même. Ce sont les mêmes types que propose
-[gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant), dont
-s'inspire ce projet.
-
-#### Écrans natifs : `clock`, `channel`, `visualizer`
+| Champ | Obligatoire | Valeurs |
+| --- | :---: | --- |
+| `id` | Oui | ID de l'horloge (entier ou template). Voir la [liste des horloges](https://github.com/gickowtf/pixoo-homeassistant/blob/main/READMES/CLOCKS.md), ou active le logging debug de l'intégration et choisis l'horloge dans l'app Divoom : l'ID apparaît dans les logs (`CurClockId`). |
 
 ```yaml
 - name: Horloge
   page_type: clock
-  id: 182   # ClockId — voir https://github.com/gickowtf/pixoo-homeassistant/blob/main/READMES/CLOCKS.md
-- name: Channel perso 1
-  page_type: channel
-  id: 0     # un des 3 channels personnalisés configurés dans l'app Divoom (0, 1 ou 2)
-- name: Visualiseur
-  page_type: visualizer
-  id: 2     # index du visualiseur dans l'app Divoom
+  id: 182
 ```
 
-`id` accepte un entier ou un template Jinja (résolu à chaque affichage). `channel`
-correspond aux 3 "channels personnalisés" de l'app Divoom (`Channel/SetCustomPageIndex`),
-pas à la sélection d'onglet générale de l'appareil (horloge/cloud/visualiseur/custom).
+### Page : Channel (channel personnalisé Divoom)
 
-#### Pages préconstruites : `pv`, `fuel`
+Bascule sur un des 3 "channels personnalisés" que tu configures dans l'app Divoom
+elle-même (le rythme de défilement des images du channel se règle dans l'app, pas ici).
 
-Layout fixe composé automatiquement à partir de champs plutôt que d'une liste de
-`components` — pratique pour un cas courant sans avoir à positionner chaque composant.
-Chaque champ accepte une valeur brute ou un template Jinja, exactement comme les
-composants (`text`/`icon`/`progress_bar`) qu'ils utilisent en interne.
+| Champ | Obligatoire | Valeurs |
+| --- | :---: | --- |
+| `id` | Oui | `0`, `1` ou `2` (les 3 channels personnalisés de l'app Divoom). |
+
+```yaml
+- name: Channel photos
+  page_type: channel
+  id: 0
+```
+
+### Page : Visualizer (visualiseur audio)
+
+Bascule sur un des visualiseurs audio intégrés au Pixoo.
+
+| Champ | Obligatoire | Valeurs |
+| --- | :---: | --- |
+| `id` | Oui | Index du visualiseur, tel qu'affiché dans l'app Divoom (à partir de 0). |
+
+```yaml
+- name: Visualiseur
+  page_type: visualizer
+  id: 2
+```
+
+### Page : PV (solaire)
+
+Page prête à l'emploi pour un système solaire/batterie — l'icône batterie et la barre
+de charge changent de couleur automatiquement (rouge → orange → vert) selon le niveau.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `power` | Non | | Puissance actuelle (affichée en W), brute ou template. |
+| `storage` | Non | | Niveau de batterie en % (0-100), colore l'icône et la barre. |
+| `discharge` | Non | | Puissance de décharge (affichée en W) — n'apparaît que si renseigné. |
+| `time` | Non | heure courante | Heure affichée en haut à droite. |
 
 ```yaml
 - name: Solaire
   page_type: pv
-  power: "{{ states('sensor.solar_power') }}"       # W
-  storage: "{{ states('sensor.battery_level') }}"    # % (0-100), colore l'icône batterie et sa barre
-  discharge: "{{ states('sensor.battery_discharge') }}"  # optionnel
-  time: "{{ now().strftime('%H:%M') }}"              # optionnel, défaut : heure courante
+  power: "{{ states('sensor.solar_power') }}"
+  storage: "{{ states('sensor.battery_level') }}"
+  discharge: "{{ states('sensor.battery_discharge') }}"
+```
 
-- name: Essence
+### Page : Fuel (station-service)
+
+Page prête à l'emploi pour afficher jusqu'à 3 prix de carburant.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `title` | Non | | Titre en haut de la page, ex. nom de la station. |
+| `name1`/`price1`, `name2`/`price2`, `name3`/`price3` | Non | | Chaque paire est optionnelle : une ligne ne s'affiche que si `name` ou `price` est renseigné. |
+| `status` | Non | | Ligne libre en bas de la page, ex. ouvert/fermé. |
+
+```yaml
+- name: Station Total
   page_type: fuel
-  title: "Station Total"
+  title: Total
   name1: Diesel
   price1: "{{ states('sensor.prix_diesel') }}"
   name2: SP95
@@ -321,38 +343,43 @@ composants (`text`/`icon`/`progress_bar`) qu'ils utilisent en interne.
   status: "{{ 'Ouvert' if is_state('binary_sensor.station_ouverte', 'on') else 'Fermé' }}"
 ```
 
-`name2`/`price2` et `name3`/`price3` sont optionnels (une ligne n'est affichée que si
-son `name` ou `price` est renseigné). `discharge` et `status` sont également optionnels.
-
-### Rotation automatique
+## Rotation automatique des pages
 
 Active `switch.pixoo_page_rotation` pour faire défiler automatiquement toutes les pages
-activées de la config. La durée d'affichage par défaut se règle dans les options de
-l'intégration (**Durée d'affichage par défaut des pages**, s'applique à toute page qui ne
-précise pas sa propre `duration`). Chaque page accepte aussi trois champs optionnels :
+activées (celles dont `enabled` n'est pas `false`), dans l'ordre où elles apparaissent
+dans ta config, chacune pendant sa `duration` (ou la durée par défaut réglée dans les
+options si elle n'en précise pas). Cette rotation reprend automatiquement au redémarrage
+de Home Assistant si elle était active avant l'arrêt.
+
+## Service : afficher une page à la demande
+
+Le service `pixoo_canvas.render_page` affiche une page immédiatement, sans attendre son
+tour dans la rotation :
 
 ```yaml
-- name: SPA
-  duration: 20          # secondes d'affichage avant de passer à la page suivante — surcharge la durée par défaut des options pour cette page uniquement
-  scan_interval: 10      # secondes entre rafraîchissements pendant que la page est affichée
-  enabled: "{{ not is_state('sensor.spa_temperature_eau', 'unavailable') }}"  # condition Jinja, défaut : toujours activée
-  components:
-    - ...
+service: pixoo_canvas.render_page
+data:
+  device_id: <ton appareil Pixoo Canvas>
+  page: Températures
 ```
 
-- `duration` : combien de temps cette page reste à l'écran avant de passer à la suivante. Si
-  absent, utilise la durée par défaut réglée dans les options de l'intégration.
-- `scan_interval` : si présent, la page est repoussée (mêmes composants, valeurs Jinja
-  re-évaluées) à cet intervalle pendant qu'elle est affichée — utile pour les pages avec des
-  valeurs qui changent souvent (température, minuteries...). Sans ce champ, la page n'est
-  rendue qu'une fois à son tour.
-- `enabled` : template Jinja évalué au début de chaque tour de rotation ; une page qui rend
-  `false` est simplement sautée. Un appel à `render_page` avec `page: <nom>` continue de
-  fonctionner sur une page désactivée par rotation.
+Tu peux aussi lui passer une liste de `components` directement (sans nommer de page
+existante), pour un affichage ponctuel — pratique pour une notification :
 
-La rotation reprend automatiquement au redémarrage de Home Assistant si elle était active
-avant l'arrêt. Un appel manuel à `pixoo_canvas.render_page` pendant que la rotation tourne
-affiche la page demandée jusqu'au prochain tick de rotation, qui la remplacera.
+```yaml
+service: pixoo_canvas.render_page
+data:
+  device_id: <ton appareil Pixoo Canvas>
+  components:
+    - type: rectangle
+      position: [0, 0]
+      size: [64, 64]
+      color: black
+    - type: text
+      position: [2, 20]
+      content: "Livraison arrivée !"
+      color: yellow
+```
 
 ## Licence
 
