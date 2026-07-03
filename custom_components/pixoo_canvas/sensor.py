@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
@@ -20,7 +21,7 @@ from .coordinator import PixooCoordinator, PixooState
 class PixooSensorEntityDescription(SensorEntityDescription):
     """Describes a Pixoo diagnostic sensor."""
 
-    value_fn: Callable[[PixooState], object]
+    value_fn: Callable[[PixooState], StateType]
 
 
 SENSOR_DESCRIPTIONS: tuple[PixooSensorEntityDescription, ...] = (
@@ -74,5 +75,5 @@ class PixooSensor(CoordinatorEntity[PixooCoordinator], SensorEntity):
         self._attr_device_info = coordinator.device_info
 
     @property
-    def native_value(self) -> object:
+    def native_value(self) -> StateType:
         return self.entity_description.value_fn(self.coordinator.data)

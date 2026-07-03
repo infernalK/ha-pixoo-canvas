@@ -63,7 +63,7 @@ async def draw(
     )
     if align in ("center", "right"):
         bbox = ctx.draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
+        text_width = int(bbox[2] - bbox[0])
         if align == "center":
             x -= text_width // 2
         elif align == "right":

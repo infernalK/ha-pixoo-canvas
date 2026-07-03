@@ -10,14 +10,15 @@ import voluptuous as vol
 import yaml
 
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -52,11 +53,11 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     def __init__(self) -> None:
-        self._discovered: list[dict[str, str]] = []
+        self._discovered: list[SelectOptionDict] = []
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Try to discover a device on the LAN; fall back to manual IP entry."""
         self._discovered = await self._async_discover_devices()
         if self._discovered:
@@ -65,7 +66,7 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_pick_device(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Let the user pick a discovered device, or fall back to manual entry."""
         if user_input is not None:
             selected = user_input[CONF_HOST]
@@ -73,7 +74,10 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_manual()
             return await self.async_step_manual({CONF_HOST: selected})
 
-        options = [*self._discovered, {"value": MANUAL_ENTRY_VALUE, "label": "Enter IP manually"}]
+        options: list[SelectOptionDict] = [
+            *self._discovered,
+            SelectOptionDict(value=MANUAL_ENTRY_VALUE, label="Enter IP manually"),
+        ]
         schema = vol.Schema(
             {
                 vol.Required(CONF_HOST): SelectSelector(
@@ -85,7 +89,7 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_manual(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle manual IP entry (or a pre-filled, discovered IP) + connection test."""
         errors: dict[str, str] = {}
 
@@ -108,7 +112,7 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
         return self.async_show_form(step_id="manual", data_schema=schema, errors=errors)
 
-    async def _async_discover_devices(self) -> list[dict[str, str]]:
+    async def _async_discover_devices(self) -> list[SelectOptionDict]:
         """Look up Pixoo devices Divoom's cloud has seen on the same LAN, best-effort."""
         session = async_get_clientsession(self.hass)
         try:
@@ -123,13 +127,13 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         configured_hosts = {
             entry.data.get(CONF_HOST) for entry in self._async_current_entries()
         }
-        options = []
+        options: list[SelectOptionDict] = []
         for device in data.get("DeviceList", []) if isinstance(data, dict) else []:
             ip = device.get("DevicePrivateIP")
             if not ip or ip in configured_hosts:
                 continue
             name = device.get("DeviceName") or "Pixoo"
-            options.append({"value": ip, "label": f"{name} ({ip})"})
+            options.append(SelectOptionDict(value=ip, label=f"{name} ({ip})"))
         return options
 
     @staticmethod
@@ -173,7 +177,7 @@ class PixooCanvasOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Edit the device IP/default page duration/pages, validating before saving."""
         errors: dict[str, str] = {}
 

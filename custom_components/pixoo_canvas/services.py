@@ -66,6 +66,7 @@ async def _async_handle_render_page(hass: HomeAssistant, call: ServiceCall) -> N
         page = _get_page(coordinator, page_name)
         await render_configured_page(hass, coordinator.client, page, variables)
     else:
+        assert components is not None  # guaranteed by the check above
         await render_page(hass, coordinator.client, components, variables)
 
 

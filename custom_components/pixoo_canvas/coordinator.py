@@ -50,7 +50,10 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
         )
         self.client = client
-        self.config_entry = entry
+        # DataUpdateCoordinator declares this Optional (a coordinator need not
+        # be tied to a config entry) - ours always is, so narrow it here once
+        # instead of every caller having to assert/guard against None.
+        self.config_entry: ConfigEntry = entry
         self.rotator = PageRotator(hass, entry, client)
         self.device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},

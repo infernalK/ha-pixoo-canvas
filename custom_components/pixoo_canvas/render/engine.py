@@ -67,7 +67,7 @@ async def render_page(
             index += 1
             continue
 
-        drawer = _COMPONENT_DRAWERS.get(comp_type)
+        drawer = _COMPONENT_DRAWERS.get(str(comp_type))
         if drawer is None:
             _LOGGER.warning("Unknown component type %s, skipping", comp_type)
             index += 1
