@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import logging
 from typing import Any
 
@@ -24,7 +25,24 @@ async def expand(
     except TemplateError as err:
         _LOGGER.warning("templatable component's template failed to render, skipping: %s", err)
         return []
-    if not isinstance(rendered, list):
-        _LOGGER.warning("templatable component did not render to a list, skipping")
-        return []
-    return rendered
+
+    if isinstance(rendered, list):
+        return rendered
+
+    # HA only auto-converts a render to a native list when the *entire*
+    # template is one bare `{{ }}` expression. A template built from
+    # `{% set %}`/`{% for %}` blocks before the final `{{ ns.list }}` (as
+    # ours all are) can leave stray whitespace around it, so the result
+    # stays a string even though it's valid Python list syntax. Try parsing
+    # it ourselves before giving up.
+    if isinstance(rendered, str):
+        try:
+            parsed = ast.literal_eval(rendered.strip())
+        except (ValueError, SyntaxError):
+            pass
+        else:
+            if isinstance(parsed, list):
+                return parsed
+
+    _LOGGER.warning("templatable component did not render to a list, skipping")
+    return []
