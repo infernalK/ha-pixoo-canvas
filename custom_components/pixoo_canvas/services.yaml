@@ -43,8 +43,8 @@ render_page:
       description: >-
         Inline list of page components (text/image/rectangle/icon/progress_bar/scroll_text/
         templatable). Text components accept an optional `font` (pico_8, the default bitmap
-        font; gicko; press_start_2p; silkscreen; silkscreen_bold). scroll_text is a native,
-        device-animated scrolling overlay (Draw/SendHttpText) rather than static buffer text.
+        font; or gicko, wider). scroll_text is a native, device-animated scrolling overlay
+        (Draw/SendHttpText) rather than static buffer text.
         Used for an inline page_type: components page (the default page_type); provide this
         or 'page', not both.
       required: false

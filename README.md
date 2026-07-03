@@ -236,32 +236,26 @@ Home Assistant.
 
 Le composant `text` accepte un champ `font` optionnel :
 
-| `font` | Type | Hauteur native | Largeur (pour "Temperatures") |
-| --- | --- | --- | --- |
-| `pico_8` (défaut) | bitmap pixel natif | 5px | 47px |
-| `gicko` | bitmap pixel natif, plus large | 6px | 83px |
-| `press_start_2p` | TrueType (`font_size`, défaut 6) | 7px | 72px |
-| `silkscreen` | TrueType (`font_size`, défaut 6) | 4px | 55px |
-| `silkscreen_bold` | TrueType (`font_size`, défaut 6) | 4px | 61px |
+| `font` | Hauteur native | Largeur (pour "Temperatures") |
+| --- | --- | --- |
+| `pico_8` (défaut) | 5px | 47px |
+| `gicko` | 6px, plus large | 83px |
 
-`pico_8` et `gicko` sont de vraies polices bitmap (portées depuis
+Ce sont de vraies polices bitmap (portées depuis
 [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant), licence
 MIT) : chaque glyphe est une grille de pixels fixe, comme sur un vrai écran LED — c'est
-ce qui reste le plus lisible sur l'écran physique. Pour ces deux polices, `font_size` est
-un facteur d'échelle entier (`font_size: 2` double chaque pixel, défaut `1`) plutôt
-qu'une taille de police classique. `gicko` n'a pas de glyphes minuscules dans la police
-d'origine : une minuscule est automatiquement affichée avec le glyphe majuscule
-correspondant (`pico_8` a bien les minuscules).
+ce qui reste lisible sur l'écran physique (des polices TrueType ont été essayées et
+retirées, illisibles une fois réduites à cette taille). `font_size` est un facteur
+d'échelle entier (`font_size: 2` double chaque pixel, défaut `1`) plutôt qu'une taille de
+police classique. `gicko` n'a pas de glyphes minuscules dans la police d'origine : une
+minuscule est automatiquement affichée avec le glyphe majuscule correspondant (`pico_8`
+a bien les minuscules).
 
 Aperçu (rendu réel, zoomé x10 pour la lisibilité) :
 
 | `pico_8` | `gicko` |
 | --- | --- |
 | ![pico_8](docs/img/fonts/pico_8.png) | ![gicko](docs/img/fonts/gicko.png) |
-
-| `press_start_2p` | `silkscreen` | `silkscreen_bold` |
-| --- | --- | --- |
-| ![press_start_2p](docs/img/fonts/press_start_2p.png) | ![silkscreen](docs/img/fonts/silkscreen.png) | ![silkscreen_bold](docs/img/fonts/silkscreen_bold.png) |
 
 #### Couleurs
 

@@ -70,22 +70,46 @@ async def test_text_font_field_selects_alternate_font(hass):
         hass,
         None,
     )
-    ctx_press_start = RenderContext()
+    ctx_gicko = RenderContext()
     await text.draw(
         {
             "type": "text",
             "position": [0, 0],
             "content": "Fete du jour",
-            "font": "press_start_2p",
+            "font": "gicko",
         },
-        ctx_press_start,
+        ctx_gicko,
         hass,
         None,
     )
 
-    # pico_8 (the default, a native pixel-bitmap font) is narrower than the
-    # scaled TrueType Press Start 2P at the same nominal size.
-    assert _last_lit_column(ctx_default.image) < _last_lit_column(ctx_press_start.image)
+    # gicko is a wider bitmap font than pico_8 (the default) at the same scale.
+    assert _last_lit_column(ctx_default.image) < _last_lit_column(ctx_gicko.image)
+
+
+async def test_text_unknown_font_falls_back_to_default(hass):
+    """An unrecognized `font` name falls back to the bitmap default rather than raising."""
+    ctx_default = RenderContext()
+    await text.draw(
+        {"type": "text", "position": [0, 0], "content": "Fete du jour"},
+        ctx_default,
+        hass,
+        None,
+    )
+    ctx_unknown = RenderContext()
+    await text.draw(
+        {
+            "type": "text",
+            "position": [0, 0],
+            "content": "Fete du jour",
+            "font": "does-not-exist",
+        },
+        ctx_unknown,
+        hass,
+        None,
+    )
+
+    assert _last_lit_column(ctx_default.image) == _last_lit_column(ctx_unknown.image)
 
 
 async def test_text_bitmap_font_size_acts_as_integer_scale(hass):
