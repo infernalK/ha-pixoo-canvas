@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 from typing import Any
@@ -10,6 +11,7 @@ import aiohttp
 
 from .const import (
     CMD_CLEAR_HTTP_TEXT,
+    CMD_COMMAND_LIST,
     CMD_GET_ALL_CONF,
     CMD_ON_OFF_SCREEN,
     CMD_RESET_HTTP_GIF_ID,
@@ -20,6 +22,7 @@ from .const import (
     DEFAULT_PIC_SPEED_MS,
     DEFAULT_TIMEOUT,
     PIC_ID_MAX,
+    SCROLL_TEXT_SETTLE_DELAY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,6 +38,49 @@ class PixooConnectionError(PixooApiError):
 
 class PixooResponseError(PixooApiError):
     """Raised when the device returns an error response."""
+
+
+def _clear_text_payload() -> dict[str, Any]:
+    return {"Command": CMD_CLEAR_HTTP_TEXT}
+
+
+def _gif_payload(pic_id: int, width: int, rgb_bytes: bytes) -> dict[str, Any]:
+    return {
+        "Command": CMD_SEND_HTTP_GIF,
+        "PicNum": 1,
+        "PicWidth": width,
+        "PicOffset": 0,
+        "PicID": pic_id,
+        "PicSpeed": DEFAULT_PIC_SPEED_MS,
+        "PicData": base64.b64encode(rgb_bytes).decode("ascii"),
+    }
+
+
+def _text_payload(
+    text_id: int,
+    position: tuple[int, int],
+    text: str,
+    color: str,
+    *,
+    direction: int = 0,
+    font: int = 0,
+    width: int = 64,
+    speed: int = 100,
+    align: int = 1,
+) -> dict[str, Any]:
+    return {
+        "Command": CMD_SEND_HTTP_TEXT,
+        "TextId": text_id,
+        "x": position[0],
+        "y": position[1],
+        "dir": direction,
+        "font": font,
+        "TextWidth": width,
+        "speed": speed,
+        "TextString": text,
+        "color": color,
+        "align": align,
+    }
 
 
 class PixooClient:
@@ -89,80 +135,67 @@ class PixooClient:
         """Set the physical screen orientation: 0=0°, 1=90°, 2=180°, 3=270°."""
         await self._send({"Command": CMD_SET_ROTATION_ANGLE, "Mode": mode})
 
-    async def send_text_animation(
-        self,
-        text_id: int,
-        position: tuple[int, int],
-        text: str,
-        color: str,
-        *,
-        direction: int = 0,
-        font: int = 0,
-        width: int = 64,
-        speed: int = 100,
-        align: int = 1,
-    ) -> None:
-        """Push a native, device-animated scrolling text overlay.
-
-        Only takes effect while the device is showing a custom image pushed
-        via send_gif() ("drawing mode") — Divoom's firmware silently ignores
-        it if the device is on a clock face or other built-in channel.
-        `text_id` (0-19) identifies this text slot; sending the same
-        `text_id` again replaces/updates it. `font` selects one of Divoom's
-        own 8 built-in device fonts (0-7) — unrelated to this integration's
-        bundled fonts, which only apply to the `text` component's buffer
-        drawing.
-        """
-        await self._send(
-            {
-                "Command": CMD_SEND_HTTP_TEXT,
-                "TextId": text_id,
-                "x": position[0],
-                "y": position[1],
-                "dir": direction,
-                "font": font,
-                "TextWidth": width,
-                "speed": speed,
-                "TextString": text,
-                "color": color,
-                "align": align,
-            }
-        )
-
-    async def clear_text_overlays(self) -> None:
-        """Clear every active scroll-text overlay (Draw/SendHttpText slot).
-
-        The device does *not* clear these on its own when a new SendHttpGif
-        buffer is pushed - a scrolling text keeps animating over whatever
-        page is shown next until explicitly cleared. render_page() calls
-        this before drawing each page so a page without scroll_text can't
-        end up with a previous page's scrolling text stuck on top of it.
-        """
-        await self._send({"Command": CMD_CLEAR_HTTP_TEXT})
-
     async def reset_gif_id(self) -> None:
         """Reset the device's animation frame counter.
 
         Divoom firmware can stop accepting SendHttpGif pushes once PicID has
-        climbed high enough without ever being reset; send_gif() calls this
+        climbed high enough without ever being reset; send_page() calls this
         automatically before the counter reaches PIC_ID_MAX.
         """
         await self._send({"Command": CMD_RESET_HTTP_GIF_ID})
         self._pic_id = 0
 
-    async def send_gif(self, width: int, rgb_bytes: bytes) -> None:
-        """Push a single-frame RGB buffer to the screen."""
+    async def send_command_list(self, commands: list[dict[str, Any]]) -> None:
+        """Send several commands as a single batched Draw/CommandList request.
+
+        Fewer separate HTTP round-trips per page render - some Pixoo units
+        are prone to rebooting under frequent, rapid separate requests, and
+        batching noticeably helped.
+        """
+        await self._send({"Command": CMD_COMMAND_LIST, "CommandList": commands})
+
+    async def send_page(
+        self,
+        width: int,
+        rgb_bytes: bytes,
+        scroll_texts: list[dict[str, Any]] | None = None,
+    ) -> None:
+        """Push a page's buffer, then any scroll_text overlays it defines.
+
+        ClearHttpText and SendHttpGif are batched into a single
+        Draw/CommandList call: the device does *not* clear a previous
+        page's scroll_text on its own when a new buffer is pushed, so this
+        runs on every page (not just ones with their own scroll_text) to
+        make sure a stale one can never survive onto an unrelated page.
+
+        If `scroll_texts` is given, waits SCROLL_TEXT_SETTLE_DELAY before
+        sending them as a second batched call: Divoom's docs say
+        SendHttpText is silently ignored unless the device has already
+        finished switching into drawing mode from the gif push, and an
+        HTTP 200 for that push isn't proof it has.
+        """
         if self._pic_id >= PIC_ID_MAX:
             await self.reset_gif_id()
         self._pic_id += 1
-        await self._send(
-            {
-                "Command": CMD_SEND_HTTP_GIF,
-                "PicNum": 1,
-                "PicWidth": width,
-                "PicOffset": 0,
-                "PicID": self._pic_id,
-                "PicSpeed": DEFAULT_PIC_SPEED_MS,
-                "PicData": base64.b64encode(rgb_bytes).decode("ascii"),
-            }
+        await self.send_command_list(
+            [_clear_text_payload(), _gif_payload(self._pic_id, width, rgb_bytes)]
         )
+
+        if scroll_texts:
+            await asyncio.sleep(SCROLL_TEXT_SETTLE_DELAY)
+            await self.send_command_list(
+                [
+                    _text_payload(
+                        scroll_text["text_id"],
+                        scroll_text["position"],
+                        scroll_text["text"],
+                        scroll_text["color"],
+                        direction=scroll_text["direction"],
+                        font=scroll_text["font"],
+                        width=scroll_text["width"],
+                        speed=scroll_text["speed"],
+                        align=scroll_text["align"],
+                    )
+                    for scroll_text in scroll_texts
+                ]
+            )

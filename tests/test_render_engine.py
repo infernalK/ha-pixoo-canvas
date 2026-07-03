@@ -1,13 +1,16 @@
-"""Tests for the render engine's page composition and push."""
+"""Tests for the render engine's page composition and push.
+
+Batching, clearing stale scroll_text, and the settle delay are all
+PixooClient.send_page's responsibility now (see test_api.py) - these tests
+only cover what render_page itself does: composing the buffer and building
+the scroll_texts list (with hex colors) passed to send_page().
+"""
 
 from __future__ import annotations
-
-from unittest.mock import AsyncMock, patch
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from custom_components.pixoo_canvas.api import PixooClient
-from custom_components.pixoo_canvas.const import SCROLL_TEXT_SETTLE_DELAY
 from custom_components.pixoo_canvas.render.engine import render_page
 
 HOST = "192.168.1.101"
@@ -15,35 +18,13 @@ URL = f"http://{HOST}/post"
 
 
 class _FakeClient:
-    """Records send_gif/send_text_animation/clear_text_overlays calls, no network."""
+    """Records send_page calls without touching the network."""
 
     def __init__(self) -> None:
-        self.calls: list[tuple[int, bytes]] = []
-        self.text_calls: list[dict] = []
-        self.clear_text_calls = 0
+        self.calls: list[tuple[int, bytes, list[dict] | None]] = []
 
-    async def send_gif(self, width: int, rgb_bytes: bytes) -> None:
-        self.calls.append((width, rgb_bytes))
-
-    async def send_text_animation(self, text_id, position, text, color, **kwargs):
-        self.text_calls.append({"text_id": text_id, "position": position, "text": text, "color": color, **kwargs})
-
-    async def clear_text_overlays(self) -> None:
-        self.clear_text_calls += 1
-
-
-async def test_render_page_always_clears_text_overlays_first(hass):
-    """Every render clears leftover scroll_text overlays, even on a page with none.
-
-    Divoom's firmware doesn't clear a previous page's scrolling text on its
-    own when a new buffer is pushed, so a page without scroll_text could
-    otherwise end up with a stale one stuck on top of it.
-    """
-    client = _FakeClient()
-
-    await render_page(hass, client, [{"type": "rectangle", "position": [0, 0], "size": [1, 1]}])
-
-    assert client.clear_text_calls == 1
+    async def send_page(self, width, rgb_bytes, scroll_texts=None) -> None:
+        self.calls.append((width, rgb_bytes, scroll_texts))
 
 
 async def test_render_page_pushes_once_with_full_buffer(hass):
@@ -56,10 +37,11 @@ async def test_render_page_pushes_once_with_full_buffer(hass):
     await render_page(hass, client, components)
 
     assert len(client.calls) == 1
-    width, rgb_bytes = client.calls[0]
+    width, rgb_bytes, scroll_texts = client.calls[0]
     assert width == 64
     assert len(rgb_bytes) == 64 * 64 * 3
     assert rgb_bytes[:3] == bytes([0, 255, 0])
+    assert scroll_texts == []
 
 
 async def test_render_page_skips_unknown_component_type(hass):
@@ -86,23 +68,23 @@ async def test_render_page_expands_templatable_components(hass):
 
     await render_page(hass, client, components)
 
-    _, rgb_bytes = client.calls[0]
+    _, rgb_bytes, _ = client.calls[0]
     assert rgb_bytes[:3] == bytes([255, 0, 0])
 
 
 async def test_render_page_pushed_via_real_client(hass, aioclient_mock):
-    """End-to-end: render_page drives the real PixooClient, clearing text then pushing the gif."""
+    """End-to-end: render_page drives the real PixooClient.send_page -> one batched POST."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
     await render_page(hass, client, [{"type": "rectangle", "position": [0, 0], "size": [1, 1]}])
 
-    # ClearHttpText (always, to drop any stale scroll_text) + SendHttpGif.
-    assert len(aioclient_mock.mock_calls) == 2
+    # ClearHttpText + SendHttpGif batched into a single Draw/CommandList request.
+    assert len(aioclient_mock.mock_calls) == 1
 
 
-async def test_render_page_sends_scroll_text_after_the_buffer_push(hass):
-    """scroll_text components are sent as SendHttpText calls after the main gif push."""
+async def test_render_page_builds_scroll_text_with_hex_color(hass):
+    """scroll_text components are passed to send_page with an RGB->hex converted color."""
     client = _FakeClient()
     components = [
         {"type": "rectangle", "position": [0, 0], "size": [64, 64], "color": [0, 0, 0]},
@@ -118,43 +100,13 @@ async def test_render_page_sends_scroll_text_after_the_buffer_push(hass):
 
     await render_page(hass, client, components)
 
-    assert client.clear_text_calls == 1
-    assert len(client.calls) == 1  # exactly one buffer push, same as without scroll_text
-    assert len(client.text_calls) == 1
-    call = client.text_calls[0]
-    assert call["text"] == "hello"
-    assert call["position"] == (0, 40)
-    assert call["color"] == "#FFFF00"
-    assert call["direction"] == 1  # right
-    assert call["align"] == 2  # center
-    assert call["text_id"] == 0
-
-
-async def test_render_page_pauses_before_scroll_text_to_let_device_settle(hass):
-    """A short delay gives the device time to enter drawing mode before SendHttpText.
-
-    Divoom's own doc says SendHttpText is silently ignored unless the device
-    is already showing a custom image; acknowledging the SendHttpGif HTTP
-    request isn't the same as the firmware having finished the frame swap.
-    """
-    client = _FakeClient()
-    components = [{"type": "scroll_text", "position": [0, 0], "content": "hi"}]
-
-    with patch(
-        "custom_components.pixoo_canvas.render.engine.asyncio.sleep", new=AsyncMock()
-    ) as mock_sleep:
-        await render_page(hass, client, components)
-
-    mock_sleep.assert_awaited_once_with(SCROLL_TEXT_SETTLE_DELAY)
-
-
-async def test_render_page_no_delay_without_scroll_text(hass):
-    """Pages without scroll_text aren't slowed down by the settle delay."""
-    client = _FakeClient()
-
-    with patch(
-        "custom_components.pixoo_canvas.render.engine.asyncio.sleep", new=AsyncMock()
-    ) as mock_sleep:
-        await render_page(hass, client, [{"type": "rectangle", "position": [0, 0], "size": [1, 1]}])
-
-    mock_sleep.assert_not_awaited()
+    assert len(client.calls) == 1  # exactly one send_page call, same as without scroll_text
+    _, _, scroll_texts = client.calls[0]
+    assert len(scroll_texts) == 1
+    entry = scroll_texts[0]
+    assert entry["text"] == "hello"
+    assert entry["position"] == (0, 40)
+    assert entry["color"] == "#FFFF00"
+    assert entry["direction"] == 1  # right
+    assert entry["align"] == 2  # center
+    assert entry["text_id"] == 0

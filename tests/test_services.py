@@ -47,8 +47,8 @@ async def test_render_page_with_inline_components(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf (setup) + ClearHttpText + SendHttpGif
-    assert len(aioclient_mock.mock_calls) == 3
+    # initial GetAllConf (setup) + one batched ClearHttpText+SendHttpGif request
+    assert len(aioclient_mock.mock_calls) == 2
 
 
 async def test_render_page_with_named_page(hass, aioclient_mock):
@@ -70,8 +70,8 @@ async def test_render_page_with_named_page(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf (setup) + ClearHttpText + SendHttpGif
-    assert len(aioclient_mock.mock_calls) == 3
+    # initial GetAllConf (setup) + one batched ClearHttpText+SendHttpGif request
+    assert len(aioclient_mock.mock_calls) == 2
 
 
 async def test_render_page_requires_page_or_components(hass, aioclient_mock):

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -11,7 +10,7 @@ from PIL import Image, ImageDraw
 from homeassistant.core import HomeAssistant
 
 from ..api import PixooClient
-from ..const import PIC_WIDTH, SCROLL_TEXT_SETTLE_DELAY
+from ..const import PIC_WIDTH
 from .components import icon as icon_component
 from .components import image as image_component
 from .components import progress_bar as progress_bar_component
@@ -39,8 +38,8 @@ class RenderContext:
         self.size = size
         self.image = Image.new("RGB", (size, size), (0, 0, 0))
         self.draw = ImageDraw.Draw(self.image)
-        # Populated by the scroll_text component; sent as separate
-        # Draw/SendHttpText calls after the buffer push (see render_page).
+        # Populated by the scroll_text component; sent as a batched
+        # Draw/CommandList call after the buffer push (see PixooClient.send_page).
         self.scroll_texts: list[dict[str, Any]] = []
 
     def to_rgb_bytes(self) -> bytes:
@@ -55,10 +54,6 @@ async def render_page(
     variables: dict[str, Any] | None = None,
 ) -> None:
     """Compose a page's components onto a buffer and push it to the device."""
-    # A previous page's scroll_text keeps animating over whatever is shown
-    # next until explicitly cleared - see PixooClient.clear_text_overlays.
-    await client.clear_text_overlays()
-
     ctx = RenderContext()
     pending = list(components)
     index = 0
@@ -81,20 +76,18 @@ async def render_page(
         await drawer(component, ctx, hass, variables)
         index += 1
 
-    await client.send_gif(ctx.size, ctx.to_rgb_bytes())
-
-    if ctx.scroll_texts:
-        await asyncio.sleep(SCROLL_TEXT_SETTLE_DELAY)
-
-    for scroll_text in ctx.scroll_texts:
-        await client.send_text_animation(
-            scroll_text["text_id"],
-            scroll_text["position"],
-            scroll_text["text"],
-            "#{:02X}{:02X}{:02X}".format(*scroll_text["color"]),
-            direction=scroll_text["direction"],
-            font=scroll_text["font"],
-            width=scroll_text["width"],
-            speed=scroll_text["speed"],
-            align=scroll_text["align"],
-        )
+    scroll_texts = [
+        {
+            "text_id": scroll_text["text_id"],
+            "position": scroll_text["position"],
+            "text": scroll_text["text"],
+            "color": "#{:02X}{:02X}{:02X}".format(*scroll_text["color"]),
+            "direction": scroll_text["direction"],
+            "font": scroll_text["font"],
+            "width": scroll_text["width"],
+            "speed": scroll_text["speed"],
+            "align": scroll_text["align"],
+        }
+        for scroll_text in ctx.scroll_texts
+    ]
+    await client.send_page(ctx.size, ctx.to_rgb_bytes(), scroll_texts)

@@ -36,16 +36,13 @@ _PAGE_A_B = (
 
 
 class _FakeClient:
-    """Records send_gif calls without touching the network."""
+    """Records send_page calls without touching the network."""
 
     def __init__(self) -> None:
         self.calls: list[bytes] = []
 
-    async def send_gif(self, width: int, rgb_bytes: bytes) -> None:
+    async def send_page(self, width: int, rgb_bytes: bytes, scroll_texts=None) -> None:
         self.calls.append(rgb_bytes)
-
-    async def clear_text_overlays(self) -> None:
-        pass
 
 
 def _entry(hass, pages_yaml: str) -> MockConfigEntry:
@@ -177,13 +174,10 @@ async def test_device_error_does_not_stall_rotation(hass):
         def __init__(self) -> None:
             self.calls = 0
 
-        async def send_gif(self, width: int, rgb_bytes: bytes) -> None:
+        async def send_page(self, width: int, rgb_bytes: bytes, scroll_texts=None) -> None:
             self.calls += 1
             if self.calls == 1:
                 raise PixooConnectionError("boom")
-
-        async def clear_text_overlays(self) -> None:
-            pass
 
     entry = _entry(hass, _PAGE_A_B)
     client = _FlakyClient()

@@ -233,9 +233,23 @@ gérer l'animation nous-mêmes :
   au moment de l'appel, Divoom dit que la commande est silencieusement ignorée.
 - **Confirmé sur device réel** : le firmware ne retire pas un texte défilant tout seul quand une
   nouvelle page est poussée — il continue de défiler par-dessus la page suivante tant qu'il n'est
-  pas explicitement effacé. L'intégration appelle donc désormais `Draw/ClearHttpText` en tout
-  début de chaque rendu de page (que la page ait ou non un `scroll_text`), pour repartir d'un
-  écran propre à chaque fois.
+  pas explicitement effacé. `ClearHttpText` est donc envoyé au tout début de chaque rendu de page
+  (que la page ait ou non un `scroll_text`), regroupé avec le push de l'image en une seule requête
+  (voir [Fiabilité côté appareil](#fiabilité-côté-appareil) ci-dessous) pour repartir d'un écran
+  propre à chaque fois.
+- Un court délai sépare le push de l'image du texte défilant, pour laisser le temps à l'appareil
+  de vraiment basculer en mode dessin (sinon `SendHttpText` peut être silencieusement ignoré).
+
+#### Fiabilité côté appareil
+
+Le Pixoo expose `Draw/CommandList`, qui permet d'envoyer plusieurs commandes en une seule requête
+HTTP au lieu de les enchaîner séparément — utile car certains appareils ont tendance à redémarrer
+seuls quand ils reçoivent trop de requêtes rapprochées. Chaque rendu de page en profite :
+`ClearHttpText` + le push de l'image sont regroupés en **une seule requête**, et s'il y a un ou
+plusieurs `scroll_text` sur la page, ils sont eux aussi regroupés ensemble en une seconde requête
+(après le court délai de bascule en mode dessin). Une page sans `scroll_text` ne fait donc plus
+qu'un seul appel HTTP par rendu (au lieu de deux avant), et une page avec plusieurs `scroll_text`
+n'en fait que deux au total, quel que soit le nombre de textes.
 
 Puis, pour l'afficher :
 
