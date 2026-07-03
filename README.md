@@ -364,8 +364,9 @@ data:
   page: Températures
 ```
 
-Tu peux aussi lui passer une liste de `components` directement (sans nommer de page
-existante), pour un affichage ponctuel — pratique pour une notification :
+Tu peux aussi lui passer une page directement en ligne (sans nommer de page
+existante), pour un affichage ponctuel — pratique pour une notification. Sans
+`page_type`, une liste de `components` est attendue (le défaut) :
 
 ```yaml
 service: pixoo_canvas.render_page
@@ -380,6 +381,17 @@ data:
       position: [2, 20]
       content: "Livraison arrivée !"
       color: yellow
+```
+
+Les autres `page_type` (`clock`, `channel`, `visualizer`, `pv`, `fuel`) marchent aussi
+en ligne, en indiquant `page_type` et les champs de ce type (voir le tableau plus haut) :
+
+```yaml
+service: pixoo_canvas.render_page
+data:
+  device_id: <ton appareil Pixoo Canvas>
+  page_type: clock
+  id: 182
 ```
 
 ## Service : faire sonner le buzzer

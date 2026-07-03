@@ -21,18 +21,26 @@ from .const import (
 )
 from .coordinator import PixooCoordinator
 from .page_render import render_configured_page
-from .pages import PagesYamlError, get_page
-from .render.engine import render_page
+from .pages import PagesYamlError, get_page, is_valid_page_shape
 
 _LOGGER = logging.getLogger(__name__)
+
+# Fields carrying the inline page definition itself, as opposed to call
+# routing/metadata (device_id, page name lookup, template variables). Passed
+# straight through to render_configured_page as the page dict, so any
+# page_type's fields (id for clock/channel/visualizer; power/storage/... for
+# pv; title/name1/price1/... for fuel) work without a fixed schema per type.
+_ROUTING_KEYS = {"device_id", "page", "variables"}
 
 SERVICE_RENDER_PAGE_SCHEMA = vol.Schema(
     {
         vol.Required("device_id"): cv.string,
         vol.Optional("page"): cv.string,
+        vol.Optional("page_type"): cv.string,
         vol.Optional("components"): [dict],
         vol.Optional("variables"): dict,
-    }
+    },
+    extra=vol.ALLOW_EXTRA,
 )
 
 SERVICE_PLAY_BUZZER_SCHEMA = vol.Schema(
@@ -76,20 +84,25 @@ def _get_page(coordinator: PixooCoordinator, page_name: str) -> dict[str, Any]:
 async def _async_handle_render_page(hass: HomeAssistant, call: ServiceCall) -> None:
     """Handle the pixoo_canvas.render_page service call."""
     page_name = call.data.get("page")
-    components = call.data.get("components")
+    inline_page = {k: v for k, v in call.data.items() if k not in _ROUTING_KEYS}
 
-    if (page_name is None) == (components is None):
-        raise HomeAssistantError("Provide exactly one of 'page' or 'components'")
+    if (page_name is None) == (not inline_page):
+        raise HomeAssistantError(
+            "Provide exactly one of 'page', or inline page fields "
+            "('components', 'page_type', and/or its other fields)"
+        )
 
     coordinator = _get_coordinator(hass, call.data["device_id"])
     variables = call.data.get("variables")
 
     if page_name:
         page = _get_page(coordinator, page_name)
-        await render_configured_page(hass, coordinator.client, page, variables)
     else:
-        assert components is not None  # guaranteed by the check above
-        await render_page(hass, coordinator.client, components, variables)
+        if not is_valid_page_shape(inline_page):
+            raise HomeAssistantError(f"Invalid inline page definition: {inline_page}")
+        page = inline_page
+
+    await render_configured_page(hass, coordinator.client, page, variables)
 
 
 async def _async_handle_play_buzzer(hass: HomeAssistant, call: ServiceCall) -> None:

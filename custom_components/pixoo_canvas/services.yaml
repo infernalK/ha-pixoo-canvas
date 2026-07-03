@@ -15,11 +15,29 @@ render_page:
       name: Page name
       description: >-
         Name of a page configured in the integration's options, of any page_type
-        (components, clock, channel, visualizer, pv, fuel). Provide this or
-        'components', not both.
+        (components, clock, channel, visualizer, pv, fuel). Provide this, or an
+        inline page (page_type/components/id/etc.), not both.
       required: false
       selector:
         text:
+    page_type:
+      name: Page type
+      description: >-
+        Only used for an inline page (omit when using 'page'). One of components
+        (the default), clock, channel, visualizer, pv, fuel. clock/channel/visualizer
+        also need an 'id'; pv/fuel take their own fields (power/storage/discharge/time
+        for pv; title/name1/price1/name2/price2/name3/price3/status for fuel) passed
+        as extra service data alongside page_type. See the README for field details.
+      required: false
+      selector:
+        select:
+          options:
+            - components
+            - clock
+            - channel
+            - visualizer
+            - pv
+            - fuel
     components:
       name: Components
       description: >-
@@ -27,8 +45,8 @@ render_page:
         templatable). Text components accept an optional `font` (pico_8, the default bitmap
         font; gicko; press_start_2p; silkscreen; silkscreen_bold). scroll_text is a native,
         device-animated scrolling overlay (Draw/SendHttpText) rather than static buffer text.
-        Provide this or 'page', not both. Only page_type components pages can be rendered
-        this way inline; other page_types must be referenced by name via 'page'.
+        Used for an inline page_type: components page (the default page_type); provide this
+        or 'page', not both.
       required: false
       selector:
         object:

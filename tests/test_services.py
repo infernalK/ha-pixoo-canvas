@@ -93,6 +93,58 @@ async def test_render_page_with_native_clock_page(hass, aioclient_mock):
     assert payload == {"Command": "Channel/SetClockSelectId", "ClockId": 182}
 
 
+async def test_render_page_with_inline_page_type_clock(hass, aioclient_mock):
+    """render_page accepts an inline page_type (e.g. clock), not just components."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "render_page",
+        {"device_id": _device_id(hass, entry), "page_type": "clock", "id": 182},
+        blocking=True,
+    )
+
+    # initial GetAllConf (setup) + one Channel/SetClockSelectId request
+    assert len(aioclient_mock.mock_calls) == 2
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Channel/SetClockSelectId", "ClockId": 182}
+
+
+async def test_render_page_with_inline_page_type_pv(hass, aioclient_mock):
+    """render_page accepts an inline page_type: pv page with its own fields."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "render_page",
+        {
+            "device_id": _device_id(hass, entry),
+            "page_type": "pv",
+            "power": 1200,
+            "storage": 80,
+        },
+        blocking=True,
+    )
+
+    # initial GetAllConf (setup) + one batched ClearHttpText+SendHttpGif request
+    assert len(aioclient_mock.mock_calls) == 2
+
+
+async def test_render_page_rejects_invalid_inline_page_type(hass, aioclient_mock):
+    """An inline clock/channel/visualizer page without an 'id' raises."""
+    entry = await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "render_page",
+            {"device_id": _device_id(hass, entry), "page_type": "clock"},
+            blocking=True,
+        )
+
+
 async def test_render_page_requires_page_or_components(hass, aioclient_mock):
     """Calling without page or components raises."""
     entry = await _setup_entry(hass, aioclient_mock)
