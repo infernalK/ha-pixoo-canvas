@@ -249,7 +249,9 @@ Le composant `text` accepte un champ `font` optionnel :
 MIT) : chaque glyphe est une grille de pixels fixe, comme sur un vrai écran LED — c'est
 ce qui reste le plus lisible sur l'écran physique. Pour ces deux polices, `font_size` est
 un facteur d'échelle entier (`font_size: 2` double chaque pixel, défaut `1`) plutôt
-qu'une taille de police classique.
+qu'une taille de police classique. `gicko` n'a pas de glyphes minuscules dans la police
+d'origine : une minuscule est automatiquement affichée avec le glyphe majuscule
+correspondant (`pico_8` a bien les minuscules).
 
 #### Couleurs
 

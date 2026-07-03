@@ -35,6 +35,16 @@ def test_bitmap_text_size_unknown_char_falls_back_to_placeholder():
     assert width_unknown == width_known  # both fall back to the same '?' glyph
 
 
+def test_bitmap_text_size_lowercase_falls_back_to_uppercase_glyph():
+    """gicko has no lowercase glyphs; lowercase should reuse the uppercase one, not '?'."""
+    width_lower, _ = bitmap_text_size("salut", "gicko")
+    width_upper, _ = bitmap_text_size("SALUT", "gicko")
+    width_placeholder, _ = bitmap_text_size("?????", "gicko")
+
+    assert width_lower == width_upper
+    assert width_lower != width_placeholder
+
+
 def test_draw_bitmap_text_paints_pixels_at_native_scale():
     """At scale 1, pico_8 draws individual pixels within the glyph's cell."""
     image = Image.new("RGB", (64, 64), (0, 0, 0))

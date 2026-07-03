@@ -34,7 +34,9 @@ def _load_fonts() -> dict[str, dict[str, list[int]]]:
 
 def _glyph(font_name: str, char: str) -> list[int] | None:
     table = _load_fonts().get(_FONT_KEYS.get(font_name, ""), {})
-    return table.get(char) or table.get("?")
+    # gicko has no lowercase glyphs at all (only pico_8 does); fall back to
+    # the uppercase glyph before giving up on '?', since it's the same letter.
+    return table.get(char) or table.get(char.upper()) or table.get("?")
 
 
 def bitmap_text_size(text: str, font_name: str, scale: int = 1) -> tuple[int, int]:
