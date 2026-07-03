@@ -73,7 +73,10 @@ async def render_page(
             index += 1
             continue
 
-        await drawer(component, ctx, hass, variables)
+        try:
+            await drawer(component, ctx, hass, variables)
+        except Exception:  # noqa: BLE001 - one bad component must not blank out the whole page
+            _LOGGER.exception("Component %r failed to render, skipping", comp_type)
         index += 1
 
     scroll_texts = [

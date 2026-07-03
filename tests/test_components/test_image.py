@@ -48,3 +48,37 @@ async def test_image_missing_source_is_noop(hass):
     await image.draw({"type": "image", "position": [0, 0]}, ctx, hass, None)
 
     assert ctx.image.getpixel((0, 0)) == (0, 0, 0)
+
+
+async def test_image_unreachable_url_is_skipped_not_raised(hass, aioclient_mock):
+    """An unreachable image_url (e.g. during an internet outage) is logged and skipped."""
+    aioclient_mock.get(URL, exc=TimeoutError)
+    ctx = RenderContext()
+
+    await image.draw({"type": "image", "position": [0, 0], "image_url": URL}, ctx, hass, None)
+
+    assert ctx.image.getpixel((0, 0)) == (0, 0, 0)
+
+
+async def test_image_missing_path_is_skipped_not_raised(hass, tmp_path):
+    """A nonexistent image_path is logged and skipped instead of raising."""
+    ctx = RenderContext()
+
+    await image.draw(
+        {"type": "image", "position": [0, 0], "image_path": str(tmp_path / "does-not-exist.png")},
+        ctx,
+        hass,
+        None,
+    )
+
+    assert ctx.image.getpixel((0, 0)) == (0, 0, 0)
+
+
+async def test_image_corrupt_data_is_skipped_not_raised(hass, aioclient_mock):
+    """Non-image bytes at image_url are logged and skipped instead of raising."""
+    aioclient_mock.get(URL, content=b"not an image")
+    ctx = RenderContext()
+
+    await image.draw({"type": "image", "position": [0, 0], "image_url": URL}, ctx, hass, None)
+
+    assert ctx.image.getpixel((0, 0)) == (0, 0, 0)

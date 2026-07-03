@@ -53,6 +53,36 @@ async def test_render_page_skips_unknown_component_type(hass):
     assert len(client.calls) == 1
 
 
+async def test_render_page_skips_component_that_raises(hass, monkeypatch):
+    """A component whose drawer raises is logged and skipped, not fatal to the page.
+
+    Regression test: an `image` component with an unreachable image_url (e.g.
+    during an internet outage, for a URL off the local network) used to raise
+    and abort the whole page - now every component's failure is contained, so
+    the rest of the page still renders and gets pushed.
+    """
+    from custom_components.pixoo_canvas.render.components import rectangle as rectangle_component
+
+    async def _boom(component, ctx, hass, variables):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "custom_components.pixoo_canvas.render.engine._COMPONENT_DRAWERS",
+        {"rectangle": rectangle_component.draw, "image": _boom},
+    )
+    client = _FakeClient()
+    components = [
+        {"type": "image", "image_url": "http://example.com/broken.png", "position": [0, 0]},
+        {"type": "rectangle", "position": [0, 0], "size": [64, 64], "color": [0, 255, 0]},
+    ]
+
+    await render_page(hass, client, components)
+
+    assert len(client.calls) == 1
+    _, rgb_bytes, _ = client.calls[0]
+    assert rgb_bytes[:3] == bytes([0, 255, 0])
+
+
 async def test_render_page_expands_templatable_components(hass):
     """A templatable component's rendered list is spliced in and drawn."""
     client = _FakeClient()
