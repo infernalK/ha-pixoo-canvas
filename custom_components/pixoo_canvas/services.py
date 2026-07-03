@@ -11,7 +11,14 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 
-from .const import DOMAIN, SERVICE_RENDER_PAGE
+from .const import (
+    DEFAULT_BUZZER_ACTIVE_TIME_MS,
+    DEFAULT_BUZZER_OFF_TIME_MS,
+    DEFAULT_BUZZER_TOTAL_TIME_MS,
+    DOMAIN,
+    SERVICE_PLAY_BUZZER,
+    SERVICE_RENDER_PAGE,
+)
 from .coordinator import PixooCoordinator
 from .page_render import render_configured_page
 from .pages import PagesYamlError, get_page
@@ -25,6 +32,21 @@ SERVICE_RENDER_PAGE_SCHEMA = vol.Schema(
         vol.Optional("page"): cv.string,
         vol.Optional("components"): [dict],
         vol.Optional("variables"): dict,
+    }
+)
+
+SERVICE_PLAY_BUZZER_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): cv.string,
+        vol.Optional("active_time_ms", default=DEFAULT_BUZZER_ACTIVE_TIME_MS): vol.All(
+            vol.Coerce(int), vol.Range(min=1)
+        ),
+        vol.Optional("off_time_ms", default=DEFAULT_BUZZER_OFF_TIME_MS): vol.All(
+            vol.Coerce(int), vol.Range(min=1)
+        ),
+        vol.Optional("total_time_ms", default=DEFAULT_BUZZER_TOTAL_TIME_MS): vol.All(
+            vol.Coerce(int), vol.Range(min=1)
+        ),
     }
 )
 
@@ -70,6 +92,14 @@ async def _async_handle_render_page(hass: HomeAssistant, call: ServiceCall) -> N
         await render_page(hass, coordinator.client, components, variables)
 
 
+async def _async_handle_play_buzzer(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.play_buzzer service call."""
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.play_buzzer(
+        call.data["active_time_ms"], call.data["off_time_ms"], call.data["total_time_ms"]
+    )
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register Pixoo Canvas services (idempotent across multiple config entries)."""
     if hass.services.has_service(DOMAIN, SERVICE_RENDER_PAGE):
@@ -78,8 +108,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def _handle_render_page(call: ServiceCall) -> None:
         await _async_handle_render_page(hass, call)
 
+    async def _handle_play_buzzer(call: ServiceCall) -> None:
+        await _async_handle_play_buzzer(hass, call)
+
     hass.services.async_register(
         DOMAIN, SERVICE_RENDER_PAGE, _handle_render_page, schema=SERVICE_RENDER_PAGE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_PLAY_BUZZER, _handle_play_buzzer, schema=SERVICE_PLAY_BUZZER_SCHEMA
     )
 
 
@@ -87,3 +123,4 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     """Unregister Pixoo Canvas services once no config entries remain."""
     if not hass.data.get(DOMAIN):
         hass.services.async_remove(DOMAIN, SERVICE_RENDER_PAGE)
+        hass.services.async_remove(DOMAIN, SERVICE_PLAY_BUZZER)

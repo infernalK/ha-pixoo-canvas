@@ -38,3 +38,47 @@ render_page:
       required: false
       selector:
         object:
+
+play_buzzer:
+  name: Play the buzzer
+  description: >-
+    Plays the Pixoo's built-in buzzer. Use at your own risk - repeated/rapid
+    use of the buzzer could stress the device's hardware over time.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to buzz.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+    active_time_ms:
+      name: Buzz time per cycle
+      description: How long the buzzer is on for each cycle.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 9999
+          unit_of_measurement: ms
+          mode: box
+    off_time_ms:
+      name: Idle time per cycle
+      description: How long the buzzer is off for between cycles.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 9999
+          unit_of_measurement: ms
+          mode: box
+    total_time_ms:
+      name: Total time
+      description: Total duration the buzzer keeps cycling on/off.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 60000
+          unit_of_measurement: ms
+          mode: box

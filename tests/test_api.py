@@ -148,3 +148,19 @@ async def test_set_visualizer_sends_eq_position(hass, aioclient_mock):
 
     payload = aioclient_mock.mock_calls[0][2]
     assert payload == {"Command": "Channel/SetEqPosition", "EqPosition": 2}
+
+
+async def test_play_buzzer_sends_cycle_and_total_times(hass, aioclient_mock):
+    """play_buzzer posts Device/PlayBuzzer with the cycle/total timings in ms."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.play_buzzer(500, 500, 3000)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Device/PlayBuzzer",
+        "ActiveTimeInCycle": 500,
+        "OffTimeInCycle": 500,
+        "PlayTotalTime": 3000,
+    }

@@ -14,6 +14,7 @@ from .const import (
     CMD_COMMAND_LIST,
     CMD_GET_ALL_CONF,
     CMD_ON_OFF_SCREEN,
+    CMD_PLAY_BUZZER,
     CMD_RESET_HTTP_GIF_ID,
     CMD_SEND_HTTP_GIF,
     CMD_SEND_HTTP_TEXT,
@@ -149,6 +150,17 @@ class PixooClient:
     async def set_visualizer(self, position: int) -> None:
         """Switch the device to one of its built-in audio visualizers."""
         await self._send({"Command": CMD_SET_VISUALIZER, "EqPosition": position})
+
+    async def play_buzzer(self, active_time_ms: int, off_time_ms: int, total_time_ms: int) -> None:
+        """Play the device's buzzer: on/off cycles of `active_time_ms`/`off_time_ms`, for `total_time_ms` overall."""
+        await self._send(
+            {
+                "Command": CMD_PLAY_BUZZER,
+                "ActiveTimeInCycle": active_time_ms,
+                "OffTimeInCycle": off_time_ms,
+                "PlayTotalTime": total_time_ms,
+            }
+        )
 
     async def reset_gif_id(self) -> None:
         """Reset the device's animation frame counter.

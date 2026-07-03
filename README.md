@@ -22,6 +22,7 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
   - [Page : Fuel (station-service)](#page--fuel-station-service)
 - [Rotation automatique des pages](#rotation-automatique-des-pages)
 - [Service : afficher une page à la demande](#service--afficher-une-page-à-la-demande)
+- [Service : faire sonner le buzzer](#service--faire-sonner-le-buzzer)
 - [Licence](#licence)
 
 ## Installation
@@ -379,6 +380,21 @@ data:
       position: [2, 20]
       content: "Livraison arrivée !"
       color: yellow
+```
+
+## Service : faire sonner le buzzer
+
+Le service `pixoo_canvas.play_buzzer` fait sonner le buzzer intégré au Pixoo — pratique
+pour une alerte sonore en plus d'une notification visuelle. ⚠️ À utiliser avec modération :
+un usage répété/rapide pourrait fatiguer le matériel.
+
+```yaml
+service: pixoo_canvas.play_buzzer
+data:
+  device_id: <ton appareil Pixoo Canvas>
+  active_time_ms: 500   # optionnel, défaut 500 — durée du buzzer par cycle
+  off_time_ms: 500      # optionnel, défaut 500 — silence entre chaque cycle
+  total_time_ms: 3000   # optionnel, défaut 3000 — durée totale de l'alerte
 ```
 
 ## Licence
