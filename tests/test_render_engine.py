@@ -12,17 +12,35 @@ URL = f"http://{HOST}/post"
 
 
 class _FakeClient:
-    """Records send_gif/send_text_animation calls without touching the network."""
+    """Records send_gif/send_text_animation/clear_text_overlays calls, no network."""
 
     def __init__(self) -> None:
         self.calls: list[tuple[int, bytes]] = []
         self.text_calls: list[dict] = []
+        self.clear_text_calls = 0
 
     async def send_gif(self, width: int, rgb_bytes: bytes) -> None:
         self.calls.append((width, rgb_bytes))
 
     async def send_text_animation(self, text_id, position, text, color, **kwargs):
         self.text_calls.append({"text_id": text_id, "position": position, "text": text, "color": color, **kwargs})
+
+    async def clear_text_overlays(self) -> None:
+        self.clear_text_calls += 1
+
+
+async def test_render_page_always_clears_text_overlays_first(hass):
+    """Every render clears leftover scroll_text overlays, even on a page with none.
+
+    Divoom's firmware doesn't clear a previous page's scrolling text on its
+    own when a new buffer is pushed, so a page without scroll_text could
+    otherwise end up with a stale one stuck on top of it.
+    """
+    client = _FakeClient()
+
+    await render_page(hass, client, [{"type": "rectangle", "position": [0, 0], "size": [1, 1]}])
+
+    assert client.clear_text_calls == 1
 
 
 async def test_render_page_pushes_once_with_full_buffer(hass):
@@ -70,13 +88,14 @@ async def test_render_page_expands_templatable_components(hass):
 
 
 async def test_render_page_pushed_via_real_client(hass, aioclient_mock):
-    """End-to-end: render_page drives the real PixooClient.send_gif -> HTTP POST."""
+    """End-to-end: render_page drives the real PixooClient, clearing text then pushing the gif."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
     await render_page(hass, client, [{"type": "rectangle", "position": [0, 0], "size": [1, 1]}])
 
-    assert len(aioclient_mock.mock_calls) == 1
+    # ClearHttpText (always, to drop any stale scroll_text) + SendHttpGif.
+    assert len(aioclient_mock.mock_calls) == 2
 
 
 async def test_render_page_sends_scroll_text_after_the_buffer_push(hass):
@@ -96,6 +115,7 @@ async def test_render_page_sends_scroll_text_after_the_buffer_push(hass):
 
     await render_page(hass, client, components)
 
+    assert client.clear_text_calls == 1
     assert len(client.calls) == 1  # exactly one buffer push, same as without scroll_text
     assert len(client.text_calls) == 1
     call = client.text_calls[0]

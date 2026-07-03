@@ -51,8 +51,8 @@ async def test_page_rotation_switch_turn_on_starts_rendering(hass, aioclient_moc
     )
 
     assert hass.states.get(entity_id).state == STATE_ON
-    # initial GetAllConf (setup) + one SendHttpGif push from rotation starting
-    assert len(aioclient_mock.mock_calls) == 2
+    # initial GetAllConf (setup) + ClearHttpText + SendHttpGif from rotation starting
+    assert len(aioclient_mock.mock_calls) == 3
 
 
 async def test_page_rotation_switch_turn_off_stops_rotation(hass, aioclient_mock):

@@ -226,17 +226,16 @@ gérer l'animation nous-mêmes :
   text_id: 0              # identifiant du slot de texte (0-19), pour en superposer plusieurs
 ```
 
-⚠️ Points à connaître (comportement matériel, pas totalement vérifié de notre côté) :
+⚠️ Points à connaître (comportement matériel) :
 - D'après la doc Divoom, `scroll_text` **ne fonctionne que quand l'écran est en train d'afficher
   une image poussée par nous** (ce qui est déjà le cas juste après le push du buffer de la page,
-  donc ça devrait marcher directement) — mais si l'écran est sur une horloge ou un autre channel
-  intégré au moment de l'appel, Divoom dit que la commande est silencieusement ignorée.
-- On ne sait pas encore si le défilement redémarre depuis le début à chaque nouveau rendu de la
-  page (ex. à chaque `scan_interval`, ou à chaque tour de rotation) ou s'il continue en douceur
-  tant que `text_id` et le contenu ne changent pas. Si tu utilises `scroll_text` sur une page en
-  rotation, teste avec une `duration` généreuse et sans `scan_interval` au départ, et dis-moi ce
-  que tu observes — j'ajusterai la doc (et éventuellement le comportement, ex. ne renvoyer la
-  commande que si le texte a changé) selon ton retour.
+  donc ça marche directement) — mais si l'écran est sur une horloge ou un autre channel intégré
+  au moment de l'appel, Divoom dit que la commande est silencieusement ignorée.
+- **Confirmé sur device réel** : le firmware ne retire pas un texte défilant tout seul quand une
+  nouvelle page est poussée — il continue de défiler par-dessus la page suivante tant qu'il n'est
+  pas explicitement effacé. L'intégration appelle donc désormais `Draw/ClearHttpText` en tout
+  début de chaque rendu de page (que la page ait ou non un `scroll_text`), pour repartir d'un
+  écran propre à chaque fois.
 
 Puis, pour l'afficher :
 

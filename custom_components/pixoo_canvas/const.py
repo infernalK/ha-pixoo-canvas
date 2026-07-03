@@ -13,6 +13,7 @@ CMD_SEND_HTTP_GIF = "Draw/SendHttpGif"
 CMD_RESET_HTTP_GIF_ID = "Draw/ResetHttpGifId"
 CMD_SET_ROTATION_ANGLE = "Device/SetScreenRotationAngle"
 CMD_SEND_HTTP_TEXT = "Draw/SendHttpText"
+CMD_CLEAR_HTTP_TEXT = "Draw/ClearHttpText"
 
 DEFAULT_SCAN_INTERVAL = 15
 DEFAULT_TIMEOUT = 10

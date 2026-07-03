@@ -54,6 +54,10 @@ async def render_page(
     variables: dict[str, Any] | None = None,
 ) -> None:
     """Compose a page's components onto a buffer and push it to the device."""
+    # A previous page's scroll_text keeps animating over whatever is shown
+    # next until explicitly cleared - see PixooClient.clear_text_overlays.
+    await client.clear_text_overlays()
+
     ctx = RenderContext()
     pending = list(components)
     index = 0

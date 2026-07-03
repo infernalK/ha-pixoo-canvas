@@ -9,6 +9,7 @@ from typing import Any
 import aiohttp
 
 from .const import (
+    CMD_CLEAR_HTTP_TEXT,
     CMD_GET_ALL_CONF,
     CMD_ON_OFF_SCREEN,
     CMD_RESET_HTTP_GIF_ID,
@@ -127,6 +128,17 @@ class PixooClient:
                 "align": align,
             }
         )
+
+    async def clear_text_overlays(self) -> None:
+        """Clear every active scroll-text overlay (Draw/SendHttpText slot).
+
+        The device does *not* clear these on its own when a new SendHttpGif
+        buffer is pushed - a scrolling text keeps animating over whatever
+        page is shown next until explicitly cleared. render_page() calls
+        this before drawing each page so a page without scroll_text can't
+        end up with a previous page's scrolling text stuck on top of it.
+        """
+        await self._send({"Command": CMD_CLEAR_HTTP_TEXT})
 
     async def reset_gif_id(self) -> None:
         """Reset the device's animation frame counter.
