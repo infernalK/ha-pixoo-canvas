@@ -13,6 +13,7 @@ from .const import (
     CMD_ON_OFF_SCREEN,
     CMD_RESET_HTTP_GIF_ID,
     CMD_SEND_HTTP_GIF,
+    CMD_SEND_HTTP_TEXT,
     CMD_SET_BRIGHTNESS,
     CMD_SET_ROTATION_ANGLE,
     DEFAULT_PIC_SPEED_MS,
@@ -86,6 +87,46 @@ class PixooClient:
     async def set_rotation_angle(self, mode: int) -> None:
         """Set the physical screen orientation: 0=0°, 1=90°, 2=180°, 3=270°."""
         await self._send({"Command": CMD_SET_ROTATION_ANGLE, "Mode": mode})
+
+    async def send_text_animation(
+        self,
+        text_id: int,
+        position: tuple[int, int],
+        text: str,
+        color: str,
+        *,
+        direction: int = 0,
+        font: int = 0,
+        width: int = 64,
+        speed: int = 100,
+        align: int = 1,
+    ) -> None:
+        """Push a native, device-animated scrolling text overlay.
+
+        Only takes effect while the device is showing a custom image pushed
+        via send_gif() ("drawing mode") — Divoom's firmware silently ignores
+        it if the device is on a clock face or other built-in channel.
+        `text_id` (0-19) identifies this text slot; sending the same
+        `text_id` again replaces/updates it. `font` selects one of Divoom's
+        own 8 built-in device fonts (0-7) — unrelated to this integration's
+        bundled fonts, which only apply to the `text` component's buffer
+        drawing.
+        """
+        await self._send(
+            {
+                "Command": CMD_SEND_HTTP_TEXT,
+                "TextId": text_id,
+                "x": position[0],
+                "y": position[1],
+                "dir": direction,
+                "font": font,
+                "TextWidth": width,
+                "speed": speed,
+                "TextString": text,
+                "color": color,
+                "align": align,
+            }
+        )
 
     async def reset_gif_id(self) -> None:
         """Reset the device's animation frame counter.

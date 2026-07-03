@@ -12,13 +12,17 @@ URL = f"http://{HOST}/post"
 
 
 class _FakeClient:
-    """Records send_gif calls without touching the network."""
+    """Records send_gif/send_text_animation calls without touching the network."""
 
     def __init__(self) -> None:
         self.calls: list[tuple[int, bytes]] = []
+        self.text_calls: list[dict] = []
 
     async def send_gif(self, width: int, rgb_bytes: bytes) -> None:
         self.calls.append((width, rgb_bytes))
+
+    async def send_text_animation(self, text_id, position, text, color, **kwargs):
+        self.text_calls.append({"text_id": text_id, "position": position, "text": text, "color": color, **kwargs})
 
 
 async def test_render_page_pushes_once_with_full_buffer(hass):
@@ -73,3 +77,31 @@ async def test_render_page_pushed_via_real_client(hass, aioclient_mock):
     await render_page(hass, client, [{"type": "rectangle", "position": [0, 0], "size": [1, 1]}])
 
     assert len(aioclient_mock.mock_calls) == 1
+
+
+async def test_render_page_sends_scroll_text_after_the_buffer_push(hass):
+    """scroll_text components are sent as SendHttpText calls after the main gif push."""
+    client = _FakeClient()
+    components = [
+        {"type": "rectangle", "position": [0, 0], "size": [64, 64], "color": [0, 0, 0]},
+        {
+            "type": "scroll_text",
+            "position": [0, 40],
+            "content": "hello",
+            "color": [255, 255, 0],
+            "direction": "right",
+            "align": "center",
+        },
+    ]
+
+    await render_page(hass, client, components)
+
+    assert len(client.calls) == 1  # exactly one buffer push, same as without scroll_text
+    assert len(client.text_calls) == 1
+    call = client.text_calls[0]
+    assert call["text"] == "hello"
+    assert call["position"] == (0, 40)
+    assert call["color"] == "#FFFF00"
+    assert call["direction"] == 1  # right
+    assert call["align"] == 2  # center
+    assert call["text_id"] == 0

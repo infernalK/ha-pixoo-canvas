@@ -26,8 +26,8 @@ dans le config entry, et composants de rendu enrichis (icônes MDI, progress bar
   - 3 capteurs diagnostic : indicateur de rotation (signification exacte non confirmée, probablement
     liée à la rotation auto de la galerie), mirroir, ID de l'horloge/page courante
 - ✅ Rendu de pages : service `pixoo_canvas.render_page` (composants `text`, `image`,
-  `rectangle`, `icon`, `progress_bar`, `templatable`), pages configurables dans les options
-  de l'intégration (éditeur YAML brut). Le `rest_command` externe peut être remplacé
+  `rectangle`, `icon`, `progress_bar`, `scroll_text`, `templatable`), pages configurables dans
+  les options de l'intégration (éditeur YAML brut). Le `rest_command` externe peut être remplacé
   progressivement.
 - ✅ Rotation automatique des pages : chaque page peut définir `duration` (durée d'affichage),
   `scan_interval` (rafraîchissement pendant l'affichage) et `enabled` (condition Jinja) —
@@ -205,6 +205,38 @@ Ordre des lignes de haut en bas : **pico_8** (blanc) · **gicko** (jaune) · **p
 **silkscreen_bold@8** (magenta). Regarde laquelle est la plus lisible *sur l'écran*, pas sur une
 capture d'écran — dis-moi ton verdict et j'ajuste le défaut si `pico_8` ne te convainc pas non
 plus.
+
+#### Texte défilant
+
+`scroll_text` pousse un défilement animé **nativement par le firmware du Pixoo**
+(`Draw/SendHttpText`), au lieu d'être dessiné statiquement dans le buffer comme `text` — utile
+pour un texte plus long que l'écran (un message, un flux d'infos) sans avoir à le tronquer ou à
+gérer l'animation nous-mêmes :
+
+```yaml
+- type: scroll_text
+  position: [0, 40]
+  content: "{{ states('sensor.dernier_message') }}"
+  color: [255, 255, 0]
+  direction: left       # left (défaut) ou right
+  width: 64              # largeur de la zone de défilement en pixels
+  speed: 100              # ms par pas de défilement, plus petit = plus rapide
+  align: left            # left (défaut) / center / right
+  divoom_font: 0          # police interne du Pixoo (0-7), indépendante de `font` sur `text`
+  text_id: 0              # identifiant du slot de texte (0-19), pour en superposer plusieurs
+```
+
+⚠️ Points à connaître (comportement matériel, pas totalement vérifié de notre côté) :
+- D'après la doc Divoom, `scroll_text` **ne fonctionne que quand l'écran est en train d'afficher
+  une image poussée par nous** (ce qui est déjà le cas juste après le push du buffer de la page,
+  donc ça devrait marcher directement) — mais si l'écran est sur une horloge ou un autre channel
+  intégré au moment de l'appel, Divoom dit que la commande est silencieusement ignorée.
+- On ne sait pas encore si le défilement redémarre depuis le début à chaque nouveau rendu de la
+  page (ex. à chaque `scan_interval`, ou à chaque tour de rotation) ou s'il continue en douceur
+  tant que `text_id` et le contenu ne changent pas. Si tu utilises `scroll_text` sur une page en
+  rotation, teste avec une `duration` généreuse et sans `scan_interval` au départ, et dis-moi ce
+  que tu observes — j'ajusterai la doc (et éventuellement le comportement, ex. ne renvoyer la
+  commande que si le texte a changé) selon ton retour.
 
 Puis, pour l'afficher :
 

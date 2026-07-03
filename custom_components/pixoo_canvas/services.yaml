@@ -22,9 +22,11 @@ render_page:
     components:
       name: Components
       description: >-
-        Inline list of page components (text/image/rectangle/icon/progress_bar/templatable).
-        Text components accept an optional `font` (pico_8, the default bitmap font; gicko;
-        press_start_2p; silkscreen; silkscreen_bold). Provide this or 'page', not both.
+        Inline list of page components (text/image/rectangle/icon/progress_bar/scroll_text/
+        templatable). Text components accept an optional `font` (pico_8, the default bitmap
+        font; gicko; press_start_2p; silkscreen; silkscreen_bold). scroll_text is a native,
+        device-animated scrolling overlay (Draw/SendHttpText) rather than static buffer text.
+        Provide this or 'page', not both.
       required: false
       selector:
         object:
