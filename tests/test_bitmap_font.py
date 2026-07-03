@@ -1,4 +1,4 @@
-"""Tests for the gickowtf-derived pixel-bitmap fonts (pico_8, gicko)."""
+"""Tests for the pixel-bitmap fonts (gickowtf's pico_8/gicko, trip5's matrix_chunky_6/8)."""
 
 from __future__ import annotations
 
@@ -11,9 +11,9 @@ from custom_components.pixoo_canvas.render.bitmap_font import (
 )
 
 
-def test_bitmap_font_names_include_pico_8_and_gicko():
-    """Both ported gickowtf font tables are available."""
-    assert set(BITMAP_FONT_NAMES) == {"pico_8", "gicko"}
+def test_bitmap_font_names():
+    """All four ported bitmap font tables are available."""
+    assert set(BITMAP_FONT_NAMES) == {"pico_8", "gicko", "matrix_chunky_6", "matrix_chunky_8"}
 
 
 def test_bitmap_text_size_scales_linearly():
@@ -43,6 +43,36 @@ def test_bitmap_text_size_lowercase_falls_back_to_uppercase_glyph():
 
     assert width_lower == width_upper
     assert width_lower != width_placeholder
+
+
+def _render(text, font_name):
+    width, height = bitmap_text_size(text, font_name)
+    image = Image.new("RGB", (max(width, 1), max(height, 1)), (0, 0, 0))
+    draw_bitmap_text(image, text, (0, 0), (255, 0, 0), font_name)
+    return list(image.getdata())
+
+
+def test_matrix_chunky_fonts_have_native_lowercase():
+    """Unlike gicko, matrix_chunky_6/8 have real (differently shaped) lowercase glyphs."""
+    for font_name in ("matrix_chunky_6", "matrix_chunky_8"):
+        assert _render("s", font_name) != _render("S", font_name)
+
+
+def test_matrix_chunky_fonts_support_french_accents():
+    """Accented French letters render as themselves, not the '?' placeholder."""
+    for font_name in ("matrix_chunky_6", "matrix_chunky_8"):
+        assert _render("é", font_name) != _render("?", font_name)
+
+
+def test_matrix_chunky_descenders_extend_below_the_cap_height():
+    """g/y/p dip below the baseline, so they paint pixels past pico_8-style full-height glyphs."""
+    for font_name, height in (("matrix_chunky_6", 6), ("matrix_chunky_8", 8)):
+        image = Image.new("RGB", (64, 64), (0, 0, 0))
+
+        draw_bitmap_text(image, "g", (0, 0), (255, 0, 0), font_name, scale=1)
+
+        lit_rows = {y for x in range(image.width) for y in range(image.height) if image.getpixel((x, y)) == (255, 0, 0)}
+        assert max(lit_rows) == height - 1  # ink reaches the last (descender) row
 
 
 def test_draw_bitmap_text_paints_pixels_at_native_scale():

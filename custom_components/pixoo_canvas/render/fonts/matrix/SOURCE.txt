@@ -1,0 +1,20 @@
+MatrixChunky6 and MatrixChunky8 in matrix_fonts.json are pixel-bitmap glyph
+tables converted from the .bdf fonts at:
+
+  https://github.com/trip5/Matrix-Fonts
+  6-series/MatrixChunky6.bdf, 8-series/MatrixChunky8.bdf
+  Copyright (c) 2026 Trip5, MIT License (see LICENSE.txt in this folder)
+
+Unlike the gickowtf fonts (see ../bitmap/SOURCE.txt), these were designed
+with proper descenders (g/y/p/q/j dip below the baseline) and include full
+lowercase and accented Latin glyphs. Each glyph is stored the same way -
+a flat array of 0/1 pixels in row-major order, terminated by the glyph's
+pixel width (see render/bitmap_font.py) - built from each BDF glyph's own
+BBX (bounding box) and the font's FONTBOUNDINGBOX height, so glyphs stay
+baseline-aligned relative to each other.
+
+Only a curated charset was ported, not the full multi-script .bdf (which
+also covers Cyrillic and other scripts this project has no use for): ASCII
+32-126, the accented Latin letters used in French (à â é è ê ë î ï ô ù û ü
+ç œ and their uppercase forms), the degree sign, French guillemets (« »),
+and en/em dashes.

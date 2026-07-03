@@ -239,23 +239,34 @@ Le composant `text` accepte un champ `font` optionnel :
 | `font` | Hauteur native | Largeur (pour "Temperatures") |
 | --- | --- | --- |
 | `pico_8` (défaut) | 5px | 47px |
-| `gicko` | 6px, plus large | 83px |
+| `gicko` | 6px, plus large | 80px |
+| `matrix_chunky_6` | 6px | 49px |
+| `matrix_chunky_8` | 8px | 49px |
 
 Ce sont de vraies polices bitmap (portées depuis
-[gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant), licence
-MIT) : chaque glyphe est une grille de pixels fixe, comme sur un vrai écran LED — c'est
-ce qui reste lisible sur l'écran physique (des polices TrueType ont été essayées et
-retirées, illisibles une fois réduites à cette taille). `font_size` est un facteur
-d'échelle entier (`font_size: 2` double chaque pixel, défaut `1`) plutôt qu'une taille de
-police classique. `gicko` n'a pas de glyphes minuscules dans la police d'origine : une
-minuscule est automatiquement affichée avec le glyphe majuscule correspondant (`pico_8`
-a bien les minuscules).
+[gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant) et
+[trip5/Matrix-Fonts](https://github.com/trip5/Matrix-Fonts), licence MIT) : chaque glyphe
+est une grille de pixels fixe, comme sur un vrai écran LED — c'est ce qui reste lisible
+sur l'écran physique (des polices TrueType ont été essayées et retirées, illisibles une
+fois réduites à cette taille). `font_size` est un facteur d'échelle entier (`font_size: 2`
+double chaque pixel, défaut `1`) plutôt qu'une taille de police classique.
+
+`gicko` n'a pas de glyphes minuscules dans la police d'origine : une minuscule est
+automatiquement affichée avec le glyphe majuscule correspondant. `pico_8`,
+`matrix_chunky_6` et `matrix_chunky_8` ont bien de vraies minuscules ; ces deux derniers
+ont aussi de vraies descendantes (g/y/p qui dépassent sous la ligne de base) et les
+accents français (à â é è ê ë î ï ô ù û ü ç œ et majuscules), en plus des guillemets
+français « » et du signe degré.
 
 Aperçu (rendu réel, zoomé x10 pour la lisibilité) :
 
 | `pico_8` | `gicko` |
 | --- | --- |
 | ![pico_8](docs/img/fonts/pico_8.png) | ![gicko](docs/img/fonts/gicko.png) |
+
+| `matrix_chunky_6` | `matrix_chunky_8` |
+| --- | --- |
+| ![matrix_chunky_6](docs/img/fonts/matrix_chunky_6.png) | ![matrix_chunky_8](docs/img/fonts/matrix_chunky_8.png) |
 
 #### Couleurs
 

@@ -1,11 +1,11 @@
-"""Pixel-bitmap fonts ported from gickowtf/pixoo-homeassistant (MIT license).
+"""Pixel-bitmap fonts, ported from gickowtf/pixoo-homeassistant and trip5/Matrix-Fonts.
 
 These are true fixed-grid pixel fonts (glyphs as flat 0/1 arrays drawn pixel
-by pixel), not scaled TrueType outlines. `pico_8` is the same font this
-project's own pages referenced as `font: pico_8` before migrating, and it
-stays both narrow and a full 5px tall at native scale — legible on a real,
-diffused LED matrix in a way a small TrueType font isn't. See
-render/fonts/bitmap/SOURCE.txt for provenance.
+by pixel), not scaled TrueType outlines - legible on a real, diffused LED
+matrix in a way a small TrueType font isn't. `pico_8` is the same font this
+project's own pages referenced as `font: pico_8` before migrating. See
+render/fonts/bitmap/SOURCE.txt and render/fonts/matrix/SOURCE.txt for
+provenance of each font.
 """
 
 from __future__ import annotations
@@ -17,25 +17,35 @@ from PIL import Image, ImageDraw
 
 from .colors import RGB
 
-_DATA_PATH = Path(__file__).parent / "fonts" / "bitmap" / "gickowtf_fonts.json"
+_FONTS_DIR = Path(__file__).parent / "fonts"
 
-_FONT_KEYS = {"pico_8": "FONT_PICO_8", "gicko": "FONT_GICKO"}
-BITMAP_FONT_NAMES = tuple(_FONT_KEYS)
+# Each bundled font: which JSON file its glyph table lives in, and the key
+# under which that table is stored (a single JSON file can hold more than
+# one font, as gickowtf_fonts.json does).
+_FONT_SOURCES: dict[str, tuple[Path, str]] = {
+    "pico_8": (_FONTS_DIR / "bitmap" / "gickowtf_fonts.json", "FONT_PICO_8"),
+    "gicko": (_FONTS_DIR / "bitmap" / "gickowtf_fonts.json", "FONT_GICKO"),
+    "matrix_chunky_6": (_FONTS_DIR / "matrix" / "matrix_fonts.json", "MatrixChunky6"),
+    "matrix_chunky_8": (_FONTS_DIR / "matrix" / "matrix_fonts.json", "MatrixChunky8"),
+}
+BITMAP_FONT_NAMES = tuple(_FONT_SOURCES)
 
-_fonts: dict[str, dict[str, list[int]]] | None = None
+_json_cache: dict[Path, dict[str, dict[str, list[int]]]] = {}
 
 
-def _load_fonts() -> dict[str, dict[str, list[int]]]:
-    global _fonts
-    if _fonts is None:
-        _fonts = json.loads(_DATA_PATH.read_text(encoding="utf-8"))
-    return _fonts
+def _load_json(path: Path) -> dict[str, dict[str, list[int]]]:
+    cached = _json_cache.get(path)
+    if cached is None:
+        cached = json.loads(path.read_text(encoding="utf-8"))
+        _json_cache[path] = cached
+    return cached
 
 
 def _glyph(font_name: str, char: str) -> list[int] | None:
-    table = _load_fonts().get(_FONT_KEYS.get(font_name, ""), {})
-    # gicko has no lowercase glyphs at all (only pico_8 does); fall back to
-    # the uppercase glyph before giving up on '?', since it's the same letter.
+    source = _FONT_SOURCES.get(font_name)
+    table = _load_json(source[0]).get(source[1], {}) if source else {}
+    # gicko has no lowercase glyphs at all; fall back to the uppercase glyph
+    # before giving up on '?', since it's the same letter.
     return table.get(char) or table.get(char.upper()) or table.get("?")
 
 
