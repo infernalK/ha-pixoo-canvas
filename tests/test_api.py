@@ -115,3 +115,36 @@ async def test_send_page_no_delay_without_scroll_text(hass, aioclient_mock):
 
     mock_sleep.assert_not_awaited()
     assert len(aioclient_mock.mock_calls) == 1
+
+
+async def test_set_clock_sends_clock_select_id(hass, aioclient_mock):
+    """set_clock posts Channel/SetClockSelectId with the given ClockId."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_clock(182)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Channel/SetClockSelectId", "ClockId": 182}
+
+
+async def test_set_custom_channel_sends_custom_page_index(hass, aioclient_mock):
+    """set_custom_channel posts Channel/SetCustomPageIndex with the given index."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_custom_channel(1)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Channel/SetCustomPageIndex", "CustomPageIndex": 1}
+
+
+async def test_set_visualizer_sends_eq_position(hass, aioclient_mock):
+    """set_visualizer posts Channel/SetEqPosition with the given position."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_visualizer(2)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Channel/SetEqPosition", "EqPosition": 2}

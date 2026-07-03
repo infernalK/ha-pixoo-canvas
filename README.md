@@ -264,7 +264,65 @@ data:
 ```
 
 `render_page` accepte aussi `components` (liste inline) à la place de `page`, pour un
-affichage ponctuel sans passer par la config des pages.
+affichage ponctuel sans passer par la config des pages (dans ce cas uniquement une liste
+de `components`, pas un autre `page_type` — voir ci-dessous).
+
+### Types de page
+
+Chaque page accepte un champ optionnel `page_type` (défaut `components`, donc toutes les
+pages existantes continuent de marcher sans rien changer). En plus de `components` (la
+liste de composants habituelle), trois types pilotent un écran **natif** du Pixoo — aucun
+buffer n'est composé ni poussé, l'appareil bascule simplement sur un de ses écrans
+intégrés — et deux sont des layouts **préconstruits**, à champs fixes plutôt qu'une liste
+de `components` à écrire soi-même. Ce sont les mêmes types que propose
+[gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant), dont
+s'inspire ce projet.
+
+#### Écrans natifs : `clock`, `channel`, `visualizer`
+
+```yaml
+- name: Horloge
+  page_type: clock
+  id: 182   # ClockId — voir https://github.com/gickowtf/pixoo-homeassistant/blob/main/READMES/CLOCKS.md
+- name: Channel perso 1
+  page_type: channel
+  id: 0     # un des 3 channels personnalisés configurés dans l'app Divoom (0, 1 ou 2)
+- name: Visualiseur
+  page_type: visualizer
+  id: 2     # index du visualiseur dans l'app Divoom
+```
+
+`id` accepte un entier ou un template Jinja (résolu à chaque affichage). `channel`
+correspond aux 3 "channels personnalisés" de l'app Divoom (`Channel/SetCustomPageIndex`),
+pas à la sélection d'onglet générale de l'appareil (horloge/cloud/visualiseur/custom).
+
+#### Pages préconstruites : `pv`, `fuel`
+
+Layout fixe composé automatiquement à partir de champs plutôt que d'une liste de
+`components` — pratique pour un cas courant sans avoir à positionner chaque composant.
+Chaque champ accepte une valeur brute ou un template Jinja, exactement comme les
+composants (`text`/`icon`/`progress_bar`) qu'ils utilisent en interne.
+
+```yaml
+- name: Solaire
+  page_type: pv
+  power: "{{ states('sensor.solar_power') }}"       # W
+  storage: "{{ states('sensor.battery_level') }}"    # % (0-100), colore l'icône batterie et sa barre
+  discharge: "{{ states('sensor.battery_discharge') }}"  # optionnel
+  time: "{{ now().strftime('%H:%M') }}"              # optionnel, défaut : heure courante
+
+- name: Essence
+  page_type: fuel
+  title: "Station Total"
+  name1: Diesel
+  price1: "{{ states('sensor.prix_diesel') }}"
+  name2: SP95
+  price2: "{{ states('sensor.prix_sp95') }}"
+  status: "{{ 'Ouvert' if is_state('binary_sensor.station_ouverte', 'on') else 'Fermé' }}"
+```
+
+`name2`/`price2` et `name3`/`price3` sont optionnels (une ligne n'est affichée que si
+son `name` ou `price` est renseigné). `discharge` et `status` sont également optionnels.
 
 ### Rotation automatique
 

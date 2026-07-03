@@ -21,8 +21,8 @@ from .const import (
     MIN_PAGE_DURATION,
     ROTATION_IDLE_POLL_INTERVAL,
 )
+from .page_render import render_configured_page
 from .pages import PagesYamlError, parse_pages
-from .render.engine import render_page
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -141,7 +141,7 @@ class PageRotator:
 
     async def _render(self, page: dict[str, Any]) -> None:
         try:
-            await render_page(self._hass, self._client, page.get("components", []))
+            await render_configured_page(self._hass, self._client, page)
         except PixooApiError as err:
             _LOGGER.warning(
                 "Failed to render page %r during rotation: %s", page.get("name"), err

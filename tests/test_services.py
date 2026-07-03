@@ -74,6 +74,25 @@ async def test_render_page_with_named_page(hass, aioclient_mock):
     assert len(aioclient_mock.mock_calls) == 2
 
 
+async def test_render_page_with_native_clock_page(hass, aioclient_mock):
+    """render_page on a page_type: clock page calls Channel/SetClockSelectId, not SendHttpGif."""
+    pages_yaml = "- name: Horloge\n  page_type: clock\n  id: 182\n"
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: pages_yaml})
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "render_page",
+        {"device_id": _device_id(hass, entry), "page": "Horloge"},
+        blocking=True,
+    )
+
+    # initial GetAllConf (setup) + one Channel/SetClockSelectId request
+    assert len(aioclient_mock.mock_calls) == 2
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Channel/SetClockSelectId", "ClockId": 182}
+
+
 async def test_render_page_requires_page_or_components(hass, aioclient_mock):
     """Calling without page or components raises."""
     entry = await _setup_entry(hass, aioclient_mock)

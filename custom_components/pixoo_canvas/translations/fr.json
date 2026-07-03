@@ -27,7 +27,7 @@
     "step": {
       "init": {
         "title": "Configurer ton appareil Pixoo",
-        "description": "Modifie l'adresse IP de l'appareil, la durée d'affichage par défaut des pages, et les pages elles-mêmes. Les pages sont une liste YAML brute d'entrées nommées, chacune avec une liste `components`. La durée par défaut s'applique à toute page qui ne précise pas sa propre `duration`. Autres champs optionnels par page : `enabled` (template Jinja), `scan_interval` (secondes entre rafraîchissements pendant l'affichage).",
+        "description": "Modifie l'adresse IP de l'appareil, la durée d'affichage par défaut des pages, et les pages elles-mêmes. Les pages sont une liste YAML brute d'entrées nommées. Par défaut chaque page a une liste `components`, mais une page peut aussi préciser un `page_type` (clock, channel, visualizer, pv, fuel) pour un écran natif du Pixoo ou un layout préconstruit — voir le README. La durée par défaut s'applique à toute page qui ne précise pas sa propre `duration`. Autres champs optionnels par page : `enabled` (template Jinja), `scan_interval` (secondes entre rafraîchissements pendant l'affichage).",
         "data": {
           "host": "Adresse IP de l'appareil",
           "default_page_duration": "Durée d'affichage par défaut des pages (secondes)",
@@ -38,7 +38,7 @@
     "error": {
       "cannot_connect": "Impossible de se connecter à l'appareil. Vérifie l'adresse IP et qu'il est sur le même réseau.",
       "invalid_yaml": "Ceci n'est pas un YAML valide.",
-      "invalid_schema": "Chaque page doit avoir un champ `name` (texte) et un champ `components` (liste)."
+      "invalid_schema": "Chaque page doit avoir un champ `name` (texte), et soit un champ `components` (liste), soit, pour page_type clock/channel/visualizer, un champ `id`."
     }
   },
   "entity": {

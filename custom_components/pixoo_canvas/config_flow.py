@@ -26,7 +26,14 @@ from homeassistant.helpers.selector import (
 )
 
 from .api import PixooApiError, PixooClient
-from .const import CONF_DEFAULT_PAGE_DURATION, CONF_PAGES_YAML, DEFAULT_PAGE_DURATION, DOMAIN
+from .const import (
+    CONF_DEFAULT_PAGE_DURATION,
+    CONF_PAGES_YAML,
+    DEFAULT_PAGE_DURATION,
+    DEFAULT_PAGE_TYPE,
+    DOMAIN,
+    NATIVE_CHANNEL_PAGE_TYPES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -134,16 +141,31 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return PixooCanvasOptionsFlowHandler()
 
 
+def _is_valid_page(page: Any) -> bool:
+    """Validate a single page dict, shape depending on its `page_type`.
+
+    `components` (the default, for `page_type`-less pages already in use)
+    requires a `components` list. `clock`/`channel`/`visualizer` switch the
+    device to a built-in screen and require an `id` instead. `pv`/`fuel` are
+    prebuilt layouts with their own optional fields - no structural
+    requirement here, same as we don't validate `components` list contents.
+    """
+    if not isinstance(page, dict) or not isinstance(page.get("name"), str):
+        return False
+
+    page_type = str(page.get("page_type", DEFAULT_PAGE_TYPE)).lower()
+    if page_type in NATIVE_CHANNEL_PAGE_TYPES:
+        return "id" in page
+    if page_type == DEFAULT_PAGE_TYPE:
+        return isinstance(page.get("components"), list)
+    return True
+
+
 def _is_valid_pages(pages: Any) -> bool:
-    """Validate the parsed pages YAML: a list of {name, components: [...]}."""
+    """Validate the parsed pages YAML: a list of pages, shape per `page_type`."""
     if not isinstance(pages, list):
         return False
-    return all(
-        isinstance(page, dict)
-        and isinstance(page.get("name"), str)
-        and isinstance(page.get("components"), list)
-        for page in pages
-    )
+    return all(_is_valid_page(page) for page in pages)
 
 
 class PixooCanvasOptionsFlowHandler(config_entries.OptionsFlow):

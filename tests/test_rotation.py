@@ -44,9 +44,13 @@ class _FakeClient:
 
     def __init__(self) -> None:
         self.calls: list[bytes] = []
+        self.clock_calls: list[int] = []
 
     async def send_page(self, width: int, rgb_bytes: bytes, scroll_texts=None) -> None:
         self.calls.append(rgb_bytes)
+
+    async def set_clock(self, clock_id: int) -> None:
+        self.clock_calls.append(clock_id)
 
 
 def _entry(hass, pages_yaml: str) -> MockConfigEntry:
@@ -258,6 +262,20 @@ async def test_device_error_does_not_stall_rotation(hass):
     await hass.async_block_till_done()
 
     assert client.calls == 2
+    await rotator.async_stop()
+
+
+async def test_rotation_renders_native_clock_page_via_set_clock(hass):
+    """A page_type: clock page calls client.set_clock instead of pushing a buffer."""
+    pages_yaml = "- name: Horloge\n  page_type: clock\n  id: 182\n"
+    entry = _entry(hass, pages_yaml)
+    client = _FakeClient()
+    rotator = PageRotator(hass, entry, client)
+
+    await rotator.async_start()
+
+    assert client.clock_calls == [182]
+    assert client.calls == []
     await rotator.async_stop()
 
 

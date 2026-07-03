@@ -14,8 +14,9 @@ render_page:
     page:
       name: Page name
       description: >-
-        Name of a page configured in the integration's options. Provide
-        this or 'components', not both.
+        Name of a page configured in the integration's options, of any page_type
+        (components, clock, channel, visualizer, pv, fuel). Provide this or
+        'components', not both.
       required: false
       selector:
         text:
@@ -26,7 +27,8 @@ render_page:
         templatable). Text components accept an optional `font` (pico_8, the default bitmap
         font; gicko; press_start_2p; silkscreen; silkscreen_bold). scroll_text is a native,
         device-animated scrolling overlay (Draw/SendHttpText) rather than static buffer text.
-        Provide this or 'page', not both.
+        Provide this or 'page', not both. Only page_type components pages can be rendered
+        this way inline; other page_types must be referenced by name via 'page'.
       required: false
       selector:
         object:

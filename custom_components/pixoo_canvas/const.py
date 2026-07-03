@@ -15,12 +15,20 @@ CMD_SET_ROTATION_ANGLE = "Device/SetScreenRotationAngle"
 CMD_SEND_HTTP_TEXT = "Draw/SendHttpText"
 CMD_CLEAR_HTTP_TEXT = "Draw/ClearHttpText"
 CMD_COMMAND_LIST = "Draw/CommandList"
+CMD_SET_CLOCK = "Channel/SetClockSelectId"
+CMD_SET_CUSTOM_PAGE = "Channel/SetCustomPageIndex"
+CMD_SET_VISUALIZER = "Channel/SetEqPosition"
 
 DEFAULT_SCAN_INTERVAL = 15
 DEFAULT_TIMEOUT = 10
 
 CONF_PAGES_YAML = "pages_yaml"
 CONF_DEFAULT_PAGE_DURATION = "default_page_duration"
+
+DEFAULT_PAGE_TYPE = "components"
+# Page types that switch the device to a built-in Divoom screen instead of
+# pushing a buffer composed by our render engine.
+NATIVE_CHANNEL_PAGE_TYPES = frozenset({"clock", "channel", "visualizer"})
 
 PIC_WIDTH = 64
 PIC_ID_MAX = 30

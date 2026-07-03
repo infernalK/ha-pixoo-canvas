@@ -107,6 +107,51 @@ async def test_options_flow_rejects_wrong_schema(hass, aioclient_mock):
     assert result["errors"] == {"base": "invalid_schema"}
 
 
+async def test_options_flow_accepts_native_channel_page_type(hass, aioclient_mock):
+    """A clock/channel/visualizer page with an `id` (no `components`) is valid."""
+    aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
+    entry = _make_entry(hass)
+    pages_yaml = "- name: Horloge\n  page_type: clock\n  id: 182\n"
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_HOST: HOST, CONF_DEFAULT_PAGE_DURATION: 20, CONF_PAGES_YAML: pages_yaml},
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+
+
+async def test_options_flow_rejects_native_channel_page_without_id(hass, aioclient_mock):
+    """A clock/channel/visualizer page without an `id` is rejected."""
+    entry = _make_entry(hass)
+    pages_yaml = "- name: Horloge\n  page_type: clock\n"
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_HOST: HOST, CONF_DEFAULT_PAGE_DURATION: 20, CONF_PAGES_YAML: pages_yaml},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_schema"}
+
+
+async def test_options_flow_accepts_pv_page_type_without_components(hass, aioclient_mock):
+    """A pv/fuel page needs neither `components` nor `id` to be valid."""
+    aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)
+    entry = _make_entry(hass)
+    pages_yaml = "- name: Solaire\n  page_type: pv\n  power: 1200\n  storage: 80\n"
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {CONF_HOST: HOST, CONF_DEFAULT_PAGE_DURATION: 20, CONF_PAGES_YAML: pages_yaml},
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+
+
 async def test_coordinator_poll_interval_is_not_user_configurable(hass, aioclient_mock):
     """The device poll interval stays fixed regardless of options - it's internal, not a user setting."""
     aioclient_mock.post(URL, json=GET_ALL_CONF_RESPONSE)

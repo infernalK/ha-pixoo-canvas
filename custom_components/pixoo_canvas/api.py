@@ -18,7 +18,10 @@ from .const import (
     CMD_SEND_HTTP_GIF,
     CMD_SEND_HTTP_TEXT,
     CMD_SET_BRIGHTNESS,
+    CMD_SET_CLOCK,
+    CMD_SET_CUSTOM_PAGE,
     CMD_SET_ROTATION_ANGLE,
+    CMD_SET_VISUALIZER,
     DEFAULT_PIC_SPEED_MS,
     DEFAULT_TIMEOUT,
     PIC_ID_MAX,
@@ -134,6 +137,18 @@ class PixooClient:
     async def set_rotation_angle(self, mode: int) -> None:
         """Set the physical screen orientation: 0=0°, 1=90°, 2=180°, 3=270°."""
         await self._send({"Command": CMD_SET_ROTATION_ANGLE, "Mode": mode})
+
+    async def set_clock(self, clock_id: int) -> None:
+        """Switch the device to one of its built-in clock faces."""
+        await self._send({"Command": CMD_SET_CLOCK, "ClockId": clock_id})
+
+    async def set_custom_channel(self, index: int) -> None:
+        """Switch the device to one of the 3 custom channels configured in the Divoom app."""
+        await self._send({"Command": CMD_SET_CUSTOM_PAGE, "CustomPageIndex": index})
+
+    async def set_visualizer(self, position: int) -> None:
+        """Switch the device to one of its built-in audio visualizers."""
+        await self._send({"Command": CMD_SET_VISUALIZER, "EqPosition": position})
 
     async def reset_gif_id(self) -> None:
         """Reset the device's animation frame counter.
