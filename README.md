@@ -253,6 +253,16 @@ qu'une taille de police classique. `gicko` n'a pas de glyphes minuscules dans la
 d'origine : une minuscule est automatiquement affichée avec le glyphe majuscule
 correspondant (`pico_8` a bien les minuscules).
 
+Aperçu (rendu réel, zoomé x10 pour la lisibilité) :
+
+| `pico_8` | `gicko` |
+| --- | --- |
+| ![pico_8](docs/img/fonts/pico_8.png) | ![gicko](docs/img/fonts/gicko.png) |
+
+| `press_start_2p` | `silkscreen` | `silkscreen_bold` |
+| --- | --- | --- |
+| ![press_start_2p](docs/img/fonts/press_start_2p.png) | ![silkscreen](docs/img/fonts/silkscreen.png) | ![silkscreen_bold](docs/img/fonts/silkscreen_bold.png) |
+
 #### Couleurs
 
 Partout où une couleur est attendue, tu peux utiliser :
