@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from custom_components.pixoo_canvas.api import PixooClient
+from custom_components.pixoo_canvas.const import SCROLL_TEXT_SETTLE_DELAY
 from custom_components.pixoo_canvas.render.engine import render_page
 
 HOST = "192.168.1.101"
@@ -125,3 +128,33 @@ async def test_render_page_sends_scroll_text_after_the_buffer_push(hass):
     assert call["direction"] == 1  # right
     assert call["align"] == 2  # center
     assert call["text_id"] == 0
+
+
+async def test_render_page_pauses_before_scroll_text_to_let_device_settle(hass):
+    """A short delay gives the device time to enter drawing mode before SendHttpText.
+
+    Divoom's own doc says SendHttpText is silently ignored unless the device
+    is already showing a custom image; acknowledging the SendHttpGif HTTP
+    request isn't the same as the firmware having finished the frame swap.
+    """
+    client = _FakeClient()
+    components = [{"type": "scroll_text", "position": [0, 0], "content": "hi"}]
+
+    with patch(
+        "custom_components.pixoo_canvas.render.engine.asyncio.sleep", new=AsyncMock()
+    ) as mock_sleep:
+        await render_page(hass, client, components)
+
+    mock_sleep.assert_awaited_once_with(SCROLL_TEXT_SETTLE_DELAY)
+
+
+async def test_render_page_no_delay_without_scroll_text(hass):
+    """Pages without scroll_text aren't slowed down by the settle delay."""
+    client = _FakeClient()
+
+    with patch(
+        "custom_components.pixoo_canvas.render.engine.asyncio.sleep", new=AsyncMock()
+    ) as mock_sleep:
+        await render_page(hass, client, [{"type": "rectangle", "position": [0, 0], "size": [1, 1]}])
+
+    mock_sleep.assert_not_awaited()

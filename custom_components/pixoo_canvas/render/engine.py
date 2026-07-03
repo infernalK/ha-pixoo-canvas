@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -10,7 +11,7 @@ from PIL import Image, ImageDraw
 from homeassistant.core import HomeAssistant
 
 from ..api import PixooClient
-from ..const import PIC_WIDTH
+from ..const import PIC_WIDTH, SCROLL_TEXT_SETTLE_DELAY
 from .components import icon as icon_component
 from .components import image as image_component
 from .components import progress_bar as progress_bar_component
@@ -81,6 +82,9 @@ async def render_page(
         index += 1
 
     await client.send_gif(ctx.size, ctx.to_rgb_bytes())
+
+    if ctx.scroll_texts:
+        await asyncio.sleep(SCROLL_TEXT_SETTLE_DELAY)
 
     for scroll_text in ctx.scroll_texts:
         await client.send_text_animation(
