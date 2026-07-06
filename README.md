@@ -333,10 +333,11 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
 
 > ⚠️ Contrairement à `clock`/`channel`/`visualizer`, cet outil vit dans une famille de
 > commandes Divoom différente (`Tools/*`, comme les minuteurs/chronomètres natifs, hors
-> périmètre de cette intégration). Son comportement au moment de quitter la page (passage
-> à une autre page en rotation, ou service `render_page`) n'a pas encore été validé sur
-> device réel — remonte un ticket si le sonomètre reste affiché en incrustation par-dessus
-> la page suivante.
+> périmètre de cette intégration). Confirmé sur device réel : l'appareil ne rebascule
+> l'écran sur le sonomètre que sur un front montant (0 → 1) — si un tour de rotation
+> précédent l'avait déjà démarré sans jamais l'arrêter, renvoyer "start" ne suffit pas et
+> l'écran reste sur la page suivante. L'intégration envoie donc systématiquement un stop
+> puis un start à chaque rendu de cette page pour forcer ce front.
 
 ### Page : PV (solaire)
 

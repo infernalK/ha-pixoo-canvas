@@ -114,12 +114,18 @@ async def test_native_page_invalid_template_is_skipped(hass):
 
 
 async def test_sound_meter_page_type_calls_set_noise_status(hass):
-    """page_type: sound_meter takes no `id` and calls client.set_noise_status(True)."""
+    """page_type: sound_meter takes no `id` and forces a stop-then-start edge.
+
+    The device only seems to switch the screen into the tool on the 0->1
+    edge, so a stop is sent before every start to make sure it re-triggers
+    even if a previous rotation turn left it "started" without ever having
+    stopped it.
+    """
     client = _FakeClient()
 
     await render_configured_page(hass, client, {"name": "Sonomètre", "page_type": "sound_meter"})
 
-    assert client.noise_status_calls == [True]
+    assert client.noise_status_calls == [False, True]
     assert client.send_page_calls == 0
 
 
