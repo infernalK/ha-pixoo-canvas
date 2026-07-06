@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+import voluptuous as vol
 
 from homeassistant.const import CONF_HOST
 from homeassistant.exceptions import HomeAssistantError
@@ -94,6 +95,7 @@ async def test_render_page_with_native_clock_page(hass, aioclient_mock):
         "Command": "Draw/CommandList",
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
             {"Command": "Channel/SetClockSelectId", "ClockId": 182},
         ],
     }
@@ -118,6 +120,7 @@ async def test_render_page_with_inline_page_type_clock(hass, aioclient_mock):
         "Command": "Draw/CommandList",
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
             {"Command": "Channel/SetClockSelectId", "ClockId": 182},
         ],
     }
@@ -284,6 +287,84 @@ async def test_reboot_device_unknown_device_id(hass, aioclient_mock):
         await hass.services.async_call(
             DOMAIN,
             "reboot_device",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )
+
+
+async def test_start_timer_sends_minute_second_and_status_1(hass, aioclient_mock):
+    """start_timer posts Tools/SetTimer with the given minutes/seconds and Status: 1."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "start_timer",
+        {"device_id": _device_id(hass, entry), "minutes": 5, "seconds": 30},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetTimer", "Minute": 5, "Second": 30, "Status": 1},
+        ],
+    }
+
+
+async def test_start_timer_rejects_zero_duration(hass, aioclient_mock):
+    """start_timer with minutes=0 and seconds=0 (the default) raises."""
+    entry = await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(vol.Invalid):
+        await hass.services.async_call(
+            DOMAIN,
+            "start_timer",
+            {"device_id": _device_id(hass, entry)},
+            blocking=True,
+        )
+
+
+async def test_start_timer_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "start_timer",
+            {"device_id": "does-not-exist", "minutes": 5},
+            blocking=True,
+        )
+
+
+async def test_stop_timer_sends_status_0(hass, aioclient_mock):
+    """stop_timer posts Tools/SetTimer with Status: 0."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_timer",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}
+
+
+async def test_stop_timer_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "stop_timer",
             {"device_id": "does-not-exist"},
             blocking=True,
         )

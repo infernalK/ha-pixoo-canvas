@@ -24,6 +24,7 @@ from .const import (
     CMD_SET_MIRROR_MODE,
     CMD_SET_NOISE_STATUS,
     CMD_SET_ROTATION_ANGLE,
+    CMD_SET_TIMER,
     CMD_SET_VISUALIZER,
     CMD_SYS_REBOOT,
     DEFAULT_PIC_SPEED_MS,
@@ -53,6 +54,22 @@ def _clear_text_payload() -> dict[str, Any]:
 
 def _noise_status_payload(on: bool) -> dict[str, Any]:
     return {"Command": CMD_SET_NOISE_STATUS, "NoiseStatus": 1 if on else 0}
+
+
+def _timer_payload(minutes: int, seconds: int, status: int) -> dict[str, Any]:
+    return {"Command": CMD_SET_TIMER, "Minute": minutes, "Second": seconds, "Status": status}
+
+
+def _stop_tools_payloads() -> list[dict[str, Any]]:
+    """Payloads that force-stop every Tools/* overlay (sound meter, countdown timer).
+
+    Unlike Channel/* pages, Tools/* commands aren't implicitly cancelled by
+    switching to something else - left running, they keep the screen (and
+    eventually the whole device) stuck on themselves. Bundled into every
+    page/channel-switch request so no Tools/* overlay can ever survive onto
+    an unrelated page - add any future Tools/* command's stop here too.
+    """
+    return [_noise_status_payload(False), _timer_payload(0, 0, 0)]
 
 
 def _gif_payload(pic_id: int, width: int, rgb_bytes: bytes) -> dict[str, Any]:
@@ -153,34 +170,32 @@ class PixooClient:
     async def set_clock(self, clock_id: int) -> None:
         """Switch the device to one of its built-in clock faces.
 
-        Batched with a Tools/SetNoiseStatus stop: unlike Channel/* commands,
-        the sound meter tool doesn't get implicitly cancelled by switching
-        channel - left running, it keeps the screen (and eventually the
-        whole device, when pushes pile up unanswered) stuck on itself.
+        Batched with a Tools/* stop (see _stop_tools_payloads): unlike
+        Channel/* commands, Tools overlays (sound meter, countdown timer)
+        don't get implicitly cancelled by switching channel - left running,
+        they keep the screen (and eventually the whole device, when pushes
+        pile up unanswered) stuck on themselves.
         """
         await self.send_command_list(
-            [_noise_status_payload(False), {"Command": CMD_SET_CLOCK, "ClockId": clock_id}]
+            [*_stop_tools_payloads(), {"Command": CMD_SET_CLOCK, "ClockId": clock_id}]
         )
 
     async def set_custom_channel(self, index: int) -> None:
         """Switch the device to one of the 3 custom channels configured in the Divoom app.
 
-        See set_clock() for why a noise-stop is batched in here too.
+        See set_clock() for why a Tools/* stop is batched in here too.
         """
         await self.send_command_list(
-            [
-                _noise_status_payload(False),
-                {"Command": CMD_SET_CUSTOM_PAGE, "CustomPageIndex": index},
-            ]
+            [*_stop_tools_payloads(), {"Command": CMD_SET_CUSTOM_PAGE, "CustomPageIndex": index}]
         )
 
     async def set_visualizer(self, position: int) -> None:
         """Switch the device to one of its built-in audio visualizers.
 
-        See set_clock() for why a noise-stop is batched in here too.
+        See set_clock() for why a Tools/* stop is batched in here too.
         """
         await self.send_command_list(
-            [_noise_status_payload(False), {"Command": CMD_SET_VISUALIZER, "EqPosition": position}]
+            [*_stop_tools_payloads(), {"Command": CMD_SET_VISUALIZER, "EqPosition": position}]
         )
 
     async def set_noise_status(self, on: bool) -> None:
@@ -196,11 +211,32 @@ class PixooClient:
         without ever stopping it. Sending those as two separate HTTP
         requests caused the device to reboot - same failure mode already
         seen with unbatched scroll_text requests - so both are batched into
-        a single Draw/CommandList call instead.
+        a single Draw/CommandList call instead. Also stops the countdown
+        timer in the same request, in case it was the one left running.
         """
         await self.send_command_list(
-            [_noise_status_payload(False), _noise_status_payload(True)]
+            [_timer_payload(0, 0, 0), _noise_status_payload(False), _noise_status_payload(True)]
         )
+
+    async def start_timer(self, minutes: int, seconds: int) -> None:
+        """Start a countdown timer, forcing a 0->1 edge in a single request.
+
+        Same edge-triggering and batching rationale as restart_noise_status:
+        a stop is sent before the start to re-trigger the device's screen
+        switch even if a previous call left the timer "running", and the
+        sound meter is stopped too in case it was the one left running.
+        """
+        await self.send_command_list(
+            [
+                _noise_status_payload(False),
+                _timer_payload(0, 0, 0),
+                _timer_payload(minutes, seconds, 1),
+            ]
+        )
+
+    async def stop_timer(self) -> None:
+        """Stop the countdown timer."""
+        await self._send(_timer_payload(0, 0, 0))
 
     async def reboot(self) -> None:
         """Reboot the device (Device/SysReboot). The screen goes dark for a while."""
@@ -244,15 +280,16 @@ class PixooClient:
     ) -> None:
         """Push a page's buffer, then any scroll_text overlays it defines.
 
-        ClearHttpText, a Tools/SetNoiseStatus stop and SendHttpGif are
-        batched into a single Draw/CommandList call. ClearHttpText runs on
-        every page (not just ones with their own scroll_text) because the
-        device does *not* clear a previous page's scroll_text on its own
-        when a new buffer is pushed - a stale one must never survive onto
-        an unrelated page. The noise-stop runs for the same reason: the
-        sound meter tool isn't implicitly cancelled by a new buffer push
-        either, and left running it keeps the screen (and eventually the
-        whole device) stuck on itself.
+        ClearHttpText, a Tools/* stop (see _stop_tools_payloads) and
+        SendHttpGif are batched into a single Draw/CommandList call.
+        ClearHttpText runs on every page (not just ones with their own
+        scroll_text) because the device does *not* clear a previous page's
+        scroll_text on its own when a new buffer is pushed - a stale one
+        must never survive onto an unrelated page. The Tools/* stop runs
+        for the same reason: those overlays (sound meter, countdown timer)
+        aren't implicitly cancelled by a new buffer push either, and left
+        running they keep the screen (and eventually the whole device)
+        stuck on themselves.
 
         If `scroll_texts` is given, waits SCROLL_TEXT_SETTLE_DELAY before
         sending them as a second batched call: Divoom's docs say
@@ -266,7 +303,7 @@ class PixooClient:
         await self.send_command_list(
             [
                 _clear_text_payload(),
-                _noise_status_payload(False),
+                *_stop_tools_payloads(),
                 _gif_payload(self._pic_id, width, rgb_bytes),
             ]
         )

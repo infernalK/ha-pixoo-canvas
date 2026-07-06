@@ -25,6 +25,7 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
 - [Service : afficher une page à la demande](#service--afficher-une-page-à-la-demande)
 - [Service : faire sonner le buzzer](#service--faire-sonner-le-buzzer)
 - [Service : redémarrer l'appareil](#service--redémarrer-lappareil)
+- [Service : minuteur (start_timer / stop_timer)](#service--minuteur-start_timer--stop_timer)
 - [Licence](#licence)
 
 ## Installation
@@ -473,6 +474,33 @@ service: pixoo_canvas.reboot_device
 data:
   device_id: <ton appareil Pixoo Canvas>
 ```
+
+## Service : minuteur (start_timer / stop_timer)
+
+Les services `pixoo_canvas.start_timer` et `pixoo_canvas.stop_timer` pilotent l'outil
+minuteur intégré au Pixoo (`Tools/SetTimer`) — il prend tout l'écran jusqu'à l'appel de
+`stop_timer` ou le passage à une autre page/service.
+
+```yaml
+service: pixoo_canvas.start_timer
+data:
+  device_id: <ton appareil Pixoo Canvas>
+  minutes: 5   # optionnel, défaut 0 — minutes/secondes ne peuvent pas être toutes les deux à 0
+  seconds: 30  # optionnel, défaut 0
+```
+
+```yaml
+service: pixoo_canvas.stop_timer
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+**Pour un raccourci iOS** : pas besoin de rien de spécial côté intégration — l'app
+Home Assistant Companion expose nativement n'importe quel service HA comme étape
+"Effectuer une action" ("Perform action") dans l'app Raccourcis. Crée un raccourci avec
+cette étape, choisis `pixoo_canvas.start_timer` (ou `stop_timer`), renseigne `device_id`
+(et `minutes`/`seconds` pour le démarrage), et ajoute-le à l'écran d'accueil ou pilote-le
+via Siri.
 
 ## Licence
 

@@ -19,6 +19,8 @@ from .const import (
     SERVICE_PLAY_BUZZER,
     SERVICE_REBOOT_DEVICE,
     SERVICE_RENDER_PAGE,
+    SERVICE_START_TIMER,
+    SERVICE_STOP_TIMER,
 )
 from .coordinator import PixooCoordinator
 from .page_render import render_configured_page
@@ -60,6 +62,26 @@ SERVICE_PLAY_BUZZER_SCHEMA = vol.Schema(
 )
 
 SERVICE_REBOOT_DEVICE_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+
+
+def _require_nonzero_duration(data: dict[str, Any]) -> dict[str, Any]:
+    if data["minutes"] == 0 and data["seconds"] == 0:
+        raise vol.Invalid("Provide a non-zero 'minutes' and/or 'seconds'")
+    return data
+
+
+SERVICE_START_TIMER_SCHEMA = vol.All(
+    vol.Schema(
+        {
+            vol.Required("device_id"): cv.string,
+            vol.Optional("minutes", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=59)),
+            vol.Optional("seconds", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=59)),
+        }
+    ),
+    _require_nonzero_duration,
+)
+
+SERVICE_STOP_TIMER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 
 
 def _get_coordinator(hass: HomeAssistant, device_id: str) -> PixooCoordinator:
@@ -122,6 +144,18 @@ async def _async_handle_reboot_device(hass: HomeAssistant, call: ServiceCall) ->
     await coordinator.client.reboot()
 
 
+async def _async_handle_start_timer(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.start_timer service call."""
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.start_timer(call.data["minutes"], call.data["seconds"])
+
+
+async def _async_handle_stop_timer(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.stop_timer service call."""
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.stop_timer()
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register Pixoo Canvas services (idempotent across multiple config entries)."""
     if hass.services.has_service(DOMAIN, SERVICE_RENDER_PAGE):
@@ -136,6 +170,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def _handle_reboot_device(call: ServiceCall) -> None:
         await _async_handle_reboot_device(hass, call)
 
+    async def _handle_start_timer(call: ServiceCall) -> None:
+        await _async_handle_start_timer(hass, call)
+
+    async def _handle_stop_timer(call: ServiceCall) -> None:
+        await _async_handle_stop_timer(hass, call)
+
     hass.services.async_register(
         DOMAIN, SERVICE_RENDER_PAGE, _handle_render_page, schema=SERVICE_RENDER_PAGE_SCHEMA
     )
@@ -145,6 +185,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_REBOOT_DEVICE, _handle_reboot_device, schema=SERVICE_REBOOT_DEVICE_SCHEMA
     )
+    hass.services.async_register(
+        DOMAIN, SERVICE_START_TIMER, _handle_start_timer, schema=SERVICE_START_TIMER_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_STOP_TIMER, _handle_stop_timer, schema=SERVICE_STOP_TIMER_SCHEMA
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -153,3 +199,5 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         hass.services.async_remove(DOMAIN, SERVICE_RENDER_PAGE)
         hass.services.async_remove(DOMAIN, SERVICE_PLAY_BUZZER)
         hass.services.async_remove(DOMAIN, SERVICE_REBOOT_DEVICE)
+        hass.services.async_remove(DOMAIN, SERVICE_START_TIMER)
+        hass.services.async_remove(DOMAIN, SERVICE_STOP_TIMER)

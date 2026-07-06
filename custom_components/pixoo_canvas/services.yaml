@@ -119,3 +119,50 @@ reboot_device:
       selector:
         device:
           integration: pixoo_canvas
+
+start_timer:
+  name: Start the countdown timer
+  description: >-
+    Starts the Pixoo's built-in countdown timer tool (Tools/SetTimer),
+    switching the screen to it. It takes over the screen until stop_timer is
+    called or another page/service switches the device away from it - handy
+    to call from an iOS/Android Shortcut (Home Assistant's app exposes any
+    service as a "Perform action" step) for a quick kitchen timer.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to start the timer on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+    minutes:
+      name: Minutes
+      description: Countdown minutes (0-59). At least one of minutes/seconds must be non-zero.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+    seconds:
+      name: Seconds
+      description: Countdown seconds (0-59). At least one of minutes/seconds must be non-zero.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 59
+          mode: box
+
+stop_timer:
+  name: Stop the countdown timer
+  description: Stops the Pixoo's built-in countdown timer tool, if running.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to stop the timer on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas

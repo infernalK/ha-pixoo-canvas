@@ -14,7 +14,7 @@ URL = f"http://{HOST}/post"
 
 
 async def test_send_page_batches_clear_and_gif_into_one_request(hass, aioclient_mock):
-    """ClearHttpText + a noise-stop + SendHttpGif are sent as one Draw/CommandList request."""
+    """ClearHttpText + Tools/* stops + SendHttpGif are sent as one Draw/CommandList request."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
@@ -27,6 +27,7 @@ async def test_send_page_batches_clear_and_gif_into_one_request(hass, aioclient_
     assert [c["Command"] for c in commands] == [
         "Draw/ClearHttpText",
         "Tools/SetNoiseStatus",
+        "Tools/SetTimer",
         "Draw/SendHttpGif",
     ]
 
@@ -122,10 +123,10 @@ async def test_send_page_no_delay_without_scroll_text(hass, aioclient_mock):
 
 
 async def test_set_clock_sends_clock_select_id(hass, aioclient_mock):
-    """set_clock batches a noise-stop with Channel/SetClockSelectId in one request.
+    """set_clock batches Tools/* stops with Channel/SetClockSelectId in one request.
 
-    The noise-stop guards against the sound meter tool being left running
-    from a previous page and swallowing this channel switch (see
+    The stops guard against a sound meter or countdown timer being left
+    running from a previous page and swallowing this channel switch (see
     send_page's docstring for the same issue on the buffer-push side).
     """
     aioclient_mock.post(URL, json={"error_code": 0})
@@ -139,13 +140,14 @@ async def test_set_clock_sends_clock_select_id(hass, aioclient_mock):
         "Command": "Draw/CommandList",
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
             {"Command": "Channel/SetClockSelectId", "ClockId": 182},
         ],
     }
 
 
 async def test_set_custom_channel_sends_custom_page_index(hass, aioclient_mock):
-    """set_custom_channel batches a noise-stop with Channel/SetCustomPageIndex."""
+    """set_custom_channel batches Tools/* stops with Channel/SetCustomPageIndex."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
@@ -156,13 +158,14 @@ async def test_set_custom_channel_sends_custom_page_index(hass, aioclient_mock):
         "Command": "Draw/CommandList",
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
             {"Command": "Channel/SetCustomPageIndex", "CustomPageIndex": 1},
         ],
     }
 
 
 async def test_set_visualizer_sends_eq_position(hass, aioclient_mock):
-    """set_visualizer batches a noise-stop with Channel/SetEqPosition."""
+    """set_visualizer batches Tools/* stops with Channel/SetEqPosition."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
@@ -173,6 +176,7 @@ async def test_set_visualizer_sends_eq_position(hass, aioclient_mock):
         "Command": "Draw/CommandList",
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
             {"Command": "Channel/SetEqPosition", "EqPosition": 2},
         ],
     }
@@ -201,11 +205,12 @@ async def test_set_noise_status_sends_stop(hass, aioclient_mock):
 
 
 async def test_restart_noise_status_batches_stop_and_start(hass, aioclient_mock):
-    """restart_noise_status sends stop+start as one Draw/CommandList request.
+    """restart_noise_status sends timer-stop+noise-stop+noise-start as one request.
 
-    Sending them as two separate HTTP requests caused the device to reboot
-    (same failure mode as unbatched scroll_text requests), so both must go
-    out in a single call.
+    Sending noise-stop and noise-start as two separate HTTP requests caused
+    the device to reboot (same failure mode as unbatched scroll_text
+    requests), so both must go out in a single call - along with a
+    countdown-timer stop, in case that was the tool left running instead.
     """
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
@@ -217,10 +222,41 @@ async def test_restart_noise_status_batches_stop_and_start(hass, aioclient_mock)
     assert payload == {
         "Command": "Draw/CommandList",
         "CommandList": [
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 1},
         ],
     }
+
+
+async def test_start_timer_batches_noise_stop_timer_stop_and_start(hass, aioclient_mock):
+    """start_timer sends noise-stop+timer-stop+timer-start as one Draw/CommandList request."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.start_timer(5, 30)
+
+    assert len(aioclient_mock.mock_calls) == 1
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetTimer", "Minute": 5, "Second": 30, "Status": 1},
+        ],
+    }
+
+
+async def test_stop_timer_sends_status_0(hass, aioclient_mock):
+    """stop_timer posts Tools/SetTimer with Status: 0."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.stop_timer()
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}
 
 
 async def test_set_mirror_mode_sends_mode_1(hass, aioclient_mock):
