@@ -48,6 +48,9 @@
       },
       "page_rotation": {
         "name": "Page rotation"
+      },
+      "mirror_mode": {
+        "name": "Mirror mode"
       }
     },
     "light": {
@@ -58,9 +61,6 @@
     "sensor": {
       "rotation_flag": {
         "name": "Rotation flag"
-      },
-      "mirror_flag": {
-        "name": "Mirror"
       },
       "cur_clock_id": {
         "name": "Current clock ID"

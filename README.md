@@ -24,6 +24,7 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
 - [Rotation automatique des pages](#rotation-automatique-des-pages)
 - [Service : afficher une page à la demande](#service--afficher-une-page-à-la-demande)
 - [Service : faire sonner le buzzer](#service--faire-sonner-le-buzzer)
+- [Service : redémarrer l'appareil](#service--redémarrer-lappareil)
 - [Licence](#licence)
 
 ## Installation
@@ -64,10 +65,16 @@ Une fois l'intégration configurée, tu as accès à :
 - `switch.pixoo_screen_power` — allumer/éteindre l'écran.
 - `light.pixoo_brightness` — régler la luminosité.
 - `switch.pixoo_page_rotation` — activer/désactiver le défilement automatique des pages.
+- `switch.pixoo_mirror_mode` — miroir horizontal de l'écran, authoritatif via
+  `Channel/GetAllConf` (`MirrorFlag`).
 - `select.pixoo_screen_orientation` — orientation physique de l'écran (0°/90°/180°/270°),
   à régler selon le montage de ton cadre.
-- 3 capteurs de diagnostic (rotation, effet miroir, ID de l'horloge affichée) — utiles
-  pour du dépannage, pas pour un usage quotidien.
+- 2 capteurs de diagnostic (rotation, ID de l'horloge affichée) — utiles pour du
+  dépannage, pas pour un usage quotidien.
+
+> ℹ️ `switch.pixoo_mirror_mode` remplace l'ancien capteur diagnostic `sensor.pixoo_mirror`
+> (lecture seule) : le miroir est maintenant contrôlable, pas juste affiché. Si tu avais ce
+> capteur dans un tableau de bord, remplace-le par le nouveau switch.
 
 ## Les pages
 
@@ -452,6 +459,19 @@ data:
   active_time_ms: 500   # optionnel, défaut 500 — durée du buzzer par cycle
   off_time_ms: 500      # optionnel, défaut 500 — silence entre chaque cycle
   total_time_ms: 3000   # optionnel, défaut 3000 — durée totale de l'alerte
+```
+
+## Service : redémarrer l'appareil
+
+Le service `pixoo_canvas.reboot_device` redémarre le Pixoo (`Device/SysReboot`) — utile
+dans une automation de récupération (ex. appareil qui ne répond plus), pas comme action
+de routine. L'écran s'éteint quelques instants ; la rotation, si elle était active,
+reprend d'elle-même une fois l'appareil de nouveau en ligne.
+
+```yaml
+service: pixoo_canvas.reboot_device
+data:
+  device_id: <ton appareil Pixoo Canvas>
 ```
 
 ## Licence

@@ -17,6 +17,7 @@ from .const import (
     DEFAULT_BUZZER_TOTAL_TIME_MS,
     DOMAIN,
     SERVICE_PLAY_BUZZER,
+    SERVICE_REBOOT_DEVICE,
     SERVICE_RENDER_PAGE,
 )
 from .coordinator import PixooCoordinator
@@ -57,6 +58,8 @@ SERVICE_PLAY_BUZZER_SCHEMA = vol.Schema(
         ),
     }
 )
+
+SERVICE_REBOOT_DEVICE_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 
 
 def _get_coordinator(hass: HomeAssistant, device_id: str) -> PixooCoordinator:
@@ -113,6 +116,12 @@ async def _async_handle_play_buzzer(hass: HomeAssistant, call: ServiceCall) -> N
     )
 
 
+async def _async_handle_reboot_device(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.reboot_device service call."""
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.reboot()
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register Pixoo Canvas services (idempotent across multiple config entries)."""
     if hass.services.has_service(DOMAIN, SERVICE_RENDER_PAGE):
@@ -124,11 +133,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def _handle_play_buzzer(call: ServiceCall) -> None:
         await _async_handle_play_buzzer(hass, call)
 
+    async def _handle_reboot_device(call: ServiceCall) -> None:
+        await _async_handle_reboot_device(hass, call)
+
     hass.services.async_register(
         DOMAIN, SERVICE_RENDER_PAGE, _handle_render_page, schema=SERVICE_RENDER_PAGE_SCHEMA
     )
     hass.services.async_register(
         DOMAIN, SERVICE_PLAY_BUZZER, _handle_play_buzzer, schema=SERVICE_PLAY_BUZZER_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_REBOOT_DEVICE, _handle_reboot_device, schema=SERVICE_REBOOT_DEVICE_SCHEMA
     )
 
 
@@ -137,3 +152,4 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     if not hass.data.get(DOMAIN):
         hass.services.async_remove(DOMAIN, SERVICE_RENDER_PAGE)
         hass.services.async_remove(DOMAIN, SERVICE_PLAY_BUZZER)
+        hass.services.async_remove(DOMAIN, SERVICE_REBOOT_DEVICE)

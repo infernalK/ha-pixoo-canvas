@@ -260,6 +260,35 @@ async def test_play_buzzer_unknown_device_id(hass, aioclient_mock):
         )
 
 
+async def test_reboot_device_sends_sys_reboot(hass, aioclient_mock):
+    """reboot_device posts Device/SysReboot for the given device."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "reboot_device",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Device/SysReboot"}
+
+
+async def test_reboot_device_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "reboot_device",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )
+
+
 async def test_render_page_unknown_device_id(hass, aioclient_mock):
     """An unknown device_id raises."""
     await _setup_entry(hass, aioclient_mock)

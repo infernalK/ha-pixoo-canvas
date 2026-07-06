@@ -32,12 +32,6 @@ SENSOR_DESCRIPTIONS: tuple[PixooSensorEntityDescription, ...] = (
         value_fn=lambda state: state.rotation_flag,
     ),
     PixooSensorEntityDescription(
-        key="mirror_flag",
-        translation_key="mirror_flag",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda state: state.mirror_flag,
-    ),
-    PixooSensorEntityDescription(
         key="cur_clock_id",
         translation_key="cur_clock_id",
         entity_category=EntityCategory.DIAGNOSTIC,

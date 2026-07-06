@@ -21,9 +21,11 @@ from .const import (
     CMD_SET_BRIGHTNESS,
     CMD_SET_CLOCK,
     CMD_SET_CUSTOM_PAGE,
+    CMD_SET_MIRROR_MODE,
     CMD_SET_NOISE_STATUS,
     CMD_SET_ROTATION_ANGLE,
     CMD_SET_VISUALIZER,
+    CMD_SYS_REBOOT,
     DEFAULT_PIC_SPEED_MS,
     DEFAULT_TIMEOUT,
     PIC_ID_MAX,
@@ -144,6 +146,10 @@ class PixooClient:
         """Set the physical screen orientation: 0=0°, 1=90°, 2=180°, 3=270°."""
         await self._send({"Command": CMD_SET_ROTATION_ANGLE, "Mode": mode})
 
+    async def set_mirror_mode(self, on: bool) -> None:
+        """Mirror the screen horizontally."""
+        await self._send({"Command": CMD_SET_MIRROR_MODE, "Mode": 1 if on else 0})
+
     async def set_clock(self, clock_id: int) -> None:
         """Switch the device to one of its built-in clock faces.
 
@@ -195,6 +201,10 @@ class PixooClient:
         await self.send_command_list(
             [_noise_status_payload(False), _noise_status_payload(True)]
         )
+
+    async def reboot(self) -> None:
+        """Reboot the device (Device/SysReboot). The screen goes dark for a while."""
+        await self._send({"Command": CMD_SYS_REBOOT})
 
     async def play_buzzer(self, active_time_ms: int, off_time_ms: int, total_time_ms: int) -> None:
         """Play the device's buzzer: on/off cycles of `active_time_ms`/`off_time_ms`, for `total_time_ms` overall."""

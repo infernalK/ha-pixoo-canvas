@@ -223,6 +223,39 @@ async def test_restart_noise_status_batches_stop_and_start(hass, aioclient_mock)
     }
 
 
+async def test_set_mirror_mode_sends_mode_1(hass, aioclient_mock):
+    """set_mirror_mode(True) posts Device/SetMirrorMode with Mode: 1."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_mirror_mode(True)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Device/SetMirrorMode", "Mode": 1}
+
+
+async def test_set_mirror_mode_sends_mode_0(hass, aioclient_mock):
+    """set_mirror_mode(False) posts Device/SetMirrorMode with Mode: 0."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_mirror_mode(False)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Device/SetMirrorMode", "Mode": 0}
+
+
+async def test_reboot_sends_sys_reboot(hass, aioclient_mock):
+    """reboot posts Device/SysReboot with no extra fields."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.reboot()
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Device/SysReboot"}
+
+
 async def test_play_buzzer_sends_cycle_and_total_times(hass, aioclient_mock):
     """play_buzzer posts Device/PlayBuzzer with the cycle/total timings in ms."""
     aioclient_mock.post(URL, json={"error_code": 0})

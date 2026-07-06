@@ -103,3 +103,19 @@ play_buzzer:
           max: 60000
           unit_of_measurement: ms
           mode: box
+
+reboot_device:
+  name: Reboot the device
+  description: >-
+    Reboots the Pixoo (Device/SysReboot). The screen goes dark for a while and
+    any active rotation resumes once the device comes back online. Use for
+    recovery automations (e.g. after a device becomes unresponsive), not as a
+    routine action.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to reboot.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
