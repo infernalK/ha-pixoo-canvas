@@ -25,7 +25,7 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
 - [Service : afficher une page à la demande](#service--afficher-une-page-à-la-demande)
 - [Service : faire sonner le buzzer](#service--faire-sonner-le-buzzer)
 - [Service : redémarrer l'appareil](#service--redémarrer-lappareil)
-- [Service : minuteur (start_timer / stop_timer)](#service--minuteur-start_timer--stop_timer)
+- [Service : minuteur (start_timer / pause_timer / stop_timer)](#service--minuteur-start_timer--pause_timer--stop_timer)
 - [Service : chronomètre (start_stopwatch / pause_stopwatch / stop_stopwatch / reset_stopwatch)](#service--chronomètre-start_stopwatch--pause_stopwatch--stop_stopwatch--reset_stopwatch)
 - [Licence](#licence)
 
@@ -349,7 +349,7 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
 ```
 
 > ⚠️ Contrairement à `clock`/`channel`/`visualizer`, cet outil vit dans une famille de
-> commandes Divoom différente (`Tools/*`, la même que le [minuteur](#service--minuteur-start_timer--stop_timer)
+> commandes Divoom différente (`Tools/*`, la même que le [minuteur](#service--minuteur-start_timer--pause_timer--stop_timer)
 > et le [chronomètre](#service--chronomètre-start_stopwatch--pause_stopwatch--stop_stopwatch--reset_stopwatch)
 > pilotés par service plutôt que par page). Deux comportements confirmés sur device réel,
 > qui s'appliquent aux trois outils `Tools/*` (à une exception près, voir plus bas) :
@@ -491,15 +491,19 @@ data:
   device_id: <ton appareil Pixoo Canvas>
 ```
 
-## Service : minuteur (start_timer / stop_timer)
+## Service : minuteur (start_timer / pause_timer / stop_timer)
 
-Les services `pixoo_canvas.start_timer` et `pixoo_canvas.stop_timer` pilotent l'outil
-minuteur intégré au Pixoo (`Tools/SetTimer`) — il prend tout l'écran jusqu'à l'appel de
-`stop_timer` ou le passage à une autre page/service. Si `switch.pixoo_page_rotation` est
-actif, `start_timer` le met automatiquement en pause (sans changer ta préférence
-on/off) pour que le minuteur ne soit pas écrasé au tour suivant ; `stop_timer` relance la
-rotation seulement si c'est `start_timer` qui l'avait mise en pause — si tu l'avais
-arrêtée toi-même entre-temps, elle reste arrêtée.
+Les services `pixoo_canvas.start_timer`, `pixoo_canvas.pause_timer` et
+`pixoo_canvas.stop_timer` pilotent l'outil minuteur intégré au Pixoo
+(`Tools/SetTimer`) — il prend tout l'écran jusqu'à l'arrêt ou le passage à une autre
+page/service. Si `switch.pixoo_page_rotation` est actif, `start_timer` le met
+automatiquement en pause (sans changer ta préférence on/off) pour que le minuteur ne
+soit pas écrasé au tour suivant.
+
+`pause_timer` et `stop_timer` envoient la même commande sous-jacente (`Status: 0`), avec
+la même différence que pour le chronomètre : `stop_timer` relance la rotation des pages
+(tu as fini d'utiliser le minuteur) alors que `pause_timer` la laisse en pause (reprise
+prévue via `start_timer`, sans que la rotation ne reprenne la main entre-temps).
 
 ```yaml
 service: pixoo_canvas.start_timer
@@ -510,10 +514,21 @@ data:
 ```
 
 ```yaml
+service: pixoo_canvas.pause_timer
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+```yaml
 service: pixoo_canvas.stop_timer
 data:
   device_id: <ton appareil Pixoo Canvas>
 ```
+
+> ⚠️ Comportement non testé sur device réel : contrairement au chronomètre (dont le stop
+> ne prend qu'un `Status`), `Tools/SetTimer` exige toujours `Minute`/`Second` — `stop_timer`
+> et `pause_timer` envoient `0`/`0`. On ne sait pas si l'appareil ignore ces champs à
+> l'arrêt (temps restant préservé) ou s'ils écrasent le compte à rebours en cours.
 
 **Pour un raccourci iOS** : pas besoin de rien de spécial côté intégration — l'app
 Home Assistant Companion expose nativement n'importe quel service HA comme étape

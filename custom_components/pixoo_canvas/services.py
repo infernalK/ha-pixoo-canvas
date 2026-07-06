@@ -17,6 +17,7 @@ from .const import (
     DEFAULT_BUZZER_TOTAL_TIME_MS,
     DOMAIN,
     SERVICE_PAUSE_STOPWATCH,
+    SERVICE_PAUSE_TIMER,
     SERVICE_PLAY_BUZZER,
     SERVICE_REBOOT_DEVICE,
     SERVICE_RENDER_PAGE,
@@ -86,6 +87,7 @@ SERVICE_START_TIMER_SCHEMA = vol.All(
 )
 
 SERVICE_STOP_TIMER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+SERVICE_PAUSE_TIMER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 
 SERVICE_START_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 SERVICE_STOP_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
@@ -175,6 +177,22 @@ async def _async_handle_stop_timer(hass: HomeAssistant, call: ServiceCall) -> No
     await coordinator.rotator.async_resume_after_tool()
 
 
+async def _async_handle_pause_timer(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.pause_timer service call.
+
+    Same Tools/SetTimer stop as stop_timer, but does NOT resume page
+    rotation - see _async_handle_pause_stopwatch for the same rationale.
+    Whether the remaining countdown survives this (vs. resetting to 0) is
+    untested on real hardware: unlike the stopwatch's stop command (just
+    a bare Status), Tools/SetTimer always requires Minute/Second fields
+    even when stopping, and stop_timer sends 0/0 for those - it isn't
+    confirmed whether the device ignores them on stop or takes them at
+    face value.
+    """
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.stop_timer()
+
+
 async def _async_handle_start_stopwatch(hass: HomeAssistant, call: ServiceCall) -> None:
     """Handle the pixoo_canvas.start_stopwatch service call.
 
@@ -234,6 +252,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def _handle_stop_timer(call: ServiceCall) -> None:
         await _async_handle_stop_timer(hass, call)
 
+    async def _handle_pause_timer(call: ServiceCall) -> None:
+        await _async_handle_pause_timer(hass, call)
+
     async def _handle_start_stopwatch(call: ServiceCall) -> None:
         await _async_handle_start_stopwatch(hass, call)
 
@@ -260,6 +281,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(
         DOMAIN, SERVICE_STOP_TIMER, _handle_stop_timer, schema=SERVICE_STOP_TIMER_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_PAUSE_TIMER, _handle_pause_timer, schema=SERVICE_PAUSE_TIMER_SCHEMA
     )
     hass.services.async_register(
         DOMAIN,
@@ -292,6 +316,7 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         hass.services.async_remove(DOMAIN, SERVICE_REBOOT_DEVICE)
         hass.services.async_remove(DOMAIN, SERVICE_START_TIMER)
         hass.services.async_remove(DOMAIN, SERVICE_STOP_TIMER)
+        hass.services.async_remove(DOMAIN, SERVICE_PAUSE_TIMER)
         hass.services.async_remove(DOMAIN, SERVICE_START_STOPWATCH)
         hass.services.async_remove(DOMAIN, SERVICE_STOP_STOPWATCH)
         hass.services.async_remove(DOMAIN, SERVICE_PAUSE_STOPWATCH)
