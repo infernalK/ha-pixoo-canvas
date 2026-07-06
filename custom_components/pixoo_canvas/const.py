@@ -47,6 +47,7 @@ SERVICE_START_TIMER = "start_timer"
 SERVICE_STOP_TIMER = "stop_timer"
 SERVICE_START_STOPWATCH = "start_stopwatch"
 SERVICE_STOP_STOPWATCH = "stop_stopwatch"
+SERVICE_PAUSE_STOPWATCH = "pause_stopwatch"
 SERVICE_RESET_STOPWATCH = "reset_stopwatch"
 
 DEFAULT_BUZZER_ACTIVE_TIME_MS = 500

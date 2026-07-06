@@ -185,11 +185,32 @@ start_stopwatch:
 
 stop_stopwatch:
   name: Stop the stopwatch
-  description: Stops the Pixoo's built-in stopwatch tool, if running.
+  description: >-
+    Stops the Pixoo's built-in stopwatch tool, if running, and resumes page
+    rotation if start_stopwatch had paused it - use this when you're done
+    with the stopwatch. For a temporary pause you intend to resume shortly
+    (without page rotation kicking back in), use pause_stopwatch instead.
   fields:
     device_id:
       name: Device
       description: The Pixoo Canvas device to stop the stopwatch on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+
+pause_stopwatch:
+  name: Pause the stopwatch
+  description: >-
+    Pauses the Pixoo's built-in stopwatch tool without resuming page
+    rotation, keeping the elapsed time so start_stopwatch can resume it
+    later. Same underlying command as stop_stopwatch, minus the page
+    rotation resume - use stop_stopwatch instead when you're done with the
+    stopwatch for good.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to pause the stopwatch on.
       required: true
       selector:
         device:
