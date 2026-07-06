@@ -27,7 +27,7 @@
     "step": {
       "init": {
         "title": "Configure your Pixoo device",
-        "description": "Update the device IP, the default page duration, and its pages. Pages are a raw YAML list of named entries. By default each page has a `components` list, but a page can instead set a `page_type` (clock, channel, visualizer, pv, fuel) for a native Pixoo screen or a prebuilt layout - see the README. The default duration applies to any page that doesn't set its own `duration`. Other optional per-page fields: `enabled` (Jinja template), `scan_interval` (seconds between refreshes while shown).",
+        "description": "Update the device IP, the default page duration, and its pages. Pages are a raw YAML list of named entries. By default each page has a `components` list, but a page can instead set a `page_type` (clock, channel, visualizer, sound_meter, pv, fuel) for a native Pixoo screen or a prebuilt layout - see the README. The default duration applies to any page that doesn't set its own `duration`. Other optional per-page fields: `enabled` (Jinja template), `scan_interval` (seconds between refreshes while shown).",
         "data": {
           "host": "IP address of the device",
           "default_page_duration": "Default page duration (seconds)",

@@ -21,9 +21,9 @@ def is_valid_page_shape(page: Any) -> bool:
     `components` (the default, for full backward compatibility) requires a
     `components` list. `clock`/`channel`/`visualizer` instead switch the
     device to one of its built-in screens and require an `id` instead.
-    `pv`/`fuel` are prebuilt layouts with their own optional fields - no
-    structural requirement here, same as we don't validate `components` list
-    contents.
+    `sound_meter`/`pv`/`fuel` are prebuilt layouts with their own optional
+    fields - no structural requirement here, same as we don't validate
+    `components` list contents.
     """
     if not isinstance(page, dict):
         return False

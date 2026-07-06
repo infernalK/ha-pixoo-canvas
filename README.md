@@ -18,6 +18,7 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
   - [Page : Clock (horloge native)](#page--clock-horloge-native)
   - [Page : Channel (channel personnalisé Divoom)](#page--channel-channel-personnalisé-divoom)
   - [Page : Visualizer (visualiseur audio)](#page--visualizer-visualiseur-audio)
+  - [Page : Sound meter (sonomètre)](#page--sound-meter-sonomètre)
   - [Page : PV (solaire)](#page--pv-solaire)
   - [Page : Fuel (station-service)](#page--fuel-station-service)
 - [Rotation automatique des pages](#rotation-automatique-des-pages)
@@ -89,7 +90,7 @@ sous forme de liste :
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
 | `name` | Oui | | Nom de la page (utilisé pour l'appeler via le service `render_page`). |
-| `page_type` | Non | `components` | `components`, `clock`, `channel`, `visualizer`, `pv`, `fuel`. |
+| `page_type` | Non | `components` | `components`, `clock`, `channel`, `visualizer`, `sound_meter`, `pv`, `fuel`. |
 | `enabled` | Non | activée | `true`/`false` ou template `{{ }}` — pages désactivées sautées par la rotation. |
 | `duration` | Non | (le réglage global) | Secondes d'affichage avant de passer à la page suivante, en rotation. |
 | `scan_interval` | Non | | Secondes entre rafraîchissements pendant que la page est affichée (utile pour des valeurs qui changent souvent). |
@@ -104,8 +105,8 @@ sous forme de liste :
 ```
 
 Si tu débutes, commence par une page `components` : c'est la plus flexible, et les
-autres types (`clock`, `channel`, `visualizer`, `pv`, `fuel`) s'utilisent exactement de
-la même façon une fois que tu as compris le principe.
+autres types (`clock`, `channel`, `visualizer`, `sound_meter`, `pv`, `fuel`) s'utilisent
+exactement de la même façon une fois que tu as compris le principe.
 
 ### Page : Components (ton propre design)
 
@@ -320,6 +321,23 @@ Bascule sur un des visualiseurs audio intégrés au Pixoo.
   id: 2
 ```
 
+### Page : Sound meter (sonomètre)
+
+Bascule sur l'outil sonomètre intégré au Pixoo (mesure de niveau sonore en dB, écran
+plein). Pas de champ `id` : il n'y en a qu'un seul.
+
+```yaml
+- name: Sonomètre
+  page_type: sound_meter
+```
+
+> ⚠️ Contrairement à `clock`/`channel`/`visualizer`, cet outil vit dans une famille de
+> commandes Divoom différente (`Tools/*`, comme les minuteurs/chronomètres natifs, hors
+> périmètre de cette intégration). Son comportement au moment de quitter la page (passage
+> à une autre page en rotation, ou service `render_page`) n'a pas encore été validé sur
+> device réel — remonte un ticket si le sonomètre reste affiché en incrustation par-dessus
+> la page suivante.
+
 ### Page : PV (solaire)
 
 Page prête à l'emploi pour un système solaire/batterie — l'icône batterie et la barre
@@ -400,8 +418,9 @@ data:
       color: yellow
 ```
 
-Les autres `page_type` (`clock`, `channel`, `visualizer`, `pv`, `fuel`) marchent aussi
-en ligne, en indiquant `page_type` et les champs de ce type (voir le tableau plus haut) :
+Les autres `page_type` (`clock`, `channel`, `visualizer`, `sound_meter`, `pv`, `fuel`)
+marchent aussi en ligne, en indiquant `page_type` et les champs de ce type (voir le
+tableau plus haut) :
 
 ```yaml
 service: pixoo_canvas.render_page

@@ -21,6 +21,7 @@ from .const import (
     CMD_SET_BRIGHTNESS,
     CMD_SET_CLOCK,
     CMD_SET_CUSTOM_PAGE,
+    CMD_SET_NOISE_STATUS,
     CMD_SET_ROTATION_ANGLE,
     CMD_SET_VISUALIZER,
     DEFAULT_PIC_SPEED_MS,
@@ -150,6 +151,10 @@ class PixooClient:
     async def set_visualizer(self, position: int) -> None:
         """Switch the device to one of its built-in audio visualizers."""
         await self._send({"Command": CMD_SET_VISUALIZER, "EqPosition": position})
+
+    async def set_noise_status(self, on: bool) -> None:
+        """Start or stop the device's built-in sound meter (decibel) tool."""
+        await self._send({"Command": CMD_SET_NOISE_STATUS, "NoiseStatus": 1 if on else 0})
 
     async def play_buzzer(self, active_time_ms: int, off_time_ms: int, total_time_ms: int) -> None:
         """Play the device's buzzer: on/off cycles of `active_time_ms`/`off_time_ms`, for `total_time_ms` overall."""

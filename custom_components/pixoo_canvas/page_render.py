@@ -4,9 +4,11 @@
 through the normal render engine (a composed RGB buffer, pushed to the
 device). `clock`/`channel`/`visualizer` instead switch the device to one of
 its built-in native screens - no buffer is composed or pushed for those.
-`pv`/`fuel` are prebuilt layouts: their fields are expanded into a
-`components` list (see `render.page_templates`) and rendered like any other
-`components` page.
+`sound_meter` switches the device to its built-in sound meter (decibel) tool -
+also no buffer, and unlike clock/channel/visualizer it takes no `id` since the
+device only has the one sound meter. `pv`/`fuel` are prebuilt layouts: their
+fields are expanded into a `components` list (see `render.page_templates`) and
+rendered like any other `components` page.
 """
 
 from __future__ import annotations
@@ -88,6 +90,8 @@ async def render_configured_page(
         await render_page(hass, client, page.get("components", []), variables)
     elif page_type in NATIVE_CHANNEL_PAGE_TYPES:
         await _render_native_channel_page(page_type, page, client, hass, variables)
+    elif page_type == "sound_meter":
+        await client.set_noise_status(True)
     elif page_type == "pv":
         await render_page(hass, client, build_pv_components(page), variables)
     elif page_type == "fuel":

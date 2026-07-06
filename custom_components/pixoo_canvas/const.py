@@ -19,6 +19,7 @@ CMD_SET_CLOCK = "Channel/SetClockSelectId"
 CMD_SET_CUSTOM_PAGE = "Channel/SetCustomPageIndex"
 CMD_SET_VISUALIZER = "Channel/SetEqPosition"
 CMD_PLAY_BUZZER = "Device/PlayBuzzer"
+CMD_SET_NOISE_STATUS = "Tools/SetNoiseStatus"
 
 DEFAULT_SCAN_INTERVAL = 15
 DEFAULT_TIMEOUT = 10

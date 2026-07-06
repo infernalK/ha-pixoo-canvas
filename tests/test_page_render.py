@@ -1,4 +1,4 @@
-"""Tests for the page_type dispatcher (components/clock/channel/visualizer/pv/fuel)."""
+"""Tests for the page_type dispatcher (components/clock/channel/visualizer/sound_meter/pv/fuel)."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ class _FakeClient:
         self.clock_calls: list[int] = []
         self.channel_calls: list[int] = []
         self.visualizer_calls: list[int] = []
+        self.noise_status_calls: list[bool] = []
 
     async def send_page(self, width: int, rgb_bytes: bytes, scroll_texts=None) -> None:
         self.send_page_calls += 1
@@ -27,6 +28,9 @@ class _FakeClient:
 
     async def set_visualizer(self, position: int) -> None:
         self.visualizer_calls.append(position)
+
+    async def set_noise_status(self, on: bool) -> None:
+        self.noise_status_calls.append(on)
 
 
 async def test_default_page_type_renders_components(hass):
@@ -107,6 +111,16 @@ async def test_native_page_invalid_template_is_skipped(hass):
     )
 
     assert client.clock_calls == []
+
+
+async def test_sound_meter_page_type_calls_set_noise_status(hass):
+    """page_type: sound_meter takes no `id` and calls client.set_noise_status(True)."""
+    client = _FakeClient()
+
+    await render_configured_page(hass, client, {"name": "Sonomètre", "page_type": "sound_meter"})
+
+    assert client.noise_status_calls == [True]
+    assert client.send_page_calls == 0
 
 
 async def test_pv_page_type_renders_generated_components(hass):

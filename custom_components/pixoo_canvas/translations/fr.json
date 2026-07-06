@@ -27,7 +27,7 @@
     "step": {
       "init": {
         "title": "Configurer ton appareil Pixoo",
-        "description": "Modifie l'adresse IP de l'appareil, la durée d'affichage par défaut des pages, et les pages elles-mêmes. Les pages sont une liste YAML brute d'entrées nommées. Par défaut chaque page a une liste `components`, mais une page peut aussi préciser un `page_type` (clock, channel, visualizer, pv, fuel) pour un écran natif du Pixoo ou un layout préconstruit — voir le README. La durée par défaut s'applique à toute page qui ne précise pas sa propre `duration`. Autres champs optionnels par page : `enabled` (template Jinja), `scan_interval` (secondes entre rafraîchissements pendant l'affichage).",
+        "description": "Modifie l'adresse IP de l'appareil, la durée d'affichage par défaut des pages, et les pages elles-mêmes. Les pages sont une liste YAML brute d'entrées nommées. Par défaut chaque page a une liste `components`, mais une page peut aussi préciser un `page_type` (clock, channel, visualizer, sound_meter, pv, fuel) pour un écran natif du Pixoo ou un layout préconstruit — voir le README. La durée par défaut s'applique à toute page qui ne précise pas sa propre `duration`. Autres champs optionnels par page : `enabled` (template Jinja), `scan_interval` (secondes entre rafraîchissements pendant l'affichage).",
         "data": {
           "host": "Adresse IP de l'appareil",
           "default_page_duration": "Durée d'affichage par défaut des pages (secondes)",

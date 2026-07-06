@@ -150,6 +150,28 @@ async def test_set_visualizer_sends_eq_position(hass, aioclient_mock):
     assert payload == {"Command": "Channel/SetEqPosition", "EqPosition": 2}
 
 
+async def test_set_noise_status_sends_start(hass, aioclient_mock):
+    """set_noise_status(True) posts Tools/SetNoiseStatus with NoiseStatus: 1."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_noise_status(True)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 1}
+
+
+async def test_set_noise_status_sends_stop(hass, aioclient_mock):
+    """set_noise_status(False) posts Tools/SetNoiseStatus with NoiseStatus: 0."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_noise_status(False)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0}
+
+
 async def test_play_buzzer_sends_cycle_and_total_times(hass, aioclient_mock):
     """play_buzzer posts Device/PlayBuzzer with the cycle/total timings in ms."""
     aioclient_mock.post(URL, json={"error_code": 0})
