@@ -23,6 +23,7 @@ CMD_SET_NOISE_STATUS = "Tools/SetNoiseStatus"
 CMD_SYS_REBOOT = "Device/SysReboot"
 CMD_SET_MIRROR_MODE = "Device/SetMirrorMode"
 CMD_SET_TIMER = "Tools/SetTimer"
+CMD_SET_STOPWATCH = "Tools/SetStopWatch"
 
 DEFAULT_SCAN_INTERVAL = 15
 DEFAULT_TIMEOUT = 10
@@ -44,6 +45,9 @@ SERVICE_PLAY_BUZZER = "play_buzzer"
 SERVICE_REBOOT_DEVICE = "reboot_device"
 SERVICE_START_TIMER = "start_timer"
 SERVICE_STOP_TIMER = "stop_timer"
+SERVICE_START_STOPWATCH = "start_stopwatch"
+SERVICE_STOP_STOPWATCH = "stop_stopwatch"
+SERVICE_RESET_STOPWATCH = "reset_stopwatch"
 
 DEFAULT_BUZZER_ACTIVE_TIME_MS = 500
 DEFAULT_BUZZER_OFF_TIME_MS = 500

@@ -166,3 +166,46 @@ stop_timer:
       selector:
         device:
           integration: pixoo_canvas
+
+start_stopwatch:
+  name: Start the stopwatch
+  description: >-
+    Starts the Pixoo's built-in stopwatch tool (Tools/SetStopWatch), switching
+    the screen to it. It takes over the screen until stop_stopwatch is called
+    or another page/service switches the device away from it - handy to call
+    from an iOS/Android Shortcut for timing something on the fly.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to start the stopwatch on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+
+stop_stopwatch:
+  name: Stop the stopwatch
+  description: Stops the Pixoo's built-in stopwatch tool, if running.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to stop the stopwatch on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+
+reset_stopwatch:
+  name: Reset the stopwatch
+  description: >-
+    Resets the Pixoo's built-in stopwatch back to zero (Tools/SetStopWatch,
+    Status: 2). Whether this also stops it if it was running is untested on
+    real hardware - call stop_stopwatch afterwards if it doesn't.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to reset the stopwatch on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas

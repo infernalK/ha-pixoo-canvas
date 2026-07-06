@@ -26,6 +26,7 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
 - [Service : faire sonner le buzzer](#service--faire-sonner-le-buzzer)
 - [Service : redémarrer l'appareil](#service--redémarrer-lappareil)
 - [Service : minuteur (start_timer / stop_timer)](#service--minuteur-start_timer--stop_timer)
+- [Service : chronomètre (start_stopwatch / stop_stopwatch / reset_stopwatch)](#service--chronomètre-start_stopwatch--stop_stopwatch--reset_stopwatch)
 - [Licence](#licence)
 
 ## Installation
@@ -345,20 +346,22 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
 ```
 
 > ⚠️ Contrairement à `clock`/`channel`/`visualizer`, cet outil vit dans une famille de
-> commandes Divoom différente (`Tools/*`, comme les minuteurs/chronomètres natifs, hors
-> périmètre de cette intégration). Deux comportements confirmés sur device réel :
-> - L'appareil ne rebascule l'écran sur le sonomètre que sur un front montant (0 → 1) —
->   l'intégration envoie donc systématiquement un stop puis un start à chaque rendu de
->   cette page (regroupés en une seule requête `Draw/CommandList` : les envoyer séparément
->   faisait redémarrer l'appareil, même symptôme que celui déjà rencontré avec
->   `scroll_text`).
-> - Une fois démarré, l'outil n'est **pas** annulé implicitement par un changement de page
->   comme le sont les `Channel/*` entre eux : sans arrêt explicite, il reste affiché
->   par-dessus toute page suivante et finit par faire planter l'appareil (pushs ignorés qui
->   s'accumulent). L'intégration arrête donc systématiquement le sonomètre (`NoiseStatus: 0`,
->   toujours regroupé dans la même requête que le reste) au rendu de **toute autre page**
->   (`components`/`pv`/`fuel`, `clock`, `channel`, `visualizer`), pas seulement au moment où
->   on quitte explicitement la page `sound_meter`.
+> commandes Divoom différente (`Tools/*`, la même que le [minuteur](#service--minuteur-start_timer--stop_timer)
+> et le [chronomètre](#service--chronomètre-start_stopwatch--stop_stopwatch--reset_stopwatch)
+> pilotés par service plutôt que par page). Deux comportements confirmés sur device réel,
+> qui s'appliquent aux trois outils `Tools/*` :
+> - L'appareil ne rebascule l'écran sur un outil `Tools/*` que sur un front montant (0 → 1) —
+>   l'intégration envoie donc systématiquement un stop puis un start à chaque démarrage
+>   (regroupés en une seule requête `Draw/CommandList` : les envoyer séparément faisait
+>   redémarrer l'appareil, même symptôme que celui déjà rencontré avec `scroll_text`).
+> - Une fois démarré, un outil `Tools/*` n'est **pas** annulé implicitement par un
+>   changement de page ni par le démarrage d'un *autre* outil `Tools/*`, comme le sont les
+>   `Channel/*` entre eux : sans arrêt explicite, il reste affiché par-dessus toute page
+>   suivante et finit par faire planter l'appareil (pushs ignorés qui s'accumulent).
+>   L'intégration arrête donc systématiquement les trois (sonomètre, minuteur, chronomètre),
+>   toujours regroupés dans la même requête que le reste, au rendu de **toute autre page**
+>   (`components`/`pv`/`fuel`, `clock`, `channel`, `visualizer`) et au démarrage de
+>   n'importe lequel des trois outils entre eux.
 
 ### Page : PV (solaire)
 
@@ -512,6 +515,38 @@ cette étape, choisis `pixoo_canvas.start_timer` (ou `stop_timer`), renseigne `d
 via Siri. Pour le `device_id` : regarde l'état de `sensor.pixoo_device_id` (copie-le
 depuis Paramètres → Appareils et services → Entités, ou l'historique de l'entité) plutôt
 que de le chercher dans l'URL de la page de l'appareil.
+
+## Service : chronomètre (start_stopwatch / stop_stopwatch / reset_stopwatch)
+
+Les services `pixoo_canvas.start_stopwatch`, `pixoo_canvas.stop_stopwatch` et
+`pixoo_canvas.reset_stopwatch` pilotent l'outil chronomètre intégré au Pixoo
+(`Tools/SetStopWatch`), en tout point similaire au minuteur (voir ci-dessus) :
+il prend tout l'écran jusqu'à l'arrêt ou le passage à une autre page/service, et
+`start_stopwatch`/`stop_stopwatch` mettent en pause/relancent
+`switch.pixoo_page_rotation` de la même façon que `start_timer`/`stop_timer`. Aucun
+champ requis à part `device_id` — le chronomètre compte simplement depuis zéro.
+
+```yaml
+service: pixoo_canvas.start_stopwatch
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+```yaml
+service: pixoo_canvas.reset_stopwatch
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+```yaml
+service: pixoo_canvas.stop_stopwatch
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+> ⚠️ Comportement non testé sur device réel : `reset_stopwatch` remet le compteur à zéro,
+> mais on ne sait pas s'il arrête aussi le chronomètre au passage si celui-ci tournait —
+> appelle `stop_stopwatch` derrière si ce n'est pas le cas.
 
 ## Licence
 

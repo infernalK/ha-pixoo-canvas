@@ -96,6 +96,7 @@ async def test_render_page_with_native_clock_page(hass, aioclient_mock):
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Channel/SetClockSelectId", "ClockId": 182},
         ],
     }
@@ -121,6 +122,7 @@ async def test_render_page_with_inline_page_type_clock(hass, aioclient_mock):
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Channel/SetClockSelectId", "ClockId": 182},
         ],
     }
@@ -389,6 +391,7 @@ async def test_start_timer_sends_minute_second_and_status_1(hass, aioclient_mock
         "Command": "Draw/CommandList",
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
             {"Command": "Tools/SetTimer", "Minute": 5, "Second": 30, "Status": 1},
         ],
@@ -445,6 +448,169 @@ async def test_stop_timer_unknown_device_id(hass, aioclient_mock):
         await hass.services.async_call(
             DOMAIN,
             "stop_timer",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )
+
+
+async def test_start_stopwatch_pauses_running_page_rotation(hass, aioclient_mock):
+    """start_stopwatch pauses page rotation if it was running.
+
+    Same rationale as start_timer: rotation's own schedule would otherwise
+    overwrite the stopwatch with the next page as soon as it next ticks.
+    """
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await coordinator.rotator.async_start()
+    assert coordinator.rotator.is_running is True
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is False
+
+
+async def test_stop_stopwatch_resumes_page_rotation_it_paused(hass, aioclient_mock):
+    """stop_stopwatch resumes page rotation that start_stopwatch had paused."""
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await coordinator.rotator.async_start()
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+    assert coordinator.rotator.is_running is False
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is True
+
+
+async def test_stop_stopwatch_does_not_start_rotation_that_was_already_off(hass, aioclient_mock):
+    """stop_stopwatch doesn't turn rotation on if start_stopwatch never paused it."""
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    assert coordinator.rotator.is_running is False
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is False
+
+
+async def test_start_stopwatch_sends_status_1(hass, aioclient_mock):
+    """start_stopwatch posts a stop+start Tools/SetStopWatch batch, plus noise/timer stops."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "start_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 1},
+        ],
+    }
+
+
+async def test_start_stopwatch_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "start_stopwatch",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )
+
+
+async def test_stop_stopwatch_sends_status_0(hass, aioclient_mock):
+    """stop_stopwatch posts Tools/SetStopWatch with Status: 0."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Tools/SetStopWatch", "Status": 0}
+
+
+async def test_stop_stopwatch_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "stop_stopwatch",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )
+
+
+async def test_reset_stopwatch_sends_status_2(hass, aioclient_mock):
+    """reset_stopwatch posts Tools/SetStopWatch with Status: 2."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "reset_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Tools/SetStopWatch", "Status": 2}
+
+
+async def test_reset_stopwatch_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "reset_stopwatch",
             {"device_id": "does-not-exist"},
             blocking=True,
         )

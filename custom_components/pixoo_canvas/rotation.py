@@ -76,7 +76,7 @@ class PageRotator:
         self._page_index = 0
         self._elapsed = 0.0
         self._pending_step = 0.0
-        self._paused_for_timer = False
+        self._paused_for_tool = False
         # Deliberately not HA's entity-level RestoreEntity: that awaits a
         # single hass-wide restore-state loading task shared by every
         # restorable entity on the instance, which can leave rotation
@@ -126,23 +126,24 @@ class PageRotator:
         await self.async_stop()
         await self._store.async_save({"enabled": False})
 
-    async def async_pause_for_timer(self) -> None:
-        """Stop rotation for a running countdown timer, remembering to resume it.
+    async def async_pause_for_tool(self) -> None:
+        """Stop rotation for a running Tools/* tool, remembering to resume it.
 
         Rotation ticks on its own schedule regardless of what's actually on
-        screen, so a timer started out-of-band via the start_timer service
-        would otherwise get overwritten at the next scheduled page render.
-        A no-op if rotation wasn't running - stop_timer must not turn it on
-        just because a timer was started while it was already off.
+        screen, so a countdown timer or stopwatch started out-of-band via a
+        service (start_timer/start_stopwatch) would otherwise get
+        overwritten at the next scheduled page render. A no-op if rotation
+        wasn't running - stop_timer/stop_stopwatch must not turn it on just
+        because a tool was started while it was already off.
         """
         if self._running:
-            self._paused_for_timer = True
+            self._paused_for_tool = True
             await self.async_stop()
 
-    async def async_resume_after_timer(self) -> None:
-        """Resume rotation if async_pause_for_timer paused it for the timer."""
-        if self._paused_for_timer:
-            self._paused_for_timer = False
+    async def async_resume_after_tool(self) -> None:
+        """Resume rotation if async_pause_for_tool paused it for a tool."""
+        if self._paused_for_tool:
+            self._paused_for_tool = False
             await self.async_start()
 
     def _default_duration(self) -> float:

@@ -19,7 +19,10 @@ from .const import (
     SERVICE_PLAY_BUZZER,
     SERVICE_REBOOT_DEVICE,
     SERVICE_RENDER_PAGE,
+    SERVICE_RESET_STOPWATCH,
+    SERVICE_START_STOPWATCH,
     SERVICE_START_TIMER,
+    SERVICE_STOP_STOPWATCH,
     SERVICE_STOP_TIMER,
 )
 from .coordinator import PixooCoordinator
@@ -82,6 +85,10 @@ SERVICE_START_TIMER_SCHEMA = vol.All(
 )
 
 SERVICE_STOP_TIMER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+
+SERVICE_START_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+SERVICE_STOP_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+SERVICE_RESET_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 
 
 def _get_coordinator(hass: HomeAssistant, device_id: str) -> PixooCoordinator:
@@ -152,7 +159,7 @@ async def _async_handle_start_timer(hass: HomeAssistant, call: ServiceCall) -> N
     would get overwritten as soon as rotation's next scheduled page fires.
     """
     coordinator = _get_coordinator(hass, call.data["device_id"])
-    await coordinator.rotator.async_pause_for_timer()
+    await coordinator.rotator.async_pause_for_tool()
     await coordinator.client.start_timer(call.data["minutes"], call.data["seconds"])
 
 
@@ -163,7 +170,33 @@ async def _async_handle_stop_timer(hass: HomeAssistant, call: ServiceCall) -> No
     """
     coordinator = _get_coordinator(hass, call.data["device_id"])
     await coordinator.client.stop_timer()
-    await coordinator.rotator.async_resume_after_timer()
+    await coordinator.rotator.async_resume_after_tool()
+
+
+async def _async_handle_start_stopwatch(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.start_stopwatch service call.
+
+    See _async_handle_start_timer for why page rotation is paused first.
+    """
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.rotator.async_pause_for_tool()
+    await coordinator.client.start_stopwatch()
+
+
+async def _async_handle_stop_stopwatch(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.stop_stopwatch service call.
+
+    Resumes page rotation afterwards, if start_stopwatch paused it.
+    """
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.stop_stopwatch()
+    await coordinator.rotator.async_resume_after_tool()
+
+
+async def _async_handle_reset_stopwatch(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.reset_stopwatch service call."""
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.reset_stopwatch()
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -186,6 +219,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def _handle_stop_timer(call: ServiceCall) -> None:
         await _async_handle_stop_timer(hass, call)
 
+    async def _handle_start_stopwatch(call: ServiceCall) -> None:
+        await _async_handle_start_stopwatch(hass, call)
+
+    async def _handle_stop_stopwatch(call: ServiceCall) -> None:
+        await _async_handle_stop_stopwatch(hass, call)
+
+    async def _handle_reset_stopwatch(call: ServiceCall) -> None:
+        await _async_handle_reset_stopwatch(hass, call)
+
     hass.services.async_register(
         DOMAIN, SERVICE_RENDER_PAGE, _handle_render_page, schema=SERVICE_RENDER_PAGE_SCHEMA
     )
@@ -201,6 +243,21 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_STOP_TIMER, _handle_stop_timer, schema=SERVICE_STOP_TIMER_SCHEMA
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_START_STOPWATCH,
+        _handle_start_stopwatch,
+        schema=SERVICE_START_STOPWATCH_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_STOP_STOPWATCH, _handle_stop_stopwatch, schema=SERVICE_STOP_STOPWATCH_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESET_STOPWATCH,
+        _handle_reset_stopwatch,
+        schema=SERVICE_RESET_STOPWATCH_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -211,3 +268,6 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         hass.services.async_remove(DOMAIN, SERVICE_REBOOT_DEVICE)
         hass.services.async_remove(DOMAIN, SERVICE_START_TIMER)
         hass.services.async_remove(DOMAIN, SERVICE_STOP_TIMER)
+        hass.services.async_remove(DOMAIN, SERVICE_START_STOPWATCH)
+        hass.services.async_remove(DOMAIN, SERVICE_STOP_STOPWATCH)
+        hass.services.async_remove(DOMAIN, SERVICE_RESET_STOPWATCH)

@@ -24,6 +24,7 @@ from .const import (
     CMD_SET_MIRROR_MODE,
     CMD_SET_NOISE_STATUS,
     CMD_SET_ROTATION_ANGLE,
+    CMD_SET_STOPWATCH,
     CMD_SET_TIMER,
     CMD_SET_VISUALIZER,
     CMD_SYS_REBOOT,
@@ -60,8 +61,12 @@ def _timer_payload(minutes: int, seconds: int, status: int) -> dict[str, Any]:
     return {"Command": CMD_SET_TIMER, "Minute": minutes, "Second": seconds, "Status": status}
 
 
+def _stopwatch_payload(status: int) -> dict[str, Any]:
+    return {"Command": CMD_SET_STOPWATCH, "Status": status}
+
+
 def _stop_tools_payloads() -> list[dict[str, Any]]:
-    """Payloads that force-stop every Tools/* overlay (sound meter, countdown timer).
+    """Payloads that force-stop every Tools/* overlay (sound meter, countdown timer, stopwatch).
 
     Unlike Channel/* pages, Tools/* commands aren't implicitly cancelled by
     switching to something else - left running, they keep the screen (and
@@ -69,7 +74,7 @@ def _stop_tools_payloads() -> list[dict[str, Any]]:
     page/channel-switch request so no Tools/* overlay can ever survive onto
     an unrelated page - add any future Tools/* command's stop here too.
     """
-    return [_noise_status_payload(False), _timer_payload(0, 0, 0)]
+    return [_noise_status_payload(False), _timer_payload(0, 0, 0), _stopwatch_payload(0)]
 
 
 def _gif_payload(pic_id: int, width: int, rgb_bytes: bytes) -> dict[str, Any]:
@@ -171,7 +176,7 @@ class PixooClient:
         """Switch the device to one of its built-in clock faces.
 
         Batched with a Tools/* stop (see _stop_tools_payloads): unlike
-        Channel/* commands, Tools overlays (sound meter, countdown timer)
+        Channel/* commands, Tools overlays (sound meter, countdown timer, stopwatch)
         don't get implicitly cancelled by switching channel - left running,
         they keep the screen (and eventually the whole device, when pushes
         pile up unanswered) stuck on themselves.
@@ -212,10 +217,16 @@ class PixooClient:
         requests caused the device to reboot - same failure mode already
         seen with unbatched scroll_text requests - so both are batched into
         a single Draw/CommandList call instead. Also stops the countdown
-        timer in the same request, in case it was the one left running.
+        timer and stopwatch in the same request, in case one of those was
+        the one left running.
         """
         await self.send_command_list(
-            [_timer_payload(0, 0, 0), _noise_status_payload(False), _noise_status_payload(True)]
+            [
+                _timer_payload(0, 0, 0),
+                _stopwatch_payload(0),
+                _noise_status_payload(False),
+                _noise_status_payload(True),
+            ]
         )
 
     async def start_timer(self, minutes: int, seconds: int) -> None:
@@ -224,11 +235,13 @@ class PixooClient:
         Same edge-triggering and batching rationale as restart_noise_status:
         a stop is sent before the start to re-trigger the device's screen
         switch even if a previous call left the timer "running", and the
-        sound meter is stopped too in case it was the one left running.
+        sound meter/stopwatch are stopped too in case one of those was the
+        one left running.
         """
         await self.send_command_list(
             [
                 _noise_status_payload(False),
+                _stopwatch_payload(0),
                 _timer_payload(0, 0, 0),
                 _timer_payload(minutes, seconds, 1),
             ]
@@ -237,6 +250,32 @@ class PixooClient:
     async def stop_timer(self) -> None:
         """Stop the countdown timer."""
         await self._send(_timer_payload(0, 0, 0))
+
+    async def start_stopwatch(self) -> None:
+        """Start the stopwatch, forcing a 0->1 edge in a single request.
+
+        Same edge-triggering and batching rationale as restart_noise_status/
+        start_timer: a stop is sent before the start to re-trigger the
+        device's screen switch even if a previous call left the stopwatch
+        "running", and the sound meter/timer are stopped too in case one of
+        those was the one left running.
+        """
+        await self.send_command_list(
+            [
+                _noise_status_payload(False),
+                _timer_payload(0, 0, 0),
+                _stopwatch_payload(0),
+                _stopwatch_payload(1),
+            ]
+        )
+
+    async def stop_stopwatch(self) -> None:
+        """Stop the stopwatch."""
+        await self._send(_stopwatch_payload(0))
+
+    async def reset_stopwatch(self) -> None:
+        """Reset the stopwatch back to zero."""
+        await self._send(_stopwatch_payload(2))
 
     async def reboot(self) -> None:
         """Reboot the device (Device/SysReboot). The screen goes dark for a while."""
@@ -286,7 +325,7 @@ class PixooClient:
         scroll_text) because the device does *not* clear a previous page's
         scroll_text on its own when a new buffer is pushed - a stale one
         must never survive onto an unrelated page. The Tools/* stop runs
-        for the same reason: those overlays (sound meter, countdown timer)
+        for the same reason: those overlays (sound meter, countdown timer, stopwatch)
         aren't implicitly cancelled by a new buffer push either, and left
         running they keep the screen (and eventually the whole device)
         stuck on themselves.

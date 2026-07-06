@@ -28,6 +28,7 @@ async def test_send_page_batches_clear_and_gif_into_one_request(hass, aioclient_
         "Draw/ClearHttpText",
         "Tools/SetNoiseStatus",
         "Tools/SetTimer",
+        "Tools/SetStopWatch",
         "Draw/SendHttpGif",
     ]
 
@@ -141,6 +142,7 @@ async def test_set_clock_sends_clock_select_id(hass, aioclient_mock):
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Channel/SetClockSelectId", "ClockId": 182},
         ],
     }
@@ -159,6 +161,7 @@ async def test_set_custom_channel_sends_custom_page_index(hass, aioclient_mock):
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Channel/SetCustomPageIndex", "CustomPageIndex": 1},
         ],
     }
@@ -177,6 +180,7 @@ async def test_set_visualizer_sends_eq_position(hass, aioclient_mock):
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Channel/SetEqPosition", "EqPosition": 2},
         ],
     }
@@ -205,12 +209,13 @@ async def test_set_noise_status_sends_stop(hass, aioclient_mock):
 
 
 async def test_restart_noise_status_batches_stop_and_start(hass, aioclient_mock):
-    """restart_noise_status sends timer-stop+noise-stop+noise-start as one request.
+    """restart_noise_status sends timer/stopwatch-stop+noise-stop+noise-start as one request.
 
     Sending noise-stop and noise-start as two separate HTTP requests caused
     the device to reboot (same failure mode as unbatched scroll_text
     requests), so both must go out in a single call - along with a
-    countdown-timer stop, in case that was the tool left running instead.
+    countdown-timer/stopwatch stop, in case one of those was the tool left
+    running instead.
     """
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
@@ -223,14 +228,15 @@ async def test_restart_noise_status_batches_stop_and_start(hass, aioclient_mock)
         "Command": "Draw/CommandList",
         "CommandList": [
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 1},
         ],
     }
 
 
-async def test_start_timer_batches_noise_stop_timer_stop_and_start(hass, aioclient_mock):
-    """start_timer sends noise-stop+timer-stop+timer-start as one Draw/CommandList request."""
+async def test_start_timer_batches_noise_stopwatch_stops_timer_stop_and_start(hass, aioclient_mock):
+    """start_timer sends noise/stopwatch-stop+timer-stop+timer-start as one request."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
@@ -242,6 +248,7 @@ async def test_start_timer_batches_noise_stop_timer_stop_and_start(hass, aioclie
         "Command": "Draw/CommandList",
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
             {"Command": "Tools/SetTimer", "Minute": 5, "Second": 30, "Status": 1},
         ],
@@ -257,6 +264,50 @@ async def test_stop_timer_sends_status_0(hass, aioclient_mock):
 
     payload = aioclient_mock.mock_calls[0][2]
     assert payload == {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}
+
+
+async def test_start_stopwatch_batches_noise_timer_stops_stopwatch_stop_and_start(
+    hass, aioclient_mock
+):
+    """start_stopwatch sends noise/timer-stop+stopwatch-stop+stopwatch-start as one request."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.start_stopwatch()
+
+    assert len(aioclient_mock.mock_calls) == 1
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 1},
+        ],
+    }
+
+
+async def test_stop_stopwatch_sends_status_0(hass, aioclient_mock):
+    """stop_stopwatch posts Tools/SetStopWatch with Status: 0."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.stop_stopwatch()
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Tools/SetStopWatch", "Status": 0}
+
+
+async def test_reset_stopwatch_sends_status_2(hass, aioclient_mock):
+    """reset_stopwatch posts Tools/SetStopWatch with Status: 2."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.reset_stopwatch()
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Tools/SetStopWatch", "Status": 2}
 
 
 async def test_set_mirror_mode_sends_mode_1(hass, aioclient_mock):
