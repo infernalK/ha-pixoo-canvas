@@ -159,30 +159,14 @@ stop_timer:
   name: Stop the countdown timer
   description: >-
     Stops the Pixoo's built-in countdown timer tool, if running, and resumes
-    page rotation if start_timer had paused it - use this when you're done
-    with the timer. For a temporary pause you intend to resume shortly
-    (without page rotation kicking back in), use pause_timer instead.
+    page rotation if start_timer had paused it. There's no pause_timer:
+    confirmed on real hardware (and in Divoom's own app) that stopping a
+    countdown timer always resets it to 0, so a temporary pause that
+    resumes mid-countdown isn't possible.
   fields:
     device_id:
       name: Device
       description: The Pixoo Canvas device to stop the timer on.
-      required: true
-      selector:
-        device:
-          integration: pixoo_canvas
-
-pause_timer:
-  name: Pause the countdown timer
-  description: >-
-    Pauses the Pixoo's built-in countdown timer tool without resuming page
-    rotation. Same underlying command as stop_timer, minus the page rotation
-    resume - use stop_timer instead when you're done with the timer for
-    good. Whether the remaining countdown survives this pause (vs. resetting
-    to 0) is untested on real hardware.
-  fields:
-    device_id:
-      name: Device
-      description: The Pixoo Canvas device to pause the timer on.
       required: true
       selector:
         device:

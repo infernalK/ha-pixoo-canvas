@@ -248,7 +248,13 @@ class PixooClient:
         )
 
     async def stop_timer(self) -> None:
-        """Stop the countdown timer."""
+        """Stop the countdown timer.
+
+        No pause_timer counterpart: confirmed on real hardware (and in
+        Divoom's own app) that stopping a countdown timer always resets it
+        to 0 - there's no way to freeze it mid-countdown and resume later,
+        unlike the stopwatch.
+        """
         await self._send(_timer_payload(0, 0, 0))
 
     async def start_stopwatch(self) -> None:
