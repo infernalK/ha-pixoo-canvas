@@ -64,6 +64,9 @@
       },
       "cur_clock_id": {
         "name": "Current clock ID"
+      },
+      "device_id": {
+        "name": "Device ID"
       }
     },
     "select": {

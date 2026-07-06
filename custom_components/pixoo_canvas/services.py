@@ -145,15 +145,25 @@ async def _async_handle_reboot_device(hass: HomeAssistant, call: ServiceCall) ->
 
 
 async def _async_handle_start_timer(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Handle the pixoo_canvas.start_timer service call."""
+    """Handle the pixoo_canvas.start_timer service call.
+
+    Pauses page rotation first (if running): rotation ticks on its own
+    schedule regardless of what's on screen, so without this the timer
+    would get overwritten as soon as rotation's next scheduled page fires.
+    """
     coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.rotator.async_pause_for_timer()
     await coordinator.client.start_timer(call.data["minutes"], call.data["seconds"])
 
 
 async def _async_handle_stop_timer(hass: HomeAssistant, call: ServiceCall) -> None:
-    """Handle the pixoo_canvas.stop_timer service call."""
+    """Handle the pixoo_canvas.stop_timer service call.
+
+    Resumes page rotation afterwards, if start_timer paused it.
+    """
     coordinator = _get_coordinator(hass, call.data["device_id"])
     await coordinator.client.stop_timer()
+    await coordinator.rotator.async_resume_after_timer()
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:

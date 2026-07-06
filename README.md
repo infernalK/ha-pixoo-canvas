@@ -72,6 +72,11 @@ Une fois l'intégration configurée, tu as accès à :
   à régler selon le montage de ton cadre.
 - 2 capteurs de diagnostic (rotation, ID de l'horloge affichée) — utiles pour du
   dépannage, pas pour un usage quotidien.
+- `sensor.pixoo_device_id` — un 3ᵉ capteur diagnostic dont l'état est le `device_id`
+  Home Assistant de cet appareil, celui attendu par tous les services `pixoo_canvas.*`
+  (`render_page`, `play_buzzer`, `reboot_device`, `start_timer`, `stop_timer`). Pratique
+  pour construire un raccourci iOS/Android sans devoir aller le chercher dans l'URL de
+  Paramètres → Appareils.
 
 > ℹ️ `switch.pixoo_mirror_mode` remplace l'ancien capteur diagnostic `sensor.pixoo_mirror`
 > (lecture seule) : le miroir est maintenant contrôlable, pas juste affiché. Si tu avais ce
@@ -479,7 +484,11 @@ data:
 
 Les services `pixoo_canvas.start_timer` et `pixoo_canvas.stop_timer` pilotent l'outil
 minuteur intégré au Pixoo (`Tools/SetTimer`) — il prend tout l'écran jusqu'à l'appel de
-`stop_timer` ou le passage à une autre page/service.
+`stop_timer` ou le passage à une autre page/service. Si `switch.pixoo_page_rotation` est
+actif, `start_timer` le met automatiquement en pause (sans changer ta préférence
+on/off) pour que le minuteur ne soit pas écrasé au tour suivant ; `stop_timer` relance la
+rotation seulement si c'est `start_timer` qui l'avait mise en pause — si tu l'avais
+arrêtée toi-même entre-temps, elle reste arrêtée.
 
 ```yaml
 service: pixoo_canvas.start_timer
@@ -500,7 +509,9 @@ Home Assistant Companion expose nativement n'importe quel service HA comme étap
 "Effectuer une action" ("Perform action") dans l'app Raccourcis. Crée un raccourci avec
 cette étape, choisis `pixoo_canvas.start_timer` (ou `stop_timer`), renseigne `device_id`
 (et `minutes`/`seconds` pour le démarrage), et ajoute-le à l'écran d'accueil ou pilote-le
-via Siri.
+via Siri. Pour le `device_id` : regarde l'état de `sensor.pixoo_device_id` (copie-le
+depuis Paramètres → Appareils et services → Entités, ou l'historique de l'entité) plutôt
+que de le chercher dans l'URL de la page de l'appareil.
 
 ## Licence
 

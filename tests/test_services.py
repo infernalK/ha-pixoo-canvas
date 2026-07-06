@@ -292,6 +292,86 @@ async def test_reboot_device_unknown_device_id(hass, aioclient_mock):
         )
 
 
+_ONE_PAGE = (
+    "- name: A\n"
+    "  duration: 30\n"
+    "  components:\n"
+    "    - type: rectangle\n"
+    "      position: [0, 0]\n"
+    "      size: [1, 1]\n"
+    "      color: red\n"
+)
+
+
+async def test_start_timer_pauses_running_page_rotation(hass, aioclient_mock):
+    """start_timer pauses page rotation if it was running.
+
+    Otherwise rotation's own schedule would overwrite the timer with the
+    next page as soon as it next ticks, since rotation doesn't know the
+    timer was started out-of-band.
+    """
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await coordinator.rotator.async_start()
+    assert coordinator.rotator.is_running is True
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_timer",
+        {"device_id": _device_id(hass, entry), "minutes": 5},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is False
+
+
+async def test_stop_timer_resumes_page_rotation_it_paused(hass, aioclient_mock):
+    """stop_timer resumes page rotation that start_timer had paused."""
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await coordinator.rotator.async_start()
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_timer",
+        {"device_id": _device_id(hass, entry), "minutes": 5},
+        blocking=True,
+    )
+    assert coordinator.rotator.is_running is False
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_timer",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is True
+
+
+async def test_stop_timer_does_not_start_rotation_that_was_already_off(hass, aioclient_mock):
+    """stop_timer doesn't turn rotation on if start_timer never paused it."""
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    assert coordinator.rotator.is_running is False
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_timer",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is False
+
+
 async def test_start_timer_sends_minute_second_and_status_1(hass, aioclient_mock):
     """start_timer posts Tools/SetTimer with the given minutes/seconds and Status: 1."""
     entry = await _setup_entry(hass, aioclient_mock)

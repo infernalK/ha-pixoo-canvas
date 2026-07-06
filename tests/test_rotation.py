@@ -240,6 +240,64 @@ async def test_async_stop_halts_further_rendering(hass):
     assert rotator.is_running is False
 
 
+async def test_pause_for_timer_stops_running_rotation(hass):
+    """async_pause_for_timer stops rotation if it was running."""
+    entry = _entry(hass, _PAGE_A_B)
+    client = _FakeClient()
+    rotator = PageRotator(hass, entry, client)
+    await rotator.async_start()
+    assert rotator.is_running is True
+
+    await rotator.async_pause_for_timer()
+
+    assert rotator.is_running is False
+
+
+async def test_resume_after_timer_restarts_rotation_it_paused(hass):
+    """async_resume_after_timer restarts rotation that async_pause_for_timer stopped."""
+    entry = _entry(hass, _PAGE_A_B)
+    client = _FakeClient()
+    rotator = PageRotator(hass, entry, client)
+    await rotator.async_start()
+    await rotator.async_pause_for_timer()
+    assert rotator.is_running is False
+
+    await rotator.async_resume_after_timer()
+
+    assert rotator.is_running is True
+    await rotator.async_stop()
+
+
+async def test_pause_for_timer_is_a_noop_when_rotation_was_already_off(hass):
+    """async_pause_for_timer does nothing if rotation wasn't running."""
+    entry = _entry(hass, _PAGE_A_B)
+    client = _FakeClient()
+    rotator = PageRotator(hass, entry, client)
+    assert rotator.is_running is False
+
+    await rotator.async_pause_for_timer()
+
+    assert rotator.is_running is False
+
+
+async def test_resume_after_timer_is_a_noop_when_not_paused_by_timer(hass):
+    """async_resume_after_timer doesn't turn rotation on if it wasn't the one to pause it.
+
+    e.g. the user manually stopped rotation themselves while a timer was
+    also running - stop_timer must not override that with an unrelated
+    resume.
+    """
+    entry = _entry(hass, _PAGE_A_B)
+    client = _FakeClient()
+    rotator = PageRotator(hass, entry, client)
+    await rotator.async_start()
+    await rotator.async_stop()  # manual stop, not via async_pause_for_timer
+
+    await rotator.async_resume_after_timer()
+
+    assert rotator.is_running is False
+
+
 async def test_device_error_does_not_stall_rotation(hass):
     """A render failure on one page must not prevent rotation from advancing."""
 
