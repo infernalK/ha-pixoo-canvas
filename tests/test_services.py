@@ -87,10 +87,16 @@ async def test_render_page_with_native_clock_page(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf (setup) + one Channel/SetClockSelectId request
+    # initial GetAllConf (setup) + one batched Draw/CommandList request
     assert len(aioclient_mock.mock_calls) == 2
     payload = aioclient_mock.mock_calls[-1][2]
-    assert payload == {"Command": "Channel/SetClockSelectId", "ClockId": 182}
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Channel/SetClockSelectId", "ClockId": 182},
+        ],
+    }
 
 
 async def test_render_page_with_inline_page_type_clock(hass, aioclient_mock):
@@ -105,10 +111,16 @@ async def test_render_page_with_inline_page_type_clock(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf (setup) + one Channel/SetClockSelectId request
+    # initial GetAllConf (setup) + one batched Draw/CommandList request
     assert len(aioclient_mock.mock_calls) == 2
     payload = aioclient_mock.mock_calls[-1][2]
-    assert payload == {"Command": "Channel/SetClockSelectId", "ClockId": 182}
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Channel/SetClockSelectId", "ClockId": 182},
+        ],
+    }
 
 
 async def test_render_page_with_inline_page_type_pv(hass, aioclient_mock):

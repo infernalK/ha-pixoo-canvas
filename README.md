@@ -333,13 +333,19 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
 
 > ⚠️ Contrairement à `clock`/`channel`/`visualizer`, cet outil vit dans une famille de
 > commandes Divoom différente (`Tools/*`, comme les minuteurs/chronomètres natifs, hors
-> périmètre de cette intégration). Confirmé sur device réel : l'appareil ne rebascule
-> l'écran sur le sonomètre que sur un front montant (0 → 1) — si un tour de rotation
-> précédent l'avait déjà démarré sans jamais l'arrêter, renvoyer "start" ne suffit pas et
-> l'écran reste sur la page suivante. L'intégration envoie donc systématiquement un stop
-> puis un start à chaque rendu de cette page pour forcer ce front — regroupés en une seule
-> requête `Draw/CommandList` (deux requêtes séparées et rapprochées faisaient redémarrer
-> l'appareil, même symptôme que celui déjà rencontré avec `scroll_text`).
+> périmètre de cette intégration). Deux comportements confirmés sur device réel :
+> - L'appareil ne rebascule l'écran sur le sonomètre que sur un front montant (0 → 1) —
+>   l'intégration envoie donc systématiquement un stop puis un start à chaque rendu de
+>   cette page (regroupés en une seule requête `Draw/CommandList` : les envoyer séparément
+>   faisait redémarrer l'appareil, même symptôme que celui déjà rencontré avec
+>   `scroll_text`).
+> - Une fois démarré, l'outil n'est **pas** annulé implicitement par un changement de page
+>   comme le sont les `Channel/*` entre eux : sans arrêt explicite, il reste affiché
+>   par-dessus toute page suivante et finit par faire planter l'appareil (pushs ignorés qui
+>   s'accumulent). L'intégration arrête donc systématiquement le sonomètre (`NoiseStatus: 0`,
+>   toujours regroupé dans la même requête que le reste) au rendu de **toute autre page**
+>   (`components`/`pv`/`fuel`, `clock`, `channel`, `visualizer`), pas seulement au moment où
+>   on quitte explicitement la page `sound_meter`.
 
 ### Page : PV (solaire)
 

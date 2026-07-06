@@ -14,7 +14,7 @@ URL = f"http://{HOST}/post"
 
 
 async def test_send_page_batches_clear_and_gif_into_one_request(hass, aioclient_mock):
-    """ClearHttpText + SendHttpGif are sent as a single Draw/CommandList request."""
+    """ClearHttpText + a noise-stop + SendHttpGif are sent as one Draw/CommandList request."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
@@ -24,7 +24,11 @@ async def test_send_page_batches_clear_and_gif_into_one_request(hass, aioclient_
     payload = aioclient_mock.mock_calls[0][2]
     assert payload["Command"] == "Draw/CommandList"
     commands = payload["CommandList"]
-    assert [c["Command"] for c in commands] == ["Draw/ClearHttpText", "Draw/SendHttpGif"]
+    assert [c["Command"] for c in commands] == [
+        "Draw/ClearHttpText",
+        "Tools/SetNoiseStatus",
+        "Draw/SendHttpGif",
+    ]
 
 
 async def test_send_page_always_clears_even_without_scroll_text(hass, aioclient_mock):
@@ -118,36 +122,60 @@ async def test_send_page_no_delay_without_scroll_text(hass, aioclient_mock):
 
 
 async def test_set_clock_sends_clock_select_id(hass, aioclient_mock):
-    """set_clock posts Channel/SetClockSelectId with the given ClockId."""
+    """set_clock batches a noise-stop with Channel/SetClockSelectId in one request.
+
+    The noise-stop guards against the sound meter tool being left running
+    from a previous page and swallowing this channel switch (see
+    send_page's docstring for the same issue on the buffer-push side).
+    """
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
     await client.set_clock(182)
 
+    assert len(aioclient_mock.mock_calls) == 1
     payload = aioclient_mock.mock_calls[0][2]
-    assert payload == {"Command": "Channel/SetClockSelectId", "ClockId": 182}
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Channel/SetClockSelectId", "ClockId": 182},
+        ],
+    }
 
 
 async def test_set_custom_channel_sends_custom_page_index(hass, aioclient_mock):
-    """set_custom_channel posts Channel/SetCustomPageIndex with the given index."""
+    """set_custom_channel batches a noise-stop with Channel/SetCustomPageIndex."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
     await client.set_custom_channel(1)
 
     payload = aioclient_mock.mock_calls[0][2]
-    assert payload == {"Command": "Channel/SetCustomPageIndex", "CustomPageIndex": 1}
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Channel/SetCustomPageIndex", "CustomPageIndex": 1},
+        ],
+    }
 
 
 async def test_set_visualizer_sends_eq_position(hass, aioclient_mock):
-    """set_visualizer posts Channel/SetEqPosition with the given position."""
+    """set_visualizer batches a noise-stop with Channel/SetEqPosition."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
     await client.set_visualizer(2)
 
     payload = aioclient_mock.mock_calls[0][2]
-    assert payload == {"Command": "Channel/SetEqPosition", "EqPosition": 2}
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Channel/SetEqPosition", "EqPosition": 2},
+        ],
+    }
 
 
 async def test_set_noise_status_sends_start(hass, aioclient_mock):

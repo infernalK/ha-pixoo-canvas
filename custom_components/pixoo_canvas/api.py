@@ -145,16 +145,37 @@ class PixooClient:
         await self._send({"Command": CMD_SET_ROTATION_ANGLE, "Mode": mode})
 
     async def set_clock(self, clock_id: int) -> None:
-        """Switch the device to one of its built-in clock faces."""
-        await self._send({"Command": CMD_SET_CLOCK, "ClockId": clock_id})
+        """Switch the device to one of its built-in clock faces.
+
+        Batched with a Tools/SetNoiseStatus stop: unlike Channel/* commands,
+        the sound meter tool doesn't get implicitly cancelled by switching
+        channel - left running, it keeps the screen (and eventually the
+        whole device, when pushes pile up unanswered) stuck on itself.
+        """
+        await self.send_command_list(
+            [_noise_status_payload(False), {"Command": CMD_SET_CLOCK, "ClockId": clock_id}]
+        )
 
     async def set_custom_channel(self, index: int) -> None:
-        """Switch the device to one of the 3 custom channels configured in the Divoom app."""
-        await self._send({"Command": CMD_SET_CUSTOM_PAGE, "CustomPageIndex": index})
+        """Switch the device to one of the 3 custom channels configured in the Divoom app.
+
+        See set_clock() for why a noise-stop is batched in here too.
+        """
+        await self.send_command_list(
+            [
+                _noise_status_payload(False),
+                {"Command": CMD_SET_CUSTOM_PAGE, "CustomPageIndex": index},
+            ]
+        )
 
     async def set_visualizer(self, position: int) -> None:
-        """Switch the device to one of its built-in audio visualizers."""
-        await self._send({"Command": CMD_SET_VISUALIZER, "EqPosition": position})
+        """Switch the device to one of its built-in audio visualizers.
+
+        See set_clock() for why a noise-stop is batched in here too.
+        """
+        await self.send_command_list(
+            [_noise_status_payload(False), {"Command": CMD_SET_VISUALIZER, "EqPosition": position}]
+        )
 
     async def set_noise_status(self, on: bool) -> None:
         """Start or stop the device's built-in sound meter (decibel) tool."""
@@ -213,11 +234,15 @@ class PixooClient:
     ) -> None:
         """Push a page's buffer, then any scroll_text overlays it defines.
 
-        ClearHttpText and SendHttpGif are batched into a single
-        Draw/CommandList call: the device does *not* clear a previous
-        page's scroll_text on its own when a new buffer is pushed, so this
-        runs on every page (not just ones with their own scroll_text) to
-        make sure a stale one can never survive onto an unrelated page.
+        ClearHttpText, a Tools/SetNoiseStatus stop and SendHttpGif are
+        batched into a single Draw/CommandList call. ClearHttpText runs on
+        every page (not just ones with their own scroll_text) because the
+        device does *not* clear a previous page's scroll_text on its own
+        when a new buffer is pushed - a stale one must never survive onto
+        an unrelated page. The noise-stop runs for the same reason: the
+        sound meter tool isn't implicitly cancelled by a new buffer push
+        either, and left running it keeps the screen (and eventually the
+        whole device) stuck on itself.
 
         If `scroll_texts` is given, waits SCROLL_TEXT_SETTLE_DELAY before
         sending them as a second batched call: Divoom's docs say
@@ -229,7 +254,11 @@ class PixooClient:
             await self.reset_gif_id()
         self._pic_id += 1
         await self.send_command_list(
-            [_clear_text_payload(), _gif_payload(self._pic_id, width, rgb_bytes)]
+            [
+                _clear_text_payload(),
+                _noise_status_payload(False),
+                _gif_payload(self._pic_id, width, rgb_bytes),
+            ]
         )
 
         if scroll_texts:
