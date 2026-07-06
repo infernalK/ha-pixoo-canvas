@@ -522,7 +522,7 @@ async def test_stop_stopwatch_does_not_start_rotation_that_was_already_off(hass,
 
 
 async def test_start_stopwatch_sends_status_1(hass, aioclient_mock):
-    """start_stopwatch posts a stop+start Tools/SetStopWatch batch, plus noise/timer stops."""
+    """start_stopwatch posts a Tools/SetStopWatch start (no self-stop), plus noise/timer stops."""
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
 
@@ -539,7 +539,6 @@ async def test_start_stopwatch_sends_status_1(hass, aioclient_mock):
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
-            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Tools/SetStopWatch", "Status": 1},
         ],
     }

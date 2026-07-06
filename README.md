@@ -71,6 +71,9 @@ Une fois l'intégration configurée, tu as accès à :
   `Channel/GetAllConf` (`MirrorFlag`).
 - `select.pixoo_screen_orientation` — orientation physique de l'écran (0°/90°/180°/270°),
   à régler selon le montage de ton cadre.
+- `button.pixoo_reboot` — redémarre l'appareil en un tap (équivalent du service
+  `pixoo_canvas.reboot_device`, voir plus bas). Un bouton plutôt qu'un switch : un
+  redémarrage n'a pas d'état on/off persistant à refléter.
 - 2 capteurs de diagnostic (rotation, ID de l'horloge affichée) — utiles pour du
   dépannage, pas pour un usage quotidien.
 - `sensor.pixoo_device_id` — un 3ᵉ capteur diagnostic dont l'état est le `device_id`
@@ -349,11 +352,14 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
 > commandes Divoom différente (`Tools/*`, la même que le [minuteur](#service--minuteur-start_timer--stop_timer)
 > et le [chronomètre](#service--chronomètre-start_stopwatch--stop_stopwatch--reset_stopwatch)
 > pilotés par service plutôt que par page). Deux comportements confirmés sur device réel,
-> qui s'appliquent aux trois outils `Tools/*` :
+> qui s'appliquent aux trois outils `Tools/*` (à une exception près, voir plus bas) :
 > - L'appareil ne rebascule l'écran sur un outil `Tools/*` que sur un front montant (0 → 1) —
 >   l'intégration envoie donc systématiquement un stop puis un start à chaque démarrage
 >   (regroupés en une seule requête `Draw/CommandList` : les envoyer séparément faisait
 >   redémarrer l'appareil, même symptôme que celui déjà rencontré avec `scroll_text`).
+>   Exception : le chronomètre ne reçoit **pas** ce stop auto-infligé — voir la note dans
+>   la section [chronomètre](#service--chronomètre-start_stopwatch--stop_stopwatch--reset_stopwatch)
+>   pour pourquoi.
 > - Une fois démarré, un outil `Tools/*` n'est **pas** annulé implicitement par un
 >   changement de page ni par le démarrage d'un *autre* outil `Tools/*`, comme le sont les
 >   `Channel/*` entre eux : sans arrêt explicite, il reste affiché par-dessus toute page
@@ -475,7 +481,9 @@ data:
 Le service `pixoo_canvas.reboot_device` redémarre le Pixoo (`Device/SysReboot`) — utile
 dans une automation de récupération (ex. appareil qui ne répond plus), pas comme action
 de routine. L'écran s'éteint quelques instants ; la rotation, si elle était active,
-reprend d'elle-même une fois l'appareil de nouveau en ligne.
+reprend d'elle-même une fois l'appareil de nouveau en ligne. Pour un déclenchement manuel
+depuis un tableau de bord ou un raccourci, `button.pixoo_reboot` fait la même chose sans
+passer par un appel de service.
 
 ```yaml
 service: pixoo_canvas.reboot_device
@@ -544,9 +552,12 @@ data:
   device_id: <ton appareil Pixoo Canvas>
 ```
 
-> ⚠️ Comportement non testé sur device réel : `reset_stopwatch` remet le compteur à zéro,
-> mais on ne sait pas s'il arrête aussi le chronomètre au passage si celui-ci tournait —
-> appelle `stop_stopwatch` derrière si ce n'est pas le cas.
+> ⚠️ Confirmé sur device réel : `reset_stopwatch` (`Status: 2`) ne remet à zéro que
+> l'affichage — le compteur de temps écoulé interne de l'appareil n'est, lui, pas vidé.
+> `start_stopwatch` n'envoie donc **pas** de stop avant de relancer (contrairement à
+> `start_timer`/`restart_noise_status`) : un stop (`Status: 0`) juste avant un start
+> restaure ce compteur interne non vidé, ce qui faisait repartir le chronomètre d'une
+> valeur non nulle après un `reset_stopwatch` plutôt que de 0.
 
 ## Licence
 

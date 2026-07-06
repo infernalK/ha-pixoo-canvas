@@ -79,6 +79,11 @@
           "270": "270°"
         }
       }
+    },
+    "button": {
+      "reboot": {
+        "name": "Redémarrer"
+      }
     }
   }
 }

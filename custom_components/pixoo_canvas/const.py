@@ -4,7 +4,7 @@ from homeassistant.const import Platform
 
 DOMAIN = "pixoo_canvas"
 
-PLATFORMS = [Platform.SWITCH, Platform.LIGHT, Platform.SENSOR, Platform.SELECT]
+PLATFORMS = [Platform.SWITCH, Platform.LIGHT, Platform.SENSOR, Platform.SELECT, Platform.BUTTON]
 
 CMD_GET_ALL_CONF = "Channel/GetAllConf"
 CMD_ON_OFF_SCREEN = "Channel/OnOffScreen"

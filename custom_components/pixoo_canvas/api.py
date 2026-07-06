@@ -252,19 +252,23 @@ class PixooClient:
         await self._send(_timer_payload(0, 0, 0))
 
     async def start_stopwatch(self) -> None:
-        """Start the stopwatch, forcing a 0->1 edge in a single request.
+        """Start the stopwatch.
 
-        Same edge-triggering and batching rationale as restart_noise_status/
-        start_timer: a stop is sent before the start to re-trigger the
-        device's screen switch even if a previous call left the stopwatch
-        "running", and the sound meter/timer are stopped too in case one of
-        those was the one left running.
+        Unlike restart_noise_status/start_timer, this does NOT force its
+        own stop before the start. Confirmed on real hardware: Tools/
+        SetStopWatch's Status:0 (stop) resumes the stopwatch's internal
+        elapsed-time counter from wherever it was *before* a preceding
+        reset_stopwatch (Status:2) call - reset only clears the on-screen
+        display, not that counter - so sending stop-then-start here made
+        start_stopwatch right after reset_stopwatch resume from a stale
+        non-zero value instead of restarting from 0. The sound meter and
+        countdown timer are still stopped here (different tools, no
+        evidence of the same issue), in case one of those was left running.
         """
         await self.send_command_list(
             [
                 _noise_status_payload(False),
                 _timer_payload(0, 0, 0),
-                _stopwatch_payload(0),
                 _stopwatch_payload(1),
             ]
         )

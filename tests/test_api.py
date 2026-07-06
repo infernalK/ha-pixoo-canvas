@@ -266,10 +266,14 @@ async def test_stop_timer_sends_status_0(hass, aioclient_mock):
     assert payload == {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}
 
 
-async def test_start_stopwatch_batches_noise_timer_stops_stopwatch_stop_and_start(
-    hass, aioclient_mock
-):
-    """start_stopwatch sends noise/timer-stop+stopwatch-stop+stopwatch-start as one request."""
+async def test_start_stopwatch_batches_noise_timer_stops_and_stopwatch_start(hass, aioclient_mock):
+    """start_stopwatch sends noise/timer-stop+stopwatch-start as one request.
+
+    No self-stop before the start: confirmed on real hardware, sending
+    Tools/SetStopWatch Status:0 right before Status:1 made the stopwatch
+    resume from its pre-reset elapsed time instead of restarting from 0
+    after a reset_stopwatch call.
+    """
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
@@ -282,7 +286,6 @@ async def test_start_stopwatch_batches_noise_timer_stops_stopwatch_stop_and_star
         "CommandList": [
             {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
             {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
-            {"Command": "Tools/SetStopWatch", "Status": 0},
             {"Command": "Tools/SetStopWatch", "Status": 1},
         ],
     }
