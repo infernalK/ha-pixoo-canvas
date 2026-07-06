@@ -49,6 +49,10 @@ def _clear_text_payload() -> dict[str, Any]:
     return {"Command": CMD_CLEAR_HTTP_TEXT}
 
 
+def _noise_status_payload(on: bool) -> dict[str, Any]:
+    return {"Command": CMD_SET_NOISE_STATUS, "NoiseStatus": 1 if on else 0}
+
+
 def _gif_payload(pic_id: int, width: int, rgb_bytes: bytes) -> dict[str, Any]:
     return {
         "Command": CMD_SEND_HTTP_GIF,
@@ -154,7 +158,22 @@ class PixooClient:
 
     async def set_noise_status(self, on: bool) -> None:
         """Start or stop the device's built-in sound meter (decibel) tool."""
-        await self._send({"Command": CMD_SET_NOISE_STATUS, "NoiseStatus": 1 if on else 0})
+        await self._send(_noise_status_payload(on))
+
+    async def restart_noise_status(self) -> None:
+        """Force a 0->1 edge on the sound meter tool in a single request.
+
+        The device only switches the screen into the tool on the 0->1 edge
+        of Tools/SetNoiseStatus, so a stop is sent before every start to
+        re-trigger it even if a previous rotation turn left it "started"
+        without ever stopping it. Sending those as two separate HTTP
+        requests caused the device to reboot - same failure mode already
+        seen with unbatched scroll_text requests - so both are batched into
+        a single Draw/CommandList call instead.
+        """
+        await self.send_command_list(
+            [_noise_status_payload(False), _noise_status_payload(True)]
+        )
 
     async def play_buzzer(self, active_time_ms: int, off_time_ms: int, total_time_ms: int) -> None:
         """Play the device's buzzer: on/off cycles of `active_time_ms`/`off_time_ms`, for `total_time_ms` overall."""

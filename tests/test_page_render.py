@@ -15,7 +15,7 @@ class _FakeClient:
         self.clock_calls: list[int] = []
         self.channel_calls: list[int] = []
         self.visualizer_calls: list[int] = []
-        self.noise_status_calls: list[bool] = []
+        self.restart_noise_status_calls = 0
 
     async def send_page(self, width: int, rgb_bytes: bytes, scroll_texts=None) -> None:
         self.send_page_calls += 1
@@ -29,8 +29,8 @@ class _FakeClient:
     async def set_visualizer(self, position: int) -> None:
         self.visualizer_calls.append(position)
 
-    async def set_noise_status(self, on: bool) -> None:
-        self.noise_status_calls.append(on)
+    async def restart_noise_status(self) -> None:
+        self.restart_noise_status_calls += 1
 
 
 async def test_default_page_type_renders_components(hass):
@@ -113,19 +113,13 @@ async def test_native_page_invalid_template_is_skipped(hass):
     assert client.clock_calls == []
 
 
-async def test_sound_meter_page_type_calls_set_noise_status(hass):
-    """page_type: sound_meter takes no `id` and forces a stop-then-start edge.
-
-    The device only seems to switch the screen into the tool on the 0->1
-    edge, so a stop is sent before every start to make sure it re-triggers
-    even if a previous rotation turn left it "started" without ever having
-    stopped it.
-    """
+async def test_sound_meter_page_type_calls_restart_noise_status(hass):
+    """page_type: sound_meter takes no `id` and calls client.restart_noise_status()."""
     client = _FakeClient()
 
     await render_configured_page(hass, client, {"name": "Sonomètre", "page_type": "sound_meter"})
 
-    assert client.noise_status_calls == [False, True]
+    assert client.restart_noise_status_calls == 1
     assert client.send_page_calls == 0
 
 

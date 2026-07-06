@@ -337,7 +337,9 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
 > l'écran sur le sonomètre que sur un front montant (0 → 1) — si un tour de rotation
 > précédent l'avait déjà démarré sans jamais l'arrêter, renvoyer "start" ne suffit pas et
 > l'écran reste sur la page suivante. L'intégration envoie donc systématiquement un stop
-> puis un start à chaque rendu de cette page pour forcer ce front.
+> puis un start à chaque rendu de cette page pour forcer ce front — regroupés en une seule
+> requête `Draw/CommandList` (deux requêtes séparées et rapprochées faisaient redémarrer
+> l'appareil, même symptôme que celui déjà rencontré avec `scroll_text`).
 
 ### Page : PV (solaire)
 

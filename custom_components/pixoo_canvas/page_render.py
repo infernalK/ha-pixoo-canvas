@@ -91,14 +91,7 @@ async def render_configured_page(
     elif page_type in NATIVE_CHANNEL_PAGE_TYPES:
         await _render_native_channel_page(page_type, page, client, hass, variables)
     elif page_type == "sound_meter":
-        # The device only seems to switch the screen into the tool on the
-        # 0->1 edge: if it's already "started" from a previous rotation turn
-        # (never stopped when we moved on to another page), sending 1 again
-        # is a no-op and the screen stays on whatever page came after it.
-        # Force the edge every render, same fix family as ClearHttpText for
-        # scroll_text.
-        await client.set_noise_status(False)
-        await client.set_noise_status(True)
+        await client.restart_noise_status()
     elif page_type == "pv":
         await render_page(hass, client, build_pv_components(page), variables)
     elif page_type == "fuel":

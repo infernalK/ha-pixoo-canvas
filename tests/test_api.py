@@ -172,6 +172,29 @@ async def test_set_noise_status_sends_stop(hass, aioclient_mock):
     assert payload == {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0}
 
 
+async def test_restart_noise_status_batches_stop_and_start(hass, aioclient_mock):
+    """restart_noise_status sends stop+start as one Draw/CommandList request.
+
+    Sending them as two separate HTTP requests caused the device to reboot
+    (same failure mode as unbatched scroll_text requests), so both must go
+    out in a single call.
+    """
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.restart_noise_status()
+
+    assert len(aioclient_mock.mock_calls) == 1
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 1},
+        ],
+    }
+
+
 async def test_play_buzzer_sends_cycle_and_total_times(hass, aioclient_mock):
     """play_buzzer posts Device/PlayBuzzer with the cycle/total timings in ms."""
     aioclient_mock.post(URL, json={"error_code": 0})
