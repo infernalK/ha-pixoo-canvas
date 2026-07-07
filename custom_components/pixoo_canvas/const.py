@@ -7,6 +7,8 @@ DOMAIN = "pixoo_canvas"
 PLATFORMS = [Platform.SWITCH, Platform.LIGHT, Platform.SENSOR, Platform.SELECT, Platform.BUTTON]
 
 CMD_GET_ALL_CONF = "Channel/GetAllConf"
+CMD_GET_CHANNEL = "Channel/GetIndex"
+CMD_SET_CHANNEL = "Channel/SetIndex"
 CMD_ON_OFF_SCREEN = "Channel/OnOffScreen"
 CMD_SET_BRIGHTNESS = "Channel/SetBrightness"
 CMD_SEND_HTTP_GIF = "Draw/SendHttpGif"

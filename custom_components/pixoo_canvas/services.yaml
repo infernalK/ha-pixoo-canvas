@@ -158,11 +158,13 @@ start_timer:
 stop_timer:
   name: Stop the countdown timer
   description: >-
-    Stops the Pixoo's built-in countdown timer tool, if running, and resumes
-    page rotation if start_timer had paused it. There's no pause_timer:
-    confirmed on real hardware (and in Divoom's own app) that stopping a
-    countdown timer always resets it to 0, so a temporary pause that
-    resumes mid-countdown isn't possible.
+    Stops the Pixoo's built-in countdown timer tool, if running, restores
+    the channel that was on screen before start_timer (Channel/SetIndex,
+    for a clean exit instead of leaving the timer's own frame on screen),
+    and resumes page rotation if start_timer had paused it. There's no
+    pause_timer: confirmed on real hardware (and in Divoom's own app) that
+    stopping a countdown timer always resets it to 0, so a temporary pause
+    that resumes mid-countdown isn't possible.
   fields:
     device_id:
       name: Device
@@ -191,10 +193,13 @@ start_stopwatch:
 stop_stopwatch:
   name: Stop the stopwatch
   description: >-
-    Stops the Pixoo's built-in stopwatch tool, if running, and resumes page
-    rotation if start_stopwatch had paused it - use this when you're done
-    with the stopwatch. For a temporary pause you intend to resume shortly
-    (without page rotation kicking back in), use pause_stopwatch instead.
+    Stops the Pixoo's built-in stopwatch tool, if running, restores the
+    channel that was on screen before start_stopwatch (Channel/SetIndex,
+    for a clean exit instead of leaving the stopwatch's own frame on
+    screen), and resumes page rotation if start_stopwatch had paused it -
+    use this when you're done with the stopwatch. For a temporary pause you
+    intend to resume shortly (without page rotation kicking back in, and
+    keeping the elapsed time on screen), use pause_stopwatch instead.
   fields:
     device_id:
       name: Device
@@ -207,11 +212,12 @@ stop_stopwatch:
 pause_stopwatch:
   name: Pause the stopwatch
   description: >-
-    Pauses the Pixoo's built-in stopwatch tool without resuming page
-    rotation, keeping the elapsed time so start_stopwatch can resume it
-    later. Same underlying command as stop_stopwatch, minus the page
-    rotation resume - use stop_stopwatch instead when you're done with the
-    stopwatch for good.
+    Pauses the Pixoo's built-in stopwatch tool without restoring the
+    channel active before start_stopwatch or resuming page rotation,
+    keeping the elapsed time on screen so start_stopwatch can resume it
+    later. Same underlying command as stop_stopwatch, minus the channel
+    restore and page rotation resume - use stop_stopwatch instead when
+    you're done with the stopwatch for good.
   fields:
     device_id:
       name: Device

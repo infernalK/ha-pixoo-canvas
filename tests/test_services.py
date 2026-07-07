@@ -15,7 +15,11 @@ from custom_components.pixoo_canvas.const import CONF_PAGES_YAML, DOMAIN
 HOST = "192.168.1.101"
 URL = f"http://{HOST}/post"
 
-GET_ALL_CONF_RESPONSE = {"error_code": 0, "LightSwitch": 1, "Brightness": 80}
+# Reused as the response for every mocked POST in a test (the aiohttp mocker
+# matches by method+URL only, not body), so it also answers Channel/GetIndex
+# calls from start_timer/start_stopwatch - hence SelectIndex alongside the
+# GetAllConf fields.
+GET_ALL_CONF_RESPONSE = {"error_code": 0, "LightSwitch": 1, "Brightness": 80, "SelectIndex": 3}
 
 
 async def _setup_entry(hass, aioclient_mock, options=None):
@@ -425,7 +429,7 @@ async def test_start_timer_unknown_device_id(hass, aioclient_mock):
 
 
 async def test_stop_timer_sends_status_0(hass, aioclient_mock):
-    """stop_timer posts Tools/SetTimer with Status: 0."""
+    """stop_timer posts Tools/SetTimer with Status: 0 (no channel restore: no preceding start_timer)."""
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
 
@@ -437,7 +441,39 @@ async def test_stop_timer_sends_status_0(hass, aioclient_mock):
     )
 
     payload = aioclient_mock.mock_calls[-1][2]
-    assert payload == {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [{"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}],
+    }
+
+
+async def test_stop_timer_restores_channel_active_before_start_timer(hass, aioclient_mock):
+    """stop_timer restores the channel snapshotted by a preceding start_timer."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_timer",
+        {"device_id": _device_id(hass, entry), "minutes": 5},
+        blocking=True,
+    )
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_timer",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Channel/SetIndex", "SelectIndex": GET_ALL_CONF_RESPONSE["SelectIndex"]},
+        ],
+    }
 
 
 async def test_stop_timer_unknown_device_id(hass, aioclient_mock):
@@ -614,13 +650,68 @@ async def test_start_stopwatch_unknown_device_id(hass, aioclient_mock):
 
 
 async def test_stop_stopwatch_sends_status_0(hass, aioclient_mock):
-    """stop_stopwatch posts Tools/SetStopWatch with Status: 0."""
+    """stop_stopwatch posts Tools/SetStopWatch Status:0 (no channel restore: no preceding start_stopwatch)."""
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
 
     await hass.services.async_call(
         DOMAIN,
         "stop_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [{"Command": "Tools/SetStopWatch", "Status": 0}],
+    }
+
+
+async def test_stop_stopwatch_restores_channel_active_before_start_stopwatch(hass, aioclient_mock):
+    """stop_stopwatch restores the channel snapshotted by a preceding start_stopwatch."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetStopWatch", "Status": 0},
+            {"Command": "Channel/SetIndex", "SelectIndex": GET_ALL_CONF_RESPONSE["SelectIndex"]},
+        ],
+    }
+
+
+async def test_pause_stopwatch_does_not_restore_channel(hass, aioclient_mock):
+    """pause_stopwatch, unlike stop_stopwatch, never restores the channel: it keeps the elapsed time visible."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_stopwatch",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "pause_stopwatch",
         {"device_id": _device_id(hass, entry)},
         blocking=True,
     )

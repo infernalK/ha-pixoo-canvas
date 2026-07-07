@@ -198,14 +198,15 @@ async def _async_handle_stop_stopwatch(hass: HomeAssistant, call: ServiceCall) -
 async def _async_handle_pause_stopwatch(hass: HomeAssistant, call: ServiceCall) -> None:
     """Handle the pixoo_canvas.pause_stopwatch service call.
 
-    Same Tools/SetStopWatch stop as stop_stopwatch, but does NOT resume
-    page rotation: unlike stop_stopwatch (you're done with the stopwatch,
-    hand the screen back to rotation), this is for a temporary pause where
-    you intend to resume shortly via start_stopwatch - resuming rotation
-    in between would switch the screen away for no reason.
+    Same Tools/SetStopWatch stop as stop_stopwatch, but does NOT restore the
+    channel active before start_stopwatch or resume page rotation: unlike
+    stop_stopwatch (you're done with the stopwatch, hand the screen back),
+    this is for a temporary pause where you intend to resume shortly via
+    start_stopwatch - the elapsed time should stay on screen, and resuming
+    rotation in between would switch the screen away for no reason.
     """
     coordinator = _get_coordinator(hass, call.data["device_id"])
-    await coordinator.client.stop_stopwatch()
+    await coordinator.client.pause_stopwatch()
 
 
 async def _async_handle_reset_stopwatch(hass: HomeAssistant, call: ServiceCall) -> None:

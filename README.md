@@ -498,7 +498,9 @@ minuteur intégré au Pixoo (`Tools/SetTimer`) — il prend tout l'écran jusqu'
 le passage à une autre page/service. Si `switch.pixoo_page_rotation` est actif,
 `start_timer` le met automatiquement en pause (sans changer ta préférence on/off) pour
 que le minuteur ne soit pas écrasé au tour suivant ; `stop_timer` relance la rotation
-seulement si c'est `start_timer` qui l'avait mise en pause.
+seulement si c'est `start_timer` qui l'avait mise en pause. `stop_timer` restaure aussi
+(`Channel/SetIndex`) le channel qui était affiché avant `start_timer`, pour sortir
+proprement du minuteur au lieu de laisser son propre cadre à l'écran.
 
 ```yaml
 service: pixoo_canvas.start_timer
@@ -519,6 +521,10 @@ data:
 > `Status: 0` sans `Minute`/`Second`. Contrairement au chronomètre, il n'existe donc pas
 > de vraie pause pour le minuteur — impossible de le figer en cours de route puis de
 > reprendre le compte à rebours là où il en était.
+>
+> ⚠️ À confirmer sur device réel : la restauration du channel par `stop_timer` suppose
+> que `Channel/SetIndex` réaffiche bien la dernière image poussée sur le channel Custom
+> (`Draw/SendHttpGif`) sans devoir la repousser explicitement.
 
 **Pour un raccourci iOS** : pas besoin de rien de spécial côté intégration — l'app
 Home Assistant Companion expose nativement n'importe quel service HA comme étape
@@ -539,10 +545,13 @@ page/service. Aucun champ requis à part `device_id` — le chronomètre compte 
 depuis zéro.
 
 `pause_stopwatch` et `stop_stopwatch` envoient la même commande (`Status: 0`), mais avec
-une différence importante sur `switch.pixoo_page_rotation` : `start_stopwatch` la met en
-pause si elle tournait, et **`stop_stopwatch` la relance** (tu as fini d'utiliser le
-chronomètre) alors que **`pause_stopwatch` la laisse en pause** (tu comptes reprendre
-avec `start_stopwatch` sous peu, sans que la rotation ne reprenne la main entre-temps).
+deux différences importantes : `start_stopwatch` met `switch.pixoo_page_rotation` en
+pause si elle tournait, et **`stop_stopwatch` la relance** *et* restaure (`Channel/
+SetIndex`) le channel qui était affiché avant `start_stopwatch` — tu as fini d'utiliser le
+chronomètre, sortie propre au lieu de laisser son propre cadre à l'écran — alors que
+**`pause_stopwatch` ne fait ni l'un ni l'autre** : la rotation reste en pause et le
+chronomètre reste affiché, temps écoulé figé à l'écran (tu comptes reprendre avec
+`start_stopwatch` sous peu).
 
 ```yaml
 service: pixoo_canvas.start_stopwatch
@@ -574,6 +583,10 @@ data:
 > `start_timer`/`restart_noise_status`) : un stop (`Status: 0`) juste avant un start
 > restaure ce compteur interne non vidé, ce qui faisait repartir le chronomètre d'une
 > valeur non nulle après un `reset_stopwatch` plutôt que de 0.
+>
+> ⚠️ À confirmer sur device réel : la restauration du channel par `stop_stopwatch` suppose
+> que `Channel/SetIndex` réaffiche bien la dernière image poussée sur le channel Custom
+> (`Draw/SendHttpGif`) sans devoir la repousser explicitement.
 
 ## Licence
 

@@ -13,12 +13,14 @@ from .const import (
     CMD_CLEAR_HTTP_TEXT,
     CMD_COMMAND_LIST,
     CMD_GET_ALL_CONF,
+    CMD_GET_CHANNEL,
     CMD_ON_OFF_SCREEN,
     CMD_PLAY_BUZZER,
     CMD_RESET_HTTP_GIF_ID,
     CMD_SEND_HTTP_GIF,
     CMD_SEND_HTTP_TEXT,
     CMD_SET_BRIGHTNESS,
+    CMD_SET_CHANNEL,
     CMD_SET_CLOCK,
     CMD_SET_CUSTOM_PAGE,
     CMD_SET_MIRROR_MODE,
@@ -63,6 +65,10 @@ def _timer_payload(minutes: int, seconds: int, status: int) -> dict[str, Any]:
 
 def _stopwatch_payload(status: int) -> dict[str, Any]:
     return {"Command": CMD_SET_STOPWATCH, "Status": status}
+
+
+def _channel_payload(channel: int) -> dict[str, Any]:
+    return {"Command": CMD_SET_CHANNEL, "SelectIndex": channel}
 
 
 def _stop_tools_payloads() -> list[dict[str, Any]]:
@@ -123,6 +129,12 @@ class PixooClient:
         self._session = session
         self._url = f"http://{host}/post"
         self._pic_id = 0
+        # Channel/GetIndex snapshot taken by start_timer/start_stopwatch, so
+        # stop_timer/stop_stopwatch can restore it via Channel/SetIndex for a
+        # clean exit from the Tools/* overlay - see set_channel(). Reset to
+        # None once consumed; lost across a HA/integration restart, in which
+        # case stop_timer/stop_stopwatch just skip the restore.
+        self._pre_tool_channel: int | None = None
 
     async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:
         """POST a command payload and return the parsed JSON response."""
@@ -153,6 +165,27 @@ class PixooClient:
     async def get_all_conf(self) -> dict[str, Any]:
         """Fetch the device's full configuration (authoritative state)."""
         return await self._send({"Command": CMD_GET_ALL_CONF})
+
+    async def get_channel(self) -> int:
+        """Fetch the device's current top-level channel (0=Faces, 1=Cloud, 2=Visualizer, 3=Custom).
+
+        Distinct from Channel/GetAllConf: Tools/* overlays (sound meter,
+        countdown timer, stopwatch) sit on top of whichever of these four
+        channels was active before they started, and this call still reports
+        that underlying channel while an overlay is showing.
+        """
+        data = await self._send({"Command": CMD_GET_CHANNEL})
+        return int(data["SelectIndex"])
+
+    async def set_channel(self, channel: int) -> None:
+        """Switch to one of the device's 4 top-level channels (see get_channel).
+
+        Used to cleanly back out of a Tools/* overlay (see stop_timer/
+        stop_stopwatch): re-selecting the channel that was active before the
+        overlay started re-displays it, unlike a bare Tools/* Status:0 stop
+        which otherwise leaves the overlay's frame on screen.
+        """
+        await self._send(_channel_payload(channel))
 
     async def set_screen_power(self, on: bool) -> None:
         """Turn the screen on or off."""
@@ -236,8 +269,10 @@ class PixooClient:
         a stop is sent before the start to re-trigger the device's screen
         switch even if a previous call left the timer "running", and the
         sound meter/stopwatch are stopped too in case one of those was the
-        one left running.
+        one left running. Snapshots the current channel (see get_channel)
+        first, so stop_timer can restore it afterwards for a clean exit.
         """
+        self._pre_tool_channel = await self.get_channel()
         await self.send_command_list(
             [
                 _noise_status_payload(False),
@@ -248,14 +283,24 @@ class PixooClient:
         )
 
     async def stop_timer(self) -> None:
-        """Stop the countdown timer.
+        """Stop the countdown timer and restore the channel active before start_timer.
 
         No pause_timer counterpart: confirmed on real hardware (and in
         Divoom's own app) that stopping a countdown timer always resets it
         to 0 - there's no way to freeze it mid-countdown and resume later,
         unlike the stopwatch.
+
+        Tools/SetTimer Status:0 alone leaves the timer's own (now blank)
+        frame on screen instead of returning to whatever was showing before
+        start_timer - restoring the snapshotted channel (see set_channel)
+        fixes that. Skipped if there's no snapshot (e.g. stop_timer called
+        without a preceding start_timer on this client instance).
         """
-        await self._send(_timer_payload(0, 0, 0))
+        commands = [_timer_payload(0, 0, 0)]
+        if self._pre_tool_channel is not None:
+            commands.append(_channel_payload(self._pre_tool_channel))
+            self._pre_tool_channel = None
+        await self.send_command_list(commands)
 
     async def start_stopwatch(self) -> None:
         """Start the stopwatch.
@@ -270,7 +315,10 @@ class PixooClient:
         non-zero value instead of restarting from 0. The sound meter and
         countdown timer are still stopped here (different tools, no
         evidence of the same issue), in case one of those was left running.
+        Snapshots the current channel (see get_channel) first, so
+        stop_stopwatch can restore it afterwards for a clean exit.
         """
+        self._pre_tool_channel = await self.get_channel()
         await self.send_command_list(
             [
                 _noise_status_payload(False),
@@ -280,7 +328,30 @@ class PixooClient:
         )
 
     async def stop_stopwatch(self) -> None:
-        """Stop the stopwatch."""
+        """Stop the stopwatch and restore the channel active before start_stopwatch.
+
+        Tools/SetStopWatch Status:0 alone leaves the stopwatch's own frame on
+        screen instead of returning to whatever was showing before
+        start_stopwatch - restoring the snapshotted channel (see
+        set_channel) fixes that. Skipped if there's no snapshot (e.g.
+        stop_stopwatch called without a preceding start_stopwatch on this
+        client instance). Use pause_stopwatch instead when the elapsed time
+        should stay on screen, ready to resume.
+        """
+        commands = [_stopwatch_payload(0)]
+        if self._pre_tool_channel is not None:
+            commands.append(_channel_payload(self._pre_tool_channel))
+            self._pre_tool_channel = None
+        await self.send_command_list(commands)
+
+    async def pause_stopwatch(self) -> None:
+        """Pause the stopwatch, keeping its elapsed time on screen to resume later.
+
+        Same underlying command as stop_stopwatch (Status:0), minus the
+        channel restore: unlike stop_stopwatch (done with the stopwatch,
+        hand the screen back), a pause should stay visible until
+        start_stopwatch resumes it.
+        """
         await self._send(_stopwatch_payload(0))
 
     async def reset_stopwatch(self) -> None:
