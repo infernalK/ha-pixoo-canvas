@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -162,10 +162,21 @@ class PixooChannelSwitch(CoordinatorEntity[PixooCoordinator], SwitchEntity):
     """One of the device's 4 top-level channels (Faces/Cloud/Visualizer/Custom).
 
     Radio-button-like: only one channel is ever active on real hardware, and
-    there's no "no channel" state to turn off into. turn_on switches to this
-    channel (Channel/SetIndex); turn_off is a no-op - is_on simply reflects
-    whichever channel the coordinator's Channel/GetIndex poll last reported,
-    so activating a different channel switch implicitly turns this one off.
+    there's no "no channel" state to turn off into. is_on reads
+    PixooState.manual_channel, NOT the live Channel/GetIndex-polled
+    `channel` field (see that field's docstring for why: most rotation
+    pages settle back on the Custom channel, which would make
+    switch.pixoo_channel_custom read "on" almost permanently regardless of
+    whether it was ever actually used).
+
+    turn_on switches to this channel (Channel/SetIndex), pauses page
+    rotation - same rationale as start_timer/start_stopwatch: rotation ticks
+    on its own schedule regardless of what's on screen, and would otherwise
+    overwrite this channel at its next scheduled page - and marks this
+    channel as the manual override, which also turns the other 3 channel
+    switches off (mutually exclusive). turn_off sends no device command
+    (there's no "no channel" state to switch to instead), clears the manual
+    override, and resumes rotation if this switch's turn_on had paused it.
     """
 
     _attr_has_entity_name = True
@@ -182,13 +193,22 @@ class PixooChannelSwitch(CoordinatorEntity[PixooCoordinator], SwitchEntity):
 
     @property
     def is_on(self) -> bool:
-        """Return whether this channel is the one last reported active."""
-        return self.coordinator.data.channel == self._channel
+        """Return whether this channel is the current manual override."""
+        return self.coordinator.data.manual_channel == self._channel
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Switch the device to this channel."""
+        """Switch the device to this channel, pausing page rotation."""
+        await self.coordinator.rotator.async_pause_for_tool()
         await self.coordinator.client.set_channel(self._channel)
-        await self.coordinator.async_request_refresh()
+        self.coordinator.async_set_updated_data(
+            replace(self.coordinator.data, manual_channel=self._channel)
+        )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """No-op: there's no "no channel" state to switch to instead."""
+        """Resume page rotation if this switch's turn_on had paused it.
+
+        Sends no device command: there's no "no channel" state to switch to
+        instead.
+        """
+        await self.coordinator.rotator.async_resume_after_tool()
+        self.coordinator.async_set_updated_data(replace(self.coordinator.data, manual_channel=None))

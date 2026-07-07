@@ -47,6 +47,7 @@ async def test_coordinator_parses_state(hass, aioclient_mock):
     assert coordinator.data.cur_clock_id == 5
     assert coordinator.data.gyrate_angle == 2
     assert coordinator.data.channel == 3
+    assert coordinator.data.manual_channel is None
 
 
 async def test_coordinator_missing_light_switch(hass, aioclient_mock):

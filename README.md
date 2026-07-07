@@ -76,9 +76,17 @@ Une fois l'intégration configurée, tu as accès à :
   redémarrage n'a pas d'état on/off persistant à refléter.
 - `switch.pixoo_channel_faces` / `channel_cloud` / `channel_visualizer` / `channel_custom`
   — un switch par channel de haut niveau de l'appareil (`Channel/SetIndex`), à la manière
-  de boutons radio : un seul est actif à la fois (reflété par `Channel/GetIndex`), l'activer
-  désactive implicitement les 3 autres. Éteindre celui qui est déjà actif ne fait rien —
-  il n'y a pas d'état "aucun channel" sur l'appareil.
+  de boutons radio : activer l'un désactive implicitement les 3 autres. Éteindre celui qui
+  est déjà actif ne fait rien — il n'y a pas d'état "aucun channel" sur l'appareil. Comme
+  `start_timer`/`start_stopwatch`, activer un channel met `switch.pixoo_page_rotation` en
+  pause si elle tournait (sinon elle écraserait ce channel à son prochain passage) ;
+  l'éteindre la relance, seulement si c'est ce switch qui l'avait mise en pause.
+  > ⚠️ Ces switches ne reflètent **pas** le `Channel/GetIndex` en direct (contrairement
+  > à `sensor.pixoo_active_channel` ci-dessous) : ils gardent juste en mémoire le dernier
+  > channel activé *via ce switch*. Sinon, comme la quasi-totalité des pages de la
+  > rotation (toute page `components`/`pv`/`fuel`) passe par le channel Custom,
+  > `switch.pixoo_channel_custom` resterait "on" en permanence dès que la rotation affiche
+  > une page normale, qu'on l'ait ou non activé soi-même.
 - 3 capteurs de diagnostic (rotation, ID de l'horloge affichée, channel actif — ce
   dernier via `Channel/GetIndex`, en retour d'information de l'état ci-dessus même s'il
   a changé depuis l'app Divoom ou la télécommande) — utiles pour du dépannage, pas pour
