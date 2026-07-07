@@ -428,8 +428,16 @@ async def test_start_timer_unknown_device_id(hass, aioclient_mock):
         )
 
 
-async def test_stop_timer_sends_status_0(hass, aioclient_mock):
-    """stop_timer posts Tools/SetTimer with Status: 0 (no channel restore: no preceding start_timer)."""
+async def test_stop_timer_sends_status_0_and_restores_channel_even_without_start_timer(
+    hass, aioclient_mock
+):
+    """stop_timer stops the timer and restores the current channel, even called "cold".
+
+    Confirmed on real hardware: a bare Tools/SetTimer Status:0 can show the
+    timer's own frame even without a preceding start_timer on this client
+    instance (e.g. called defensively from a Shortcut) - stop_timer always
+    reads and re-selects the channel, unconditionally.
+    """
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
 
@@ -443,12 +451,15 @@ async def test_stop_timer_sends_status_0(hass, aioclient_mock):
     payload = aioclient_mock.mock_calls[-1][2]
     assert payload == {
         "Command": "Draw/CommandList",
-        "CommandList": [{"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}],
+        "CommandList": [
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Channel/SetIndex", "SelectIndex": GET_ALL_CONF_RESPONSE["SelectIndex"]},
+        ],
     }
 
 
 async def test_stop_timer_restores_channel_active_before_start_timer(hass, aioclient_mock):
-    """stop_timer restores the channel snapshotted by a preceding start_timer."""
+    """stop_timer restores the channel active before a preceding start_timer too."""
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
     await hass.services.async_call(
@@ -649,8 +660,15 @@ async def test_start_stopwatch_unknown_device_id(hass, aioclient_mock):
         )
 
 
-async def test_stop_stopwatch_sends_status_0(hass, aioclient_mock):
-    """stop_stopwatch posts Tools/SetStopWatch Status:0 (no channel restore: no preceding start_stopwatch)."""
+async def test_stop_stopwatch_sends_status_0_and_restores_channel_even_without_start_stopwatch(
+    hass, aioclient_mock
+):
+    """stop_stopwatch stops the stopwatch and restores the current channel, even called "cold".
+
+    Same "cold call" rationale as stop_timer - confirmed on real hardware
+    that a bare Tools/SetStopWatch Status:0 can show the stopwatch's own
+    frame even without a preceding start_stopwatch.
+    """
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
 
@@ -664,12 +682,15 @@ async def test_stop_stopwatch_sends_status_0(hass, aioclient_mock):
     payload = aioclient_mock.mock_calls[-1][2]
     assert payload == {
         "Command": "Draw/CommandList",
-        "CommandList": [{"Command": "Tools/SetStopWatch", "Status": 0}],
+        "CommandList": [
+            {"Command": "Tools/SetStopWatch", "Status": 0},
+            {"Command": "Channel/SetIndex", "SelectIndex": GET_ALL_CONF_RESPONSE["SelectIndex"]},
+        ],
     }
 
 
 async def test_stop_stopwatch_restores_channel_active_before_start_stopwatch(hass, aioclient_mock):
-    """stop_stopwatch restores the channel snapshotted by a preceding start_stopwatch."""
+    """stop_stopwatch restores the channel active before a preceding start_stopwatch too."""
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
     await hass.services.async_call(

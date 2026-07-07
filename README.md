@@ -379,10 +379,17 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
 >   changement de page ni par le démarrage d'un *autre* outil `Tools/*`, comme le sont les
 >   `Channel/*` entre eux : sans arrêt explicite, il reste affiché par-dessus toute page
 >   suivante et finit par faire planter l'appareil (pushs ignorés qui s'accumulent).
->   L'intégration arrête donc systématiquement les trois (sonomètre, minuteur, chronomètre),
->   toujours regroupés dans la même requête que le reste, au rendu de **toute autre page**
->   (`components`/`pv`/`fuel`, `clock`, `channel`, `visualizer`) et au démarrage de
->   n'importe lequel des trois outils entre eux.
+>   L'intégration arrête donc les trois (sonomètre, minuteur, chronomètre) au rendu de
+>   **toute autre page** (`components`/`pv`/`fuel`, `clock`, `channel`, `visualizer`) et au
+>   démarrage de n'importe lequel des trois outils entre eux — mais seulement ceux qui
+>   pourraient effectivement être actifs (suivi en interne par outil), pas les trois à
+>   chaque fois : confirmé sur device réel, envoyer le stop d'un outil peut lui-même
+>   faire flasher brièvement l'écran sur cet outil, même s'il ne tournait pas — l'envoyer
+>   systématiquement à chaque page faisait donc flasher un outil (typiquement le
+>   chronomètre) à chaque changement de page pendant une rotation normale. Contrepartie :
+>   un outil démarré en dehors de l'intégration (app Divoom, télécommande) ne sera stoppé
+>   qu'au prochain démarrage/arrêt piloté par l'intégration elle-même, pas au tout premier
+>   changement de page qui suit.
 
 ### Page : PV (solaire)
 
@@ -513,9 +520,10 @@ minuteur intégré au Pixoo (`Tools/SetTimer`) — il prend tout l'écran jusqu'
 le passage à une autre page/service. Si `switch.pixoo_page_rotation` est actif,
 `start_timer` le met automatiquement en pause (sans changer ta préférence on/off) pour
 que le minuteur ne soit pas écrasé au tour suivant ; `stop_timer` relance la rotation
-seulement si c'est `start_timer` qui l'avait mise en pause. `stop_timer` restaure aussi
-(`Channel/SetIndex`) le channel qui était affiché avant `start_timer`, pour sortir
-proprement du minuteur au lieu de laisser son propre cadre à l'écran.
+seulement si c'est `start_timer` qui l'avait mise en pause. `stop_timer` relit aussi le
+channel courant (`Channel/GetIndex`) et le réaffirme (`Channel/SetIndex`) à chaque appel,
+même sans `start_timer` préalable, pour sortir proprement du minuteur au lieu de laisser
+son propre cadre à l'écran.
 
 ```yaml
 service: pixoo_canvas.start_timer
@@ -537,9 +545,13 @@ data:
 > de vraie pause pour le minuteur — impossible de le figer en cours de route puis de
 > reprendre le compte à rebours là où il en était.
 >
-> ⚠️ À confirmer sur device réel : la restauration du channel par `stop_timer` suppose
-> que `Channel/SetIndex` réaffiche bien la dernière image poussée sur le channel Custom
-> (`Draw/SendHttpGif`) sans devoir la repousser explicitement.
+> ⚠️ Confirmé sur device réel : un simple `Tools/SetTimer Status: 0` peut afficher le
+> minuteur à l'écran même appelé "à froid" (sans `start_timer` préalable sur cette
+> session — par exemple depuis un Raccourci appelé "au cas où", sans savoir si un
+> minuteur tournait) — contrairement à la règle habituelle des outils `Tools/*` qui ne
+> rebasculent l'écran que sur un front montant (0 → 1). C'est pour ça que `stop_timer`
+> relit et réaffirme systématiquement le channel courant à chaque appel, plutôt que de ne
+> le faire que s'il avait lui-même démarré le minuteur.
 
 **Pour un raccourci iOS** : pas besoin de rien de spécial côté intégration — l'app
 Home Assistant Companion expose nativement n'importe quel service HA comme étape
@@ -561,12 +573,12 @@ depuis zéro.
 
 `pause_stopwatch` et `stop_stopwatch` envoient la même commande (`Status: 0`), mais avec
 deux différences importantes : `start_stopwatch` met `switch.pixoo_page_rotation` en
-pause si elle tournait, et **`stop_stopwatch` la relance** *et* restaure (`Channel/
-SetIndex`) le channel qui était affiché avant `start_stopwatch` — tu as fini d'utiliser le
-chronomètre, sortie propre au lieu de laisser son propre cadre à l'écran — alors que
-**`pause_stopwatch` ne fait ni l'un ni l'autre** : la rotation reste en pause et le
-chronomètre reste affiché, temps écoulé figé à l'écran (tu comptes reprendre avec
-`start_stopwatch` sous peu).
+pause si elle tournait, et **`stop_stopwatch` la relance** *et* relit/réaffirme
+(`Channel/GetIndex` puis `Channel/SetIndex`) le channel courant à chaque appel — même sans
+`start_stopwatch` préalable — pour sortir proprement du chronomètre au lieu de laisser son
+propre cadre à l'écran, alors que **`pause_stopwatch` ne fait ni l'un ni l'autre** : la
+rotation reste en pause et le chronomètre reste affiché, temps écoulé figé à l'écran (tu
+comptes reprendre avec `start_stopwatch` sous peu).
 
 ```yaml
 service: pixoo_canvas.start_stopwatch
@@ -599,9 +611,20 @@ data:
 > restaure ce compteur interne non vidé, ce qui faisait repartir le chronomètre d'une
 > valeur non nulle après un `reset_stopwatch` plutôt que de 0.
 >
-> ⚠️ À confirmer sur device réel : la restauration du channel par `stop_stopwatch` suppose
-> que `Channel/SetIndex` réaffiche bien la dernière image poussée sur le channel Custom
-> (`Draw/SendHttpGif`) sans devoir la repousser explicitement.
+> ⚠️ Confirmé sur device réel : un simple `Tools/SetStopWatch Status: 0` peut afficher le
+> chronomètre à l'écran même appelé "à froid" (sans `start_stopwatch` préalable sur cette
+> session — par exemple depuis un Raccourci appelé "au cas où") — contrairement à la règle
+> habituelle des outils `Tools/*` qui ne rebasculent l'écran que sur un front montant
+> (0 → 1). C'est pour ça que `stop_stopwatch` relit et réaffirme systématiquement le
+> channel courant à chaque appel, plutôt que de ne le faire que s'il avait lui-même
+> démarré le chronomètre.
+>
+> Un flash bref et répété du chronomètre pouvait aussi apparaître pendant une rotation
+> *normale* (pas via `stop_stopwatch`), à chaque changement de page — même cause : le stop
+> défensif envoyé à chaque rendu de page (voir la note sur le sonomètre plus haut) déclenchait
+> lui aussi ce flash. Corrigé en limitant ce stop défensif aux outils effectivement
+> susceptibles d'être actifs (suivi en interne, voir la note sur le sonomètre) au lieu de
+> l'envoyer systématiquement à chaque page.
 
 ## Licence
 

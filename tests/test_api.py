@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from custom_components.pixoo_canvas.api import PixooClient
+from custom_components.pixoo_canvas.api import PixooClient, PixooConnectionError
 from custom_components.pixoo_canvas.const import SCROLL_TEXT_SETTLE_DELAY
 
 HOST = "192.168.1.101"
@@ -14,7 +14,14 @@ URL = f"http://{HOST}/post"
 
 
 async def test_send_page_batches_clear_and_gif_into_one_request(hass, aioclient_mock):
-    """ClearHttpText + Tools/* stops + SendHttpGif are sent as one Draw/CommandList request."""
+    """ClearHttpText + Tools/* stops + SendHttpGif are sent as one Draw/CommandList request.
+
+    The Tools/* stops appear here because a fresh client defaults to
+    "a tool might be active" (see _stop_active_tools) - this is the first
+    render on this client instance. See
+    test_send_page_skips_tools_stop_once_nothing_may_be_active for the
+    (much more common) steady-state case.
+    """
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
@@ -31,6 +38,27 @@ async def test_send_page_batches_clear_and_gif_into_one_request(hass, aioclient_
         "Tools/SetStopWatch",
         "Draw/SendHttpGif",
     ]
+
+
+async def test_send_page_skips_tools_stop_once_nothing_may_be_active(hass, aioclient_mock):
+    """A second page render in a row doesn't repeat the Tools/* stop.
+
+    Confirmed on real hardware: sending a Tools/* stop can itself briefly
+    flash the screen to that tool's frame even when nothing was running,
+    which made the unconditional stop flash on every single rotation page
+    change. Once the first render has stopped whatever might have been
+    active, subsequent renders skip it entirely until start_timer/
+    start_stopwatch/restart_noise_status/set_noise_status(True) runs again.
+    """
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+    await client.send_page(64, b"\x00" * (64 * 64 * 3))
+
+    await client.send_page(64, b"\x00" * (64 * 64 * 3))
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    commands = payload["CommandList"]
+    assert [c["Command"] for c in commands] == ["Draw/ClearHttpText", "Draw/SendHttpGif"]
 
 
 async def test_send_page_always_clears_even_without_scroll_text(hass, aioclient_mock):
@@ -171,6 +199,35 @@ async def test_set_clock_sends_clock_select_id(hass, aioclient_mock):
     }
 
 
+async def test_set_clock_skips_tools_stop_once_nothing_may_be_active(hass, aioclient_mock):
+    """A second channel-switching call in a row doesn't repeat the Tools/* stop."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+    await client.set_clock(182)
+
+    await client.set_clock(200)
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [{"Command": "Channel/SetClockSelectId", "ClockId": 200}],
+    }
+
+
+async def test_set_clock_stops_timer_again_after_start_timer(hass, aioclient_mock):
+    """start_timer re-arms the Tools/SetTimer stop for the next channel switch."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+    await client.set_clock(182)
+    await client.start_timer(5, 0)
+
+    await client.set_clock(200)
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    commands = payload["CommandList"]
+    assert {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0} in commands
+
+
 async def test_set_custom_channel_sends_custom_page_index(hass, aioclient_mock):
     """set_custom_channel batches Tools/* stops with Channel/SetCustomPageIndex."""
     aioclient_mock.post(URL, json={"error_code": 0})
@@ -258,16 +315,27 @@ async def test_restart_noise_status_batches_stop_and_start(hass, aioclient_mock)
     }
 
 
-async def test_start_timer_snapshots_channel_then_batches_stops_and_start(hass, aioclient_mock):
-    """start_timer snapshots the channel, then sends the usual stop+start batch."""
+async def test_send_page_stops_noise_again_after_restart_noise_status(hass, aioclient_mock):
+    """restart_noise_status re-arms the noise stop for the next page render."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+    await client.send_page(64, b"\x00" * (64 * 64 * 3))
+    await client.restart_noise_status()
+
+    await client.send_page(64, b"\x00" * (64 * 64 * 3))
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    commands = [c["Command"] for c in payload["CommandList"]]
+    assert commands == ["Draw/ClearHttpText", "Tools/SetNoiseStatus", "Draw/SendHttpGif"]
+
+
+async def test_start_timer_batches_stops_and_start_in_one_request(hass, aioclient_mock):
+    """start_timer sends the noise/stopwatch/timer stop+start batch as a single request."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
-    with patch.object(client, "get_channel", new=AsyncMock(return_value=3)) as mock_get_channel:
-        await client.start_timer(5, 30)
+    await client.start_timer(5, 30)
 
-    mock_get_channel.assert_awaited_once()
-    assert client._pre_tool_channel == 3
     assert len(aioclient_mock.mock_calls) == 1
     payload = aioclient_mock.mock_calls[0][2]
     assert payload == {
@@ -281,28 +349,23 @@ async def test_start_timer_snapshots_channel_then_batches_stops_and_start(hass, 
     }
 
 
-async def test_stop_timer_sends_status_0_without_restore_when_no_snapshot(hass, aioclient_mock):
-    """stop_timer posts just Tools/SetTimer Status:0 when there's no channel snapshot."""
-    aioclient_mock.post(URL, json={"error_code": 0})
-    client = PixooClient(async_get_clientsession(hass), HOST)
+async def test_stop_timer_reads_then_restores_the_current_channel(hass, aioclient_mock):
+    """stop_timer fetches Channel/GetIndex first, then stops the timer and restores it.
 
-    await client.stop_timer()
+    No snapshot from a preceding start_timer needed: confirmed on real
+    hardware that a bare Tools/SetTimer Status:0 can show the timer's own
+    frame even when stop_timer is called "cold" (no prior start_timer on
+    this client instance, e.g. called defensively from a Shortcut) - so the
+    channel is always re-read and re-selected, unconditionally.
+    """
+    with patch.object(PixooClient, "get_channel", new=AsyncMock(return_value=3)) as mock_get_channel:
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
 
-    payload = aioclient_mock.mock_calls[0][2]
-    assert payload == {
-        "Command": "Draw/CommandList",
-        "CommandList": [{"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}],
-    }
+        await client.stop_timer()
 
-
-async def test_stop_timer_restores_snapshotted_channel(hass, aioclient_mock):
-    """stop_timer restores the channel snapshotted by start_timer, then clears it."""
-    aioclient_mock.post(URL, json={"error_code": 0})
-    client = PixooClient(async_get_clientsession(hass), HOST)
-    client._pre_tool_channel = 3
-
-    await client.stop_timer()
-
+    mock_get_channel.assert_awaited_once()
+    assert len(aioclient_mock.mock_calls) == 1
     payload = aioclient_mock.mock_calls[0][2]
     assert payload == {
         "Command": "Draw/CommandList",
@@ -311,11 +374,27 @@ async def test_stop_timer_restores_snapshotted_channel(hass, aioclient_mock):
             {"Command": "Channel/SetIndex", "SelectIndex": 3},
         ],
     }
-    assert client._pre_tool_channel is None
 
 
-async def test_start_stopwatch_snapshots_channel_then_batches_stops_and_start(hass, aioclient_mock):
-    """start_stopwatch snapshots the channel, then sends the usual stop+start batch.
+async def test_stop_timer_still_stops_if_the_channel_read_fails(hass, aioclient_mock):
+    """stop_timer's stop still goes out even if the Channel/GetIndex read errors."""
+    with patch.object(
+        PixooClient, "get_channel", new=AsyncMock(side_effect=PixooConnectionError("boom"))
+    ):
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+
+        await client.stop_timer()
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [{"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0}],
+    }
+
+
+async def test_start_stopwatch_batches_stops_and_start_in_one_request(hass, aioclient_mock):
+    """start_stopwatch sends the noise/timer stop + stopwatch start as a single request.
 
     No self-stop before the start: confirmed on real hardware, sending
     Tools/SetStopWatch Status:0 right before Status:1 made the stopwatch
@@ -325,11 +404,8 @@ async def test_start_stopwatch_snapshots_channel_then_batches_stops_and_start(ha
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
 
-    with patch.object(client, "get_channel", new=AsyncMock(return_value=1)) as mock_get_channel:
-        await client.start_stopwatch()
+    await client.start_stopwatch()
 
-    mock_get_channel.assert_awaited_once()
-    assert client._pre_tool_channel == 1
     assert len(aioclient_mock.mock_calls) == 1
     payload = aioclient_mock.mock_calls[0][2]
     assert payload == {
@@ -342,28 +418,20 @@ async def test_start_stopwatch_snapshots_channel_then_batches_stops_and_start(ha
     }
 
 
-async def test_stop_stopwatch_sends_status_0_without_restore_when_no_snapshot(hass, aioclient_mock):
-    """stop_stopwatch posts just Tools/SetStopWatch Status:0 when there's no channel snapshot."""
-    aioclient_mock.post(URL, json={"error_code": 0})
-    client = PixooClient(async_get_clientsession(hass), HOST)
+async def test_stop_stopwatch_reads_then_restores_the_current_channel(hass, aioclient_mock):
+    """stop_stopwatch fetches Channel/GetIndex first, then stops it and restores the channel.
 
-    await client.stop_stopwatch()
+    No snapshot from a preceding start_stopwatch needed - same "cold call"
+    rationale as stop_timer.
+    """
+    with patch.object(PixooClient, "get_channel", new=AsyncMock(return_value=1)) as mock_get_channel:
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
 
-    payload = aioclient_mock.mock_calls[0][2]
-    assert payload == {
-        "Command": "Draw/CommandList",
-        "CommandList": [{"Command": "Tools/SetStopWatch", "Status": 0}],
-    }
+        await client.stop_stopwatch()
 
-
-async def test_stop_stopwatch_restores_snapshotted_channel(hass, aioclient_mock):
-    """stop_stopwatch restores the channel snapshotted by start_stopwatch, then clears it."""
-    aioclient_mock.post(URL, json={"error_code": 0})
-    client = PixooClient(async_get_clientsession(hass), HOST)
-    client._pre_tool_channel = 1
-
-    await client.stop_stopwatch()
-
+    mock_get_channel.assert_awaited_once()
+    assert len(aioclient_mock.mock_calls) == 1
     payload = aioclient_mock.mock_calls[0][2]
     assert payload == {
         "Command": "Draw/CommandList",
@@ -372,20 +440,50 @@ async def test_stop_stopwatch_restores_snapshotted_channel(hass, aioclient_mock)
             {"Command": "Channel/SetIndex", "SelectIndex": 1},
         ],
     }
-    assert client._pre_tool_channel is None
+
+
+async def test_stop_stopwatch_still_stops_if_the_channel_read_fails(hass, aioclient_mock):
+    """stop_stopwatch's stop still goes out even if the Channel/GetIndex read errors."""
+    with patch.object(
+        PixooClient, "get_channel", new=AsyncMock(side_effect=PixooConnectionError("boom"))
+    ):
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+
+        await client.stop_stopwatch()
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [{"Command": "Tools/SetStopWatch", "Status": 0}],
+    }
 
 
 async def test_pause_stopwatch_sends_status_0_without_channel_restore(hass, aioclient_mock):
-    """pause_stopwatch posts Tools/SetStopWatch Status:0 and never restores the channel."""
+    """pause_stopwatch posts a bare Tools/SetStopWatch Status:0 and never restores the channel."""
     aioclient_mock.post(URL, json={"error_code": 0})
     client = PixooClient(async_get_clientsession(hass), HOST)
-    client._pre_tool_channel = 1
 
     await client.pause_stopwatch()
 
+    assert len(aioclient_mock.mock_calls) == 1
     payload = aioclient_mock.mock_calls[0][2]
     assert payload == {"Command": "Tools/SetStopWatch", "Status": 0}
-    assert client._pre_tool_channel == 1
+
+
+async def test_send_page_still_stops_a_paused_stopwatch(hass, aioclient_mock):
+    """pause_stopwatch leaves the stopwatch visible, so the next page render must still clear it."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+    await client.send_page(64, b"\x00" * (64 * 64 * 3))
+    await client.start_stopwatch()
+    await client.pause_stopwatch()
+
+    await client.send_page(64, b"\x00" * (64 * 64 * 3))
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    commands = [c["Command"] for c in payload["CommandList"]]
+    assert "Tools/SetStopWatch" in commands
 
 
 async def test_reset_stopwatch_sends_status_2(hass, aioclient_mock):
