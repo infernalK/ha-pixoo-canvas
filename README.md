@@ -67,39 +67,32 @@ Une fois l'intégration configurée, tu as accès à :
 - `switch.pixoo_screen_power` — allumer/éteindre l'écran.
 - `light.pixoo_brightness` — régler la luminosité.
 - `switch.pixoo_page_rotation` — activer/désactiver le défilement automatique des pages.
-- `switch.pixoo_mirror_mode` — miroir horizontal de l'écran, authoritatif via
-  `Channel/GetAllConf` (`MirrorFlag`).
+- `switch.pixoo_mirror_mode` — miroir horizontal de l'écran.
 - `select.pixoo_screen_orientation` — orientation physique de l'écran (0°/90°/180°/270°),
   à régler selon le montage de ton cadre.
 - `button.pixoo_reboot` — redémarre l'appareil en un tap (équivalent du service
   `pixoo_canvas.reboot_device`, voir plus bas). Un bouton plutôt qu'un switch : un
   redémarrage n'a pas d'état on/off persistant à refléter.
 - `switch.pixoo_channel_faces` / `channel_cloud` / `channel_visualizer` / `channel_custom`
-  — un switch par channel de haut niveau de l'appareil (`Channel/SetIndex`), à la manière
-  de boutons radio : activer l'un désactive implicitement les 3 autres. Éteindre celui qui
-  est déjà actif ne fait rien — il n'y a pas d'état "aucun channel" sur l'appareil. Comme
-  `start_timer`/`start_stopwatch`, activer un channel met `switch.pixoo_page_rotation` en
-  pause si elle tournait (sinon elle écraserait ce channel à son prochain passage) ;
-  l'éteindre la relance, seulement si c'est ce switch qui l'avait mise en pause.
-  > ⚠️ Ces switches ne reflètent **pas** le `Channel/GetIndex` en direct (contrairement
-  > à `sensor.pixoo_active_channel` ci-dessous) : ils gardent juste en mémoire le dernier
-  > channel activé *via ce switch*. Sinon, comme la quasi-totalité des pages de la
-  > rotation (toute page `components`/`pv`/`fuel`) passe par le channel Custom,
-  > `switch.pixoo_channel_custom` resterait "on" en permanence dès que la rotation affiche
-  > une page normale, qu'on l'ait ou non activé soi-même.
-- 3 capteurs de diagnostic (rotation, ID de l'horloge affichée, channel actif — ce
-  dernier via `Channel/GetIndex`, en retour d'information de l'état ci-dessus même s'il
-  a changé depuis l'app Divoom ou la télécommande) — utiles pour du dépannage, pas pour
-  un usage quotidien.
-- `sensor.pixoo_device_id` — un 4ᵉ capteur diagnostic dont l'état est le `device_id`
+  — un switch par channel de haut niveau de l'appareil (l'horloge, le flux Cloud Divoom,
+  le visualiseur audio, ou tes channels personnalisés), à la manière de boutons radio :
+  activer l'un désactive implicitement les 3 autres. Éteindre celui qui est déjà actif ne
+  fait rien — il n'y a pas d'état "aucun channel". Comme `start_timer`/`start_stopwatch`,
+  activer un channel met `switch.pixoo_page_rotation` en pause si elle tournait ; l'éteindre
+  la relance, seulement si c'est ce switch qui l'avait mise en pause.
+  > ⚠️ Ces switches ne reflètent que le dernier channel activé *via ce switch* — pas
+  > forcément ce qui est réellement affiché à l'instant T (utilise
+  > `sensor.pixoo_active_channel` pour ça).
+- `sensor.pixoo_active_channel` — le channel réellement actif sur l'appareil en ce moment
+  (Faces/Cloud/Visualizer/Custom), à jour même si le changement vient d'ailleurs que Home
+  Assistant (app Divoom, télécommande).
+- 2 autres capteurs de diagnostic (indicateur de rotation, ID de l'horloge affichée) —
+  utiles pour du dépannage, pas pour un usage quotidien.
+- `sensor.pixoo_device_id` — un capteur diagnostic dont l'état est le `device_id`
   Home Assistant de cet appareil, celui attendu par tous les services `pixoo_canvas.*`
   (`render_page`, `play_buzzer`, `reboot_device`, `start_timer`, `stop_timer`). Pratique
   pour construire un raccourci iOS/Android sans devoir aller le chercher dans l'URL de
   Paramètres → Appareils.
-
-> ℹ️ `switch.pixoo_mirror_mode` remplace l'ancien capteur diagnostic `sensor.pixoo_mirror`
-> (lecture seule) : le miroir est maintenant contrôlable, pas juste affiché. Si tu avais ce
-> capteur dans un tableau de bord, remplace-le par le nouveau switch.
 
 ## Les pages
 
@@ -363,33 +356,11 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
   page_type: sound_meter
 ```
 
-> ⚠️ Contrairement à `clock`/`channel`/`visualizer`, cet outil vit dans une famille de
-> commandes Divoom différente (`Tools/*`, la même que le [minuteur](#service--minuteur-start_timer--stop_timer)
-> et le [chronomètre](#service--chronomètre-start_stopwatch--pause_stopwatch--stop_stopwatch--reset_stopwatch)
-> pilotés par service plutôt que par page). Deux comportements confirmés sur device réel,
-> qui s'appliquent aux trois outils `Tools/*` (à une exception près, voir plus bas) :
-> - L'appareil ne rebascule l'écran sur un outil `Tools/*` que sur un front montant (0 → 1) —
->   l'intégration envoie donc systématiquement un stop puis un start à chaque démarrage
->   (regroupés en une seule requête `Draw/CommandList` : les envoyer séparément faisait
->   redémarrer l'appareil, même symptôme que celui déjà rencontré avec `scroll_text`).
->   Exception : le chronomètre ne reçoit **pas** ce stop auto-infligé — voir la note dans
->   la section [chronomètre](#service--chronomètre-start_stopwatch--pause_stopwatch--stop_stopwatch--reset_stopwatch)
->   pour pourquoi.
-> - Une fois démarré, un outil `Tools/*` n'est **pas** annulé implicitement par un
->   changement de page ni par le démarrage d'un *autre* outil `Tools/*`, comme le sont les
->   `Channel/*` entre eux : sans arrêt explicite, il reste affiché par-dessus toute page
->   suivante et finit par faire planter l'appareil (pushs ignorés qui s'accumulent).
->   L'intégration arrête donc les trois (sonomètre, minuteur, chronomètre) au rendu de
->   **toute autre page** (`components`/`pv`/`fuel`, `clock`, `channel`, `visualizer`) et au
->   démarrage de n'importe lequel des trois outils entre eux — mais seulement ceux qui
->   pourraient effectivement être actifs (suivi en interne par outil), pas les trois à
->   chaque fois : confirmé sur device réel, envoyer le stop d'un outil peut lui-même
->   faire flasher brièvement l'écran sur cet outil, même s'il ne tournait pas — l'envoyer
->   systématiquement à chaque page faisait donc flasher un outil (typiquement le
->   chronomètre) à chaque changement de page pendant une rotation normale. Contrepartie :
->   un outil démarré en dehors de l'intégration (app Divoom, télécommande) ne sera stoppé
->   qu'au prochain démarrage/arrêt piloté par l'intégration elle-même, pas au tout premier
->   changement de page qui suit.
+> ⚠️ Comme le [minuteur](#service--minuteur-start_timer--stop_timer) et le
+> [chronomètre](#service--chronomètre-start_stopwatch--pause_stopwatch--stop_stopwatch--reset_stopwatch),
+> cet outil prend tout l'écran. Pas besoin de l'arrêter manuellement avant de passer à
+> une autre page : n'importe quel changement de page (rotation ou service `render_page`)
+> l'arrête automatiquement.
 
 ### Page : PV (solaire)
 
@@ -500,7 +471,7 @@ data:
 
 ## Service : redémarrer l'appareil
 
-Le service `pixoo_canvas.reboot_device` redémarre le Pixoo (`Device/SysReboot`) — utile
+Le service `pixoo_canvas.reboot_device` redémarre le Pixoo — utile
 dans une automation de récupération (ex. appareil qui ne répond plus), pas comme action
 de routine. L'écran s'éteint quelques instants ; la rotation, si elle était active,
 reprend d'elle-même une fois l'appareil de nouveau en ligne. Pour un déclenchement manuel
@@ -516,14 +487,13 @@ data:
 ## Service : minuteur (start_timer / stop_timer)
 
 Les services `pixoo_canvas.start_timer` et `pixoo_canvas.stop_timer` pilotent l'outil
-minuteur intégré au Pixoo (`Tools/SetTimer`) — il prend tout l'écran jusqu'à l'arrêt ou
-le passage à une autre page/service. Si `switch.pixoo_page_rotation` est actif,
-`start_timer` le met automatiquement en pause (sans changer ta préférence on/off) pour
-que le minuteur ne soit pas écrasé au tour suivant ; `stop_timer` relance la rotation
-seulement si c'est `start_timer` qui l'avait mise en pause. `stop_timer` relit aussi le
-channel courant (`Channel/GetIndex`) et le réaffirme (`Channel/SetIndex`) à chaque appel,
-même sans `start_timer` préalable, pour sortir proprement du minuteur au lieu de laisser
-son propre cadre à l'écran.
+minuteur intégré au Pixoo — il prend tout l'écran jusqu'à l'arrêt ou le passage à une
+autre page/service. Si `switch.pixoo_page_rotation` est actif, `start_timer` le met
+automatiquement en pause (sans changer ta préférence on/off) pour que le minuteur ne soit
+pas écrasé au tour suivant ; `stop_timer` relance la rotation seulement si c'est
+`start_timer` qui l'avait mise en pause. `stop_timer` marche même sans `start_timer`
+préalable (pratique pour un Raccourci "au cas où") et laisse toujours l'écran propre,
+sans le cadre du minuteur qui traîne.
 
 ```yaml
 service: pixoo_canvas.start_timer
@@ -540,18 +510,9 @@ data:
 ```
 
 > ⚠️ Confirmé sur device réel (et dans l'app Divoom elle-même) : arrêter un minuteur en
-> cours remet toujours le compte à rebours à zéro, y compris en essayant de n'envoyer que
-> `Status: 0` sans `Minute`/`Second`. Contrairement au chronomètre, il n'existe donc pas
-> de vraie pause pour le minuteur — impossible de le figer en cours de route puis de
-> reprendre le compte à rebours là où il en était.
->
-> ⚠️ Confirmé sur device réel : un simple `Tools/SetTimer Status: 0` peut afficher le
-> minuteur à l'écran même appelé "à froid" (sans `start_timer` préalable sur cette
-> session — par exemple depuis un Raccourci appelé "au cas où", sans savoir si un
-> minuteur tournait) — contrairement à la règle habituelle des outils `Tools/*` qui ne
-> rebasculent l'écran que sur un front montant (0 → 1). C'est pour ça que `stop_timer`
-> relit et réaffirme systématiquement le channel courant à chaque appel, plutôt que de ne
-> le faire que s'il avait lui-même démarré le minuteur.
+> cours remet toujours le compte à rebours à zéro. Contrairement au chronomètre, il
+> n'existe donc pas de vraie pause pour le minuteur — impossible de le figer en cours de
+> route puis de reprendre le compte à rebours là où il en était.
 
 **Pour un raccourci iOS** : pas besoin de rien de spécial côté intégration — l'app
 Home Assistant Companion expose nativement n'importe quel service HA comme étape
@@ -566,19 +527,18 @@ que de le chercher dans l'URL de la page de l'appareil.
 
 Les services `pixoo_canvas.start_stopwatch`, `pixoo_canvas.pause_stopwatch`,
 `pixoo_canvas.stop_stopwatch` et `pixoo_canvas.reset_stopwatch` pilotent l'outil
-chronomètre intégré au Pixoo (`Tools/SetStopWatch`), en tout point similaire au minuteur
-(voir ci-dessus) : il prend tout l'écran jusqu'à l'arrêt ou le passage à une autre
-page/service. Aucun champ requis à part `device_id` — le chronomètre compte simplement
-depuis zéro.
+chronomètre intégré au Pixoo, en tout point similaire au minuteur (voir ci-dessus) : il
+prend tout l'écran jusqu'à l'arrêt ou le passage à une autre page/service. Aucun champ
+requis à part `device_id` — le chronomètre compte simplement depuis zéro.
 
-`pause_stopwatch` et `stop_stopwatch` envoient la même commande (`Status: 0`), mais avec
-deux différences importantes : `start_stopwatch` met `switch.pixoo_page_rotation` en
-pause si elle tournait, et **`stop_stopwatch` la relance** *et* relit/réaffirme
-(`Channel/GetIndex` puis `Channel/SetIndex`) le channel courant à chaque appel — même sans
-`start_stopwatch` préalable — pour sortir proprement du chronomètre au lieu de laisser son
-propre cadre à l'écran, alors que **`pause_stopwatch` ne fait ni l'un ni l'autre** : la
-rotation reste en pause et le chronomètre reste affiché, temps écoulé figé à l'écran (tu
-comptes reprendre avec `start_stopwatch` sous peu).
+`pause_stopwatch` et `stop_stopwatch` arrêtent tous les deux le décompte, mais avec une
+différence importante : **`stop_stopwatch`** relance `switch.pixoo_page_rotation` (si
+`start_stopwatch` l'avait mise en pause) et laisse l'écran propre — c'est le bon choix
+quand tu as fini d'utiliser le chronomètre, y compris appelé directement sans
+`start_stopwatch` préalable (pratique pour un Raccourci "au cas où"). **`pause_stopwatch`**
+ne fait ni l'un ni l'autre : la rotation reste en pause et le chronomètre reste affiché,
+temps écoulé figé à l'écran — utilise-le quand tu comptes reprendre avec `start_stopwatch`
+sous peu.
 
 ```yaml
 service: pixoo_canvas.start_stopwatch
@@ -603,28 +563,6 @@ service: pixoo_canvas.stop_stopwatch
 data:
   device_id: <ton appareil Pixoo Canvas>
 ```
-
-> ⚠️ Confirmé sur device réel : `reset_stopwatch` (`Status: 2`) ne remet à zéro que
-> l'affichage — le compteur de temps écoulé interne de l'appareil n'est, lui, pas vidé.
-> `start_stopwatch` n'envoie donc **pas** de stop avant de relancer (contrairement à
-> `start_timer`/`restart_noise_status`) : un stop (`Status: 0`) juste avant un start
-> restaure ce compteur interne non vidé, ce qui faisait repartir le chronomètre d'une
-> valeur non nulle après un `reset_stopwatch` plutôt que de 0.
->
-> ⚠️ Confirmé sur device réel : un simple `Tools/SetStopWatch Status: 0` peut afficher le
-> chronomètre à l'écran même appelé "à froid" (sans `start_stopwatch` préalable sur cette
-> session — par exemple depuis un Raccourci appelé "au cas où") — contrairement à la règle
-> habituelle des outils `Tools/*` qui ne rebasculent l'écran que sur un front montant
-> (0 → 1). C'est pour ça que `stop_stopwatch` relit et réaffirme systématiquement le
-> channel courant à chaque appel, plutôt que de ne le faire que s'il avait lui-même
-> démarré le chronomètre.
->
-> Un flash bref et répété du chronomètre pouvait aussi apparaître pendant une rotation
-> *normale* (pas via `stop_stopwatch`), à chaque changement de page — même cause : le stop
-> défensif envoyé à chaque rendu de page (voir la note sur le sonomètre plus haut) déclenchait
-> lui aussi ce flash. Corrigé en limitant ce stop défensif aux outils effectivement
-> susceptibles d'être actifs (suivi en interne, voir la note sur le sonomètre) au lieu de
-> l'envoyer systématiquement à chaque page.
 
 ## Licence
 
