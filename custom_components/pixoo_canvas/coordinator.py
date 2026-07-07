@@ -33,6 +33,9 @@ class PixooState:
     # not screen orientation, based on its position next to Gallery* fields
     # in GetAllConf's response).
     gyrate_angle: int
+    # Device's top-level channel (0=Faces, 1=Cloud, 2=Visualizer, 3=Custom),
+    # from Channel/GetIndex - a separate call from GetAllConf above.
+    channel: int
 
 
 class PixooCoordinator(DataUpdateCoordinator[PixooState]):
@@ -65,10 +68,7 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
     async def _async_update_data(self) -> PixooState:
         try:
             raw = await self.client.get_all_conf()
-        except PixooApiError as err:
-            raise UpdateFailed(str(err)) from err
-
-        try:
+            channel = await self.client.get_channel()
             state = PixooState(
                 light_switch=bool(raw["LightSwitch"]),
                 brightness=int(raw["Brightness"]),
@@ -76,7 +76,10 @@ class PixooCoordinator(DataUpdateCoordinator[PixooState]):
                 mirror_flag=bool(raw.get("MirrorFlag", 0)),
                 cur_clock_id=int(raw.get("CurClockId", -1)),
                 gyrate_angle=int(raw.get("GyrateAngle", 0)),
+                channel=channel,
             )
+        except PixooApiError as err:
+            raise UpdateFailed(str(err)) from err
         except (KeyError, TypeError, ValueError) as err:
             raise UpdateFailed(f"Unexpected response from device: {err}") from err
 

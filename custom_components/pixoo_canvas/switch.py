@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -10,8 +11,43 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import (
+    CHANNEL_CLOUD,
+    CHANNEL_CUSTOM,
+    CHANNEL_FACES,
+    CHANNEL_VISUALIZER,
+    DOMAIN,
+)
 from .coordinator import PixooCoordinator
+
+
+@dataclass(frozen=True, kw_only=True)
+class PixooChannelSwitchDescription:
+    """Describes one of the device's 4 top-level channel switches."""
+
+    key: str
+    translation_key: str
+    icon: str
+    channel: int
+
+
+CHANNEL_SWITCH_DESCRIPTIONS = (
+    PixooChannelSwitchDescription(
+        key="channel_faces", translation_key="channel_faces", icon="mdi:clock-outline", channel=CHANNEL_FACES
+    ),
+    PixooChannelSwitchDescription(
+        key="channel_cloud", translation_key="channel_cloud", icon="mdi:cloud-outline", channel=CHANNEL_CLOUD
+    ),
+    PixooChannelSwitchDescription(
+        key="channel_visualizer",
+        translation_key="channel_visualizer",
+        icon="mdi:equalizer",
+        channel=CHANNEL_VISUALIZER,
+    ),
+    PixooChannelSwitchDescription(
+        key="channel_custom", translation_key="channel_custom", icon="mdi:image-multiple-outline", channel=CHANNEL_CUSTOM
+    ),
+)
 
 
 async def async_setup_entry(
@@ -24,6 +60,10 @@ async def async_setup_entry(
             PixooScreenPowerSwitch(coordinator, entry),
             PixooPageRotationSwitch(coordinator, entry),
             PixooMirrorModeSwitch(coordinator, entry),
+        ]
+        + [
+            PixooChannelSwitch(coordinator, entry, description)
+            for description in CHANNEL_SWITCH_DESCRIPTIONS
         ]
     )
 
@@ -116,3 +156,39 @@ class PixooPageRotationSwitch(SwitchEntity):
         """Stop rotation, leaving the last rendered page on screen."""
         await self._rotator.async_disable()
         self.async_write_ha_state()
+
+
+class PixooChannelSwitch(CoordinatorEntity[PixooCoordinator], SwitchEntity):
+    """One of the device's 4 top-level channels (Faces/Cloud/Visualizer/Custom).
+
+    Radio-button-like: only one channel is ever active on real hardware, and
+    there's no "no channel" state to turn off into. turn_on switches to this
+    channel (Channel/SetIndex); turn_off is a no-op - is_on simply reflects
+    whichever channel the coordinator's Channel/GetIndex poll last reported,
+    so activating a different channel switch implicitly turns this one off.
+    """
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self, coordinator: PixooCoordinator, entry: ConfigEntry, description: PixooChannelSwitchDescription
+    ) -> None:
+        super().__init__(coordinator)
+        self._channel = description.channel
+        self._attr_translation_key = description.translation_key
+        self._attr_icon = description.icon
+        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def is_on(self) -> bool:
+        """Return whether this channel is the one last reported active."""
+        return self.coordinator.data.channel == self._channel
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Switch the device to this channel."""
+        await self.coordinator.client.set_channel(self._channel)
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """No-op: there's no "no channel" state to switch to instead."""

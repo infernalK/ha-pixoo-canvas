@@ -33,6 +33,7 @@ async def test_coordinator_parses_state(hass, aioclient_mock):
             "MirrorFlag": 1,
             "CurClockId": 5,
             "GyrateAngle": 2,
+            "SelectIndex": 3,
         },
     )
 
@@ -45,11 +46,22 @@ async def test_coordinator_parses_state(hass, aioclient_mock):
     assert coordinator.data.mirror_flag is True
     assert coordinator.data.cur_clock_id == 5
     assert coordinator.data.gyrate_angle == 2
+    assert coordinator.data.channel == 3
 
 
 async def test_coordinator_missing_light_switch(hass, aioclient_mock):
     """A response missing LightSwitch results in a clean update failure."""
-    aioclient_mock.post(URL, json={"error_code": 0, "Brightness": 50})
+    aioclient_mock.post(URL, json={"error_code": 0, "Brightness": 50, "SelectIndex": 3})
+
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_refresh()
+
+    assert coordinator.last_update_success is False
+
+
+async def test_coordinator_missing_channel(hass, aioclient_mock):
+    """A Channel/GetIndex response missing SelectIndex results in a clean update failure."""
+    aioclient_mock.post(URL, json={"error_code": 0, "LightSwitch": 1, "Brightness": 80})
 
     coordinator = _make_coordinator(hass)
     await coordinator.async_refresh()

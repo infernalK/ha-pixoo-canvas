@@ -14,7 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import CHANNEL_NAMES, DOMAIN
 from .coordinator import PixooCoordinator, PixooState
 
 
@@ -37,6 +37,12 @@ SENSOR_DESCRIPTIONS: tuple[PixooSensorEntityDescription, ...] = (
         translation_key="cur_clock_id",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda state: state.cur_clock_id,
+    ),
+    PixooSensorEntityDescription(
+        key="active_channel",
+        translation_key="active_channel",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda state: CHANNEL_NAMES.get(state.channel, "unknown"),
     ),
 )
 

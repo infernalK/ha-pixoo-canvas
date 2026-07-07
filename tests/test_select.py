@@ -29,6 +29,7 @@ async def _setup_entry(hass, aioclient_mock, gyrate_angle: int = 0) -> MockConfi
             "LightSwitch": 1,
             "Brightness": 80,
             "GyrateAngle": gyrate_angle,
+            "SelectIndex": 3,
         },
     )
     entry = MockConfigEntry(domain=DOMAIN, data={CONF_HOST: HOST})

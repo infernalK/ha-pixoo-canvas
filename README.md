@@ -74,9 +74,16 @@ Une fois l'intégration configurée, tu as accès à :
 - `button.pixoo_reboot` — redémarre l'appareil en un tap (équivalent du service
   `pixoo_canvas.reboot_device`, voir plus bas). Un bouton plutôt qu'un switch : un
   redémarrage n'a pas d'état on/off persistant à refléter.
-- 2 capteurs de diagnostic (rotation, ID de l'horloge affichée) — utiles pour du
-  dépannage, pas pour un usage quotidien.
-- `sensor.pixoo_device_id` — un 3ᵉ capteur diagnostic dont l'état est le `device_id`
+- `switch.pixoo_channel_faces` / `channel_cloud` / `channel_visualizer` / `channel_custom`
+  — un switch par channel de haut niveau de l'appareil (`Channel/SetIndex`), à la manière
+  de boutons radio : un seul est actif à la fois (reflété par `Channel/GetIndex`), l'activer
+  désactive implicitement les 3 autres. Éteindre celui qui est déjà actif ne fait rien —
+  il n'y a pas d'état "aucun channel" sur l'appareil.
+- 3 capteurs de diagnostic (rotation, ID de l'horloge affichée, channel actif — ce
+  dernier via `Channel/GetIndex`, en retour d'information de l'état ci-dessus même s'il
+  a changé depuis l'app Divoom ou la télécommande) — utiles pour du dépannage, pas pour
+  un usage quotidien.
+- `sensor.pixoo_device_id` — un 4ᵉ capteur diagnostic dont l'état est le `device_id`
   Home Assistant de cet appareil, celui attendu par tous les services `pixoo_canvas.*`
   (`render_page`, `play_buzzer`, `reboot_device`, `start_timer`, `stop_timer`). Pratique
   pour construire un raccourci iOS/Android sans devoir aller le chercher dans l'URL de

@@ -51,6 +51,18 @@
       },
       "mirror_mode": {
         "name": "Mirror mode"
+      },
+      "channel_faces": {
+        "name": "Channel Faces"
+      },
+      "channel_cloud": {
+        "name": "Channel Cloud"
+      },
+      "channel_visualizer": {
+        "name": "Channel Visualizer"
+      },
+      "channel_custom": {
+        "name": "Channel Custom"
       }
     },
     "light": {
@@ -64,6 +76,9 @@
       },
       "cur_clock_id": {
         "name": "Current clock ID"
+      },
+      "active_channel": {
+        "name": "Active channel"
       },
       "device_id": {
         "name": "Device ID"

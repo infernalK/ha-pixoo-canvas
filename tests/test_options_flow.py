@@ -19,7 +19,7 @@ NEW_HOST = "192.168.1.102"
 URL = f"http://{HOST}/post"
 NEW_URL = f"http://{NEW_HOST}/post"
 
-GET_ALL_CONF_RESPONSE = {"error_code": 0, "LightSwitch": 1, "Brightness": 80}
+GET_ALL_CONF_RESPONSE = {"error_code": 0, "LightSwitch": 1, "Brightness": 80, "SelectIndex": 3}
 
 
 def _make_entry(hass) -> MockConfigEntry:

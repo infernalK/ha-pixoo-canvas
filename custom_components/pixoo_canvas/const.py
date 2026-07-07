@@ -42,6 +42,18 @@ PIC_WIDTH = 64
 PIC_ID_MAX = 30
 DEFAULT_PIC_SPEED_MS = 1000
 
+# Channel/SetIndex,GetIndex's SelectIndex values: the device's 4 top-level channels.
+CHANNEL_FACES = 0
+CHANNEL_CLOUD = 1
+CHANNEL_VISUALIZER = 2
+CHANNEL_CUSTOM = 3
+CHANNEL_NAMES = {
+    CHANNEL_FACES: "Faces",
+    CHANNEL_CLOUD: "Cloud",
+    CHANNEL_VISUALIZER: "Visualizer",
+    CHANNEL_CUSTOM: "Custom",
+}
+
 SERVICE_RENDER_PAGE = "render_page"
 SERVICE_PLAY_BUZZER = "play_buzzer"
 SERVICE_REBOOT_DEVICE = "reboot_device"

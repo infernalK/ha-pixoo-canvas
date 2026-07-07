@@ -11,12 +11,19 @@ from custom_components.pixoo_canvas.const import DOMAIN
 HOST = "192.168.1.101"
 URL = f"http://{HOST}/post"
 
-GET_ALL_CONF_RESPONSE = {"error_code": 0, "LightSwitch": 1, "Brightness": 80}
+GET_ALL_CONF_RESPONSE = {"error_code": 0, "LightSwitch": 1, "Brightness": 80, "SelectIndex": 3}
 
 
 def _device_id_entity_id(hass, entry) -> str:
     registry = er.async_get(hass)
     entity_id = registry.async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_device_id")
+    assert entity_id is not None
+    return entity_id
+
+
+def _active_channel_entity_id(hass, entry) -> str:
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_active_channel")
     assert entity_id is not None
     return entity_id
 
@@ -34,3 +41,15 @@ async def test_device_id_sensor_matches_the_device_registry_id(hass, aioclient_m
 
     entity_id = _device_id_entity_id(hass, entry)
     assert hass.states.get(entity_id).state == device.id
+
+
+async def test_active_channel_sensor_maps_select_index_to_name(hass, aioclient_mock):
+    """The active_channel sensor maps Channel/GetIndex's SelectIndex to its channel name."""
+    aioclient_mock.post(URL, json={**GET_ALL_CONF_RESPONSE, "SelectIndex": 2})
+    entry = MockConfigEntry(domain=DOMAIN, data={CONF_HOST: HOST})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    entity_id = _active_channel_entity_id(hass, entry)
+    assert hass.states.get(entity_id).state == "Visualizer"
