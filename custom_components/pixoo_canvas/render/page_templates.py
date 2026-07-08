@@ -146,7 +146,14 @@ def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
     components.extend(
         [
             {"type": "text", "position": [32, 18], "align": "center", "content": f"{blocked}", "color": "#FF4444"},
-            {"type": "text", "position": [32, 27], "align": "center", "content": "bloquées", "color": "#888888"},
+            {
+                "type": "text",
+                "position": [32, 27],
+                "align": "center",
+                "content": "bloquées",
+                "color": "#888888",
+                "font": "matrix_chunky_6",
+            },
             {
                 "type": "progress_bar",
                 "position": [4, 40],
@@ -163,6 +170,7 @@ def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
                 "align": "center",
                 "content": f"{percentage}% bloqué",
                 "color": _TEXT_COLOR,
+                "font": "matrix_chunky_6",
             },
         ]
     )
