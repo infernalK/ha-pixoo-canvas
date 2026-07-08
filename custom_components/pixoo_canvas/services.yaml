@@ -61,6 +61,157 @@ render_page:
       required: false
       selector:
         object:
+    clock_channel_visualizer:
+      name: Clock / channel / visualizer fields
+      collapsed: true
+      fields:
+        id:
+          name: Id
+          description: >-
+            Native screen/channel index to switch to. Required when page_type
+            is clock, channel, or visualizer. Accepts a number or a Jinja
+            template.
+          required: false
+          selector:
+            text:
+    pv:
+      name: PV (solar) fields
+      collapsed: true
+      fields:
+        power:
+          name: Power
+          description: Solar power, e.g. "1200" (rendered with a "W" suffix). Used when page_type is pv.
+          required: false
+          selector:
+            text:
+        storage:
+          name: Storage
+          description: Battery charge percentage (0-100). Used when page_type is pv.
+          required: false
+          selector:
+            text:
+        discharge:
+          name: Discharge
+          description: >-
+            Optional discharge power, e.g. "300" (rendered with a "W" suffix).
+            Omit to hide the discharge readout. Used when page_type is pv.
+          required: false
+          selector:
+            text:
+        time:
+          name: Time
+          description: >-
+            Optional time label; defaults to the current HH:MM if omitted.
+            Used when page_type is pv.
+          required: false
+          selector:
+            text:
+    fuel:
+      name: Fuel (gas station) fields
+      collapsed: true
+      fields:
+        title:
+          name: Title
+          description: Used when page_type is fuel.
+          required: false
+          selector:
+            text:
+        name1:
+          name: Row 1 name
+          description: Used when page_type is fuel.
+          required: false
+          selector:
+            text:
+        price1:
+          name: Row 1 price
+          description: Used when page_type is fuel.
+          required: false
+          selector:
+            text:
+        name2:
+          name: Row 2 name
+          description: Used when page_type is fuel.
+          required: false
+          selector:
+            text:
+        price2:
+          name: Row 2 price
+          description: Used when page_type is fuel.
+          required: false
+          selector:
+            text:
+        name3:
+          name: Row 3 name
+          description: Used when page_type is fuel.
+          required: false
+          selector:
+            text:
+        price3:
+          name: Row 3 price
+          description: Used when page_type is fuel.
+          required: false
+          selector:
+            text:
+        status:
+          name: Status
+          description: Optional status line. Used when page_type is fuel.
+          required: false
+          selector:
+            text:
+    pihole:
+      name: Pi-hole fields
+      collapsed: true
+      fields:
+        blocked:
+          name: Blocked
+          description: Ads blocked today. Used when page_type is pihole.
+          required: false
+          selector:
+            text:
+        percentage:
+          name: Percentage
+          description: Blocking rate, 0-100. Used when page_type is pihole.
+          required: false
+          selector:
+            text:
+        queries:
+          name: Queries
+          description: Optional DNS queries today. Used when page_type is pihole.
+          required: false
+          selector:
+            text:
+        status_entity:
+          name: Status entity
+          description: >-
+            Optional binary_sensor reflecting whether Pi-hole is active, used
+            to switch the on/off shield icon+color. Used when page_type is
+            pihole.
+          required: false
+          selector:
+            entity:
+              domain: binary_sensor
+    weather_battery:
+      name: Weather / battery fields
+      collapsed: true
+      fields:
+        entity:
+          name: Entity
+          description: >-
+            Required for both page_type weather (a weather.* entity - its
+            condition/temperature/humidity are read directly from that
+            entity) and page_type battery (any entity whose state is a 0-100
+            charge percentage).
+          required: false
+          selector:
+            entity:
+        label:
+          name: Label
+          description: >-
+            Optional short name shown under the gauge, e.g. "Robot". Used
+            when page_type is battery.
+          required: false
+          selector:
+            text:
     variables:
       name: Variables
       description: Extra variables made available to the page's Jinja templates.
