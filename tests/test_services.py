@@ -1039,7 +1039,7 @@ async def test_stop_sound_meter_unknown_device_id(hass, aioclient_mock):
 
 
 async def test_set_alarm_sends_status_1_with_hour_and_minute(hass, aioclient_mock):
-    """set_alarm posts Device/SetAlarm with Status: 1 and the hour/minute parsed from 'time'."""
+    """set_alarm posts Alarm/Set with Status: 1 and the hour/minute parsed from 'time'."""
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
 
@@ -1051,7 +1051,7 @@ async def test_set_alarm_sends_status_1_with_hour_and_minute(hass, aioclient_moc
     )
 
     payload = aioclient_mock.mock_calls[-1][2]
-    assert payload == {"Command": "Device/SetAlarm", "Status": 1, "Hour": 7, "Minute": 30}
+    assert payload == {"Command": "Alarm/Set", "Status": 1, "Hour": 7, "Minute": 30}
 
 
 async def test_set_alarm_enabled_false_sends_status_0(hass, aioclient_mock):
@@ -1067,7 +1067,7 @@ async def test_set_alarm_enabled_false_sends_status_0(hass, aioclient_mock):
     )
 
     payload = aioclient_mock.mock_calls[-1][2]
-    assert payload == {"Command": "Device/SetAlarm", "Status": 0, "Hour": 7, "Minute": 30}
+    assert payload == {"Command": "Alarm/Set", "Status": 0, "Hour": 7, "Minute": 30}
 
 
 async def test_set_alarm_unknown_device_id(hass, aioclient_mock):
@@ -1084,7 +1084,7 @@ async def test_set_alarm_unknown_device_id(hass, aioclient_mock):
 
 
 async def test_stop_alarm_sends_status_0_with_zeroed_time(hass, aioclient_mock):
-    """stop_alarm posts Device/SetAlarm with Status: 0, Hour: 0, Minute: 0."""
+    """stop_alarm posts Alarm/Set with Status: 0, Hour: 0, Minute: 0."""
     entry = await _setup_entry(hass, aioclient_mock)
     aioclient_mock.post(URL, json={"error_code": 0})
 
@@ -1096,7 +1096,7 @@ async def test_stop_alarm_sends_status_0_with_zeroed_time(hass, aioclient_mock):
     )
 
     payload = aioclient_mock.mock_calls[-1][2]
-    assert payload == {"Command": "Device/SetAlarm", "Status": 0, "Hour": 0, "Minute": 0}
+    assert payload == {"Command": "Alarm/Set", "Status": 0, "Hour": 0, "Minute": 0}
 
 
 async def test_stop_alarm_unknown_device_id(hass, aioclient_mock):

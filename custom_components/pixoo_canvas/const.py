@@ -26,7 +26,16 @@ CMD_SYS_REBOOT = "Device/SysReboot"
 CMD_SET_MIRROR_MODE = "Device/SetMirrorMode"
 CMD_SET_TIMER = "Tools/SetTimer"
 CMD_SET_STOPWATCH = "Tools/SetStopWatch"
-CMD_SET_ALARM = "Device/SetAlarm"
+# NOT "Device/SetAlarm" (what an earlier, since-corrected version of this
+# integration used, copied from kmplngj/pixoo-ha without hardware
+# verification): confirmed on real hardware to be accepted (the device
+# flashes a generic "Save Setting" screen) but never actually rings.
+# "Alarm/Set" is the command name found in Divoom's decompiled
+# APK/firmware command list (alongside Alarm/Get, Alarm/Del, Alarm/DelAll,
+# Alarm/Change) - still unverified end-to-end on real hardware as of this
+# change (does it actually ring, sent locally rather than through Divoom's
+# cloud API the way github.com/Grayda/pixoo_api's setAlarm() does).
+CMD_SET_ALARM = "Alarm/Set"
 
 DEFAULT_SCAN_INTERVAL = 15
 DEFAULT_TIMEOUT = 10

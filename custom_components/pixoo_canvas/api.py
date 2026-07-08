@@ -470,13 +470,15 @@ class PixooClient:
         Unlike start_timer/start_stopwatch/start_visualizer, the alarm
         doesn't take over the screen immediately - it's a scheduled wake
         handled entirely by the device's own firmware - so this is a plain
-        one-shot Device/SetAlarm call: no _stop_active_tools batching, no
-        page-rotation pause needed.
+        one-shot Alarm/Set call: no _stop_active_tools batching, no
+        page-rotation pause needed. See the CMD_SET_ALARM comment in
+        const.py - the command name and field shape are still unverified
+        end-to-end on real hardware.
         """
         await self._send(_alarm_payload(hour, minute, enabled))
 
     async def stop_alarm(self) -> None:
-        """Disable the alarm clock (Device/SetAlarm, Status: 0)."""
+        """Disable the alarm clock (Alarm/Set, Status: 0)."""
         await self._send(_alarm_payload(0, 0, False))
 
     async def reboot(self) -> None:

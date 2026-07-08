@@ -350,7 +350,7 @@
     },
     "set_alarm": {
       "name": "Régler l'alarme",
-      "description": "Règle l'alarme intégrée au Pixoo (Device/SetAlarm) pour qu'elle sonne à l'heure indiquée. Contrairement à start_timer/start_stopwatch/start_visualizer, ça ne prend pas immédiatement l'écran et n'a pas besoin de mettre la rotation des pages en pause - c'est un réveil programmé, entièrement géré par le firmware de l'appareil.",
+      "description": "Règle l'alarme intégrée au Pixoo (Alarm/Set) pour qu'elle sonne à l'heure indiquée. Contrairement à start_timer/start_stopwatch/start_visualizer, ça ne prend pas immédiatement l'écran et n'a pas besoin de mettre la rotation des pages en pause - c'est un réveil programmé, entièrement géré par le firmware de l'appareil.",
       "fields": {
         "device_id": {
           "name": "Appareil",
@@ -368,7 +368,7 @@
     },
     "stop_alarm": {
       "name": "Désactiver l'alarme",
-      "description": "Désactive l'alarme intégrée au Pixoo (Device/SetAlarm, Status: 0).",
+      "description": "Désactive l'alarme intégrée au Pixoo (Alarm/Set, Status: 0).",
       "fields": {
         "device_id": {
           "name": "Appareil",

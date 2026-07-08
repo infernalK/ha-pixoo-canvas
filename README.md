@@ -821,7 +821,7 @@ data:
 ## Service : alarme (set_alarm / stop_alarm)
 
 Les services `pixoo_canvas.set_alarm` et `pixoo_canvas.stop_alarm` pilotent l'alarme
-intégrée au Pixoo (`Device/SetAlarm`). Contrairement au minuteur/chronomètre/visualiseur/
+intégrée au Pixoo (`Alarm/Set`). Contrairement au minuteur/chronomètre/visualiseur/
 sonomètre, l'alarme ne prend pas l'écran immédiatement — c'est un réveil programmé, géré
 entièrement par le firmware de l'appareil — donc `set_alarm` ne met pas
 `switch.pixoo_page_rotation` en pause.
