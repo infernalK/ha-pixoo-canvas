@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.core import HomeAssistant
+
 _BG_COLOR = "black"
 _TEXT_COLOR = "white"
 
@@ -110,8 +112,23 @@ _PIHOLE_COLOR_THRESHOLDS = [
     {"value": 20, "color": "green"},
 ]
 
+# Kept intentionally small (just the languages this integration's maintainer
+# can vouch for) rather than a full translation framework - falls back to
+# English for anything else. See build_pihole_components.
+_PIHOLE_BLOCKED_LABEL = {
+    "en": "blocked",
+    "fr": "bloquées",
+}
+_PIHOLE_DEFAULT_LANGUAGE = "en"
 
-def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
+
+def _pihole_blocked_label(hass: HomeAssistant) -> str:
+    """The 'blocked' label in the HA instance's configured language (English fallback)."""
+    language = (hass.config.language or "").split("-")[0].lower()
+    return _PIHOLE_BLOCKED_LABEL.get(language, _PIHOLE_BLOCKED_LABEL[_PIHOLE_DEFAULT_LANGUAGE])
+
+
+def build_pihole_components(page: dict[str, Any], hass: HomeAssistant) -> list[dict[str, Any]]:
     """Build the components for a `page_type: pihole` (ad-blocking dashboard) page.
 
     Fields: `blocked` (ads blocked today), `percentage` (blocking rate, 0-100),
@@ -121,9 +138,11 @@ def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
     on/off shield icon+color switch (`is_state(...)`) here rather than asking
     the caller to hand-write that ternary themselves.
 
-    Like `build_pv_components`/`build_fuel_components`, every label here is an
-    icon or a number/unit (`%`, `DNS`) rather than a hardcoded word - so it
-    reads the same regardless of the Home Assistant user's language.
+    Unlike `build_pv_components`/`build_fuel_components` (which never need a
+    word at all - just icons and numbers/units like `W`/`%`), the ads-blocked
+    count reads better with a short label next to it. That label is picked
+    from `hass.config.language` rather than hardcoded, so it doesn't impose
+    French (or any other language) on a differently-configured HA instance.
     """
     blocked = page.get("blocked", "")
     percentage = page.get("percentage", "")
@@ -149,8 +168,15 @@ def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
 
     components.extend(
         [
-            {"type": "icon", "icon": "mdi:block-helper", "position": [26, 15], "size": 12, "color": "#FF4444"},
-            {"type": "text", "position": [32, 29], "align": "center", "content": f"{blocked}", "color": "#FF4444"},
+            {"type": "text", "position": [32, 17], "align": "center", "content": f"{blocked}", "color": "#FF4444"},
+            {
+                "type": "text",
+                "position": [32, 27],
+                "align": "center",
+                "content": _pihole_blocked_label(hass),
+                "color": "#888888",
+                "font": "matrix_chunky_6",
+            },
             {
                 "type": "progress_bar",
                 "position": [4, 40],

@@ -97,6 +97,6 @@ async def render_configured_page(
     elif page_type == "fuel":
         await render_page(hass, client, build_fuel_components(page), variables)
     elif page_type == "pihole":
-        await render_page(hass, client, build_pihole_components(page), variables)
+        await render_page(hass, client, build_pihole_components(page, hass), variables)
     else:
         _LOGGER.warning("Unknown page_type %r, skipping page %r", page_type, page.get("name"))

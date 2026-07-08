@@ -62,9 +62,9 @@ def test_build_fuel_components_includes_status_when_present():
     assert any(c["type"] == "text" and c["content"] == "Ouvert" for c in components)
 
 
-def test_build_pihole_components_includes_blocked_and_percentage():
+def test_build_pihole_components_includes_blocked_and_percentage(hass):
     """The generated components reference the page's blocked/percentage fields."""
-    components = build_pihole_components({"blocked": 10501, "percentage": 16.5})
+    components = build_pihole_components({"blocked": 10501, "percentage": 16.5}, hass)
 
     types = [c["type"] for c in components]
     assert "rectangle" in types
@@ -73,18 +73,18 @@ def test_build_pihole_components_includes_blocked_and_percentage():
     assert any(c["type"] == "progress_bar" and c.get("value") == 16.5 for c in components)
 
 
-def test_build_pihole_components_omits_status_icon_when_absent():
+def test_build_pihole_components_omits_status_icon_when_absent(hass):
     """No status shield icon is generated without a status_entity field."""
-    components = build_pihole_components({"blocked": 0, "percentage": 0})
+    components = build_pihole_components({"blocked": 0, "percentage": 0}, hass)
 
     shield_icons = [c for c in components if c["type"] == "icon" and "shield" in str(c.get("icon", ""))]
     assert shield_icons == []
 
 
-def test_build_pihole_components_status_icon_templates_the_entity():
+def test_build_pihole_components_status_icon_templates_the_entity(hass):
     """A status_entity field builds an is_state() ternary for icon and color."""
     components = build_pihole_components(
-        {"blocked": 0, "percentage": 0, "status_entity": "binary_sensor.pi_hole_status"}
+        {"blocked": 0, "percentage": 0, "status_entity": "binary_sensor.pi_hole_status"}, hass
     )
 
     shield = next(c for c in components if c["type"] == "icon" and "shield" in str(c.get("icon", "")))
@@ -92,15 +92,31 @@ def test_build_pihole_components_status_icon_templates_the_entity():
     assert "is_state('binary_sensor.pi_hole_status', 'on')" in shield["color"]
 
 
-def test_build_pihole_components_omits_queries_when_absent():
+def test_build_pihole_components_omits_queries_when_absent(hass):
     """No DNS queries text is generated when the field isn't provided."""
-    components = build_pihole_components({"blocked": 0, "percentage": 0})
+    components = build_pihole_components({"blocked": 0, "percentage": 0}, hass)
 
     assert not any(c["type"] == "text" and "DNS" in str(c.get("content", "")) for c in components)
 
 
-def test_build_pihole_components_includes_queries_when_present():
+def test_build_pihole_components_includes_queries_when_present(hass):
     """A queries field adds its own text component."""
-    components = build_pihole_components({"blocked": 0, "percentage": 0, "queries": 63392})
+    components = build_pihole_components({"blocked": 0, "percentage": 0, "queries": 63392}, hass)
 
     assert any(c["type"] == "text" and c["content"] == "63392 DNS" for c in components)
+
+
+def test_build_pihole_components_label_follows_french_language(hass):
+    """The blocked-count label is French when the HA instance is configured for French."""
+    hass.config.language = "fr"
+    components = build_pihole_components({"blocked": 0, "percentage": 0}, hass)
+
+    assert any(c["type"] == "text" and c["content"] == "bloquées" for c in components)
+
+
+def test_build_pihole_components_label_falls_back_to_english(hass):
+    """An unsupported language falls back to the English label rather than raising."""
+    hass.config.language = "de"
+    components = build_pihole_components({"blocked": 0, "percentage": 0}, hass)
+
+    assert any(c["type"] == "text" and c["content"] == "blocked" for c in components)
