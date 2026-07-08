@@ -185,18 +185,18 @@ Champs suivants, utilisés uniquement quand `scroll: true` :
 | `divoom_font` | Non | `0` | Police native du Pixoo (0-7), utilisée par le firmware pour le rendu défilant. |
 | `text_id` | Non | | Identifiant du slot (0-19), pour superposer plusieurs textes défilants. |
 
-**Aperçu des polices natives (`divoom_font`)**, confirmé sur device réel (Pixoo 64) :
+**Aperçu des polices natives (`divoom_font`)**, photographié sur device réel (Pixoo 64) :
 
-| `divoom_font` | Taille (L×H, px) | Style observé |
-| --- | :---: | --- |
-| `0` | 10×7 | Traits fins, majuscules/minuscules distinctes — la plus sobre. |
-| `1` | 11×10 | Grande et grasse, la plus haute. |
-| `2` | 8×7 | La plus compacte/condensée. |
-| `3` | 10×10 | Même largeur que `0` mais nettement plus haute. |
-| `4` | 11×8 | Grande et grasse, un peu moins haute que `1`. |
-| `5` | 13×9 | La plus large, blocky. |
-| `6` | 13×8 | Aussi large que `5`, style penché/dynamique. |
-| `7` | 11×8 | Grande, droite, nette, sans empattement — très lisible. |
+| `divoom_font` | Aperçu | Taille (L×H, px) | Style observé |
+| :---: | --- | :---: | --- |
+| `0` | ![divoom_font 0](docs/img/fonts/divoom_0.png) | 10×7 | Traits fins, majuscules/minuscules distinctes — la plus sobre. |
+| `1` | ![divoom_font 1](docs/img/fonts/divoom_1.png) | 11×10 | Grande et grasse, la plus haute. |
+| `2` | ![divoom_font 2](docs/img/fonts/divoom_2.png) | 8×7 | La plus compacte/condensée. |
+| `3` | ![divoom_font 3](docs/img/fonts/divoom_3.png) | 10×10 | Même largeur que `0` mais nettement plus haute. |
+| `4` | ![divoom_font 4](docs/img/fonts/divoom_4.png) | 11×8 | Grande et grasse, un peu moins haute que `1`. |
+| `5` | ![divoom_font 5](docs/img/fonts/divoom_5.png) | 13×9 | La plus large, blocky. |
+| `6` | ![divoom_font 6](docs/img/fonts/divoom_6.png) | 13×8 | Aussi large que `5`, style penché/dynamique. |
+| `7` | ![divoom_font 7](docs/img/fonts/divoom_7.png) | 11×8 | Grande, droite, nette, sans empattement — très lisible. |
 
 #### Composant : `image`
 
