@@ -1,11 +1,18 @@
-"""Prebuilt page layouts (`page_type: pv`/`fuel`/`pihole`) built from existing components.
+"""Prebuilt page layouts (`page_type: pv`/`fuel`/`pihole`/`weather`/`battery`) built
+from existing components.
 
 Unlike `page_type: components`, these page types don't take a `components`
 list - just a handful of named fields - and are expanded here into the
 equivalent `components` list before being handed to the normal render engine.
-Field values are passed through as-is (raw or Jinja template strings): the
+
+Most fields are passed through as-is (raw or Jinja template strings): the
 components they land on (`text.content`, `icon.value`, `progress_bar.value`)
-already resolve either on their own, so no templating happens in this module.
+already resolve either on their own, so no templating happens in this module
+for those. The exception is any field that this module itself needs to
+branch on synchronously (pick an icon, compute a derived angle, look up a
+translated label) - `pihole`'s `status_entity`, and `weather`/`battery`'s
+`entity`, are plain entity_ids rather than raw/template values, resolved here
+via `hass.states.get(...)` instead of being deferred to the drawn component.
 """
 
 from __future__ import annotations
@@ -194,6 +201,162 @@ def build_pihole_components(page: dict[str, Any], hass: HomeAssistant) -> list[d
     if queries is not None:
         components.append(
             {"type": "text", "position": [32, 57], "align": "center", "content": f"{queries} DNS", "color": "grey"}
+        )
+
+    return components
+
+
+_WEATHER_ICON_BY_CONDITION = {
+    "clear-night": "mdi:weather-night",
+    "cloudy": "mdi:weather-cloudy",
+    "exceptional": "mdi:alert-circle-outline",
+    "fog": "mdi:weather-fog",
+    "hail": "mdi:weather-hail",
+    "lightning": "mdi:weather-lightning",
+    "lightning-rainy": "mdi:weather-lightning-rainy",
+    "partlycloudy": "mdi:weather-partly-cloudy",
+    "pouring": "mdi:weather-pouring",
+    "rainy": "mdi:weather-rainy",
+    "snowy": "mdi:weather-snowy",
+    "snowy-rainy": "mdi:weather-snowy-rainy",
+    "sunny": "mdi:weather-sunny",
+    "windy": "mdi:weather-windy",
+    "windy-variant": "mdi:weather-windy-variant",
+}
+_WEATHER_COLOR_BY_CONDITION = {
+    "clear-night": "#8899CC",
+    "cloudy": "#AAAAAA",
+    "exceptional": "#FF4444",
+    "fog": "#AAAAAA",
+    "hail": "#88CCFF",
+    "lightning": "#FFCC00",
+    "lightning-rainy": "#FFCC00",
+    "partlycloudy": "#CCCCCC",
+    "pouring": "#3399FF",
+    "rainy": "#3399FF",
+    "snowy": "#FFFFFF",
+    "snowy-rainy": "#CCEEFF",
+    "sunny": "#FFCC00",
+    "windy": "#CCCCCC",
+    "windy-variant": "#CCCCCC",
+}
+_WEATHER_DEFAULT_ICON = "mdi:weather-cloudy"
+_WEATHER_DEFAULT_COLOR = "#AAAAAA"
+
+
+def _format_number(value: Any) -> str:
+    """`value` as a compact number string, or its plain str() if it isn't numeric."""
+    try:
+        return f"{float(value):g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def build_weather_components(page: dict[str, Any], hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Build the components for a `page_type: weather` page.
+
+    Field: `entity` (required) - a `weather.*` entity_id. Home Assistant's
+    Weather platform guarantees `temperature`/`humidity` as state attributes
+    on every weather entity regardless of integration, so condition,
+    temperature and humidity are all read from that one entity - nothing
+    else to configure for the common case. The condition keys match HA's own
+    `ATTR_CONDITION_*` constants (`sunny`, `partlycloudy`, `rainy`, ...).
+    """
+    entity_id = page.get("entity")
+    state = hass.states.get(entity_id) if entity_id else None
+    condition = state.state if state is not None else None
+    temperature = state.attributes.get("temperature") if state is not None else None
+    humidity = state.attributes.get("humidity") if state is not None else None
+
+    icon = _WEATHER_ICON_BY_CONDITION.get(condition or "", _WEATHER_DEFAULT_ICON)
+    color = _WEATHER_COLOR_BY_CONDITION.get(condition or "", _WEATHER_DEFAULT_COLOR)
+
+    components: list[dict[str, Any]] = [
+        {"type": "rectangle", "position": [0, 0], "size": [64, 64], "color": _BG_COLOR, "filled": True},
+        {"type": "icon", "icon": icon, "position": [16, 2], "size": 28, "color": color},
+        {
+            "type": "text",
+            "position": [32, 34],
+            "align": "center",
+            "content": f"{_format_number(temperature)}°" if temperature is not None else "",
+            "color": _TEXT_COLOR,
+        },
+    ]
+
+    if humidity is not None:
+        components.append({"type": "icon", "icon": "mdi:water-percent", "position": [2, 48], "size": 14, "color": "#3399FF"})
+        components.append(
+            {"type": "text", "position": [18, 51], "content": f"{_format_number(humidity)}%", "color": _TEXT_COLOR}
+        )
+
+    return components
+
+
+_BATTERY_COLOR_THRESHOLDS = [
+    {"value": 0, "color": "red"},
+    {"value": 20, "color": "orange"},
+    {"value": 50, "color": "green"},
+]
+
+
+def _read_percentage(hass: HomeAssistant, entity_id: str | None) -> float | None:
+    """The numeric state of `entity_id`, or None if missing/non-numeric."""
+    if not entity_id:
+        return None
+    state = hass.states.get(entity_id)
+    if state is None:
+        return None
+    try:
+        return float(state.state)
+    except (TypeError, ValueError):
+        return None
+
+
+def build_battery_components(page: dict[str, Any], hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Build the components for a `page_type: battery` (generic charge gauge) page.
+
+    Field: `entity` (required) - any entity whose state is a 0-100 charge
+    percentage (most battery sensors qualify - vacuum robots, phones synced
+    via a companion app, standalone battery sensors...). `label` (optional,
+    any language - it's caller-supplied, like fuel's `title`) - a short name
+    shown under the gauge, e.g. "Robot".
+
+    Unlike `pv`'s battery icon+bar, this draws a circular gauge with the
+    `arc` component - a deliberate showcase now that `arc` exists (it postdates
+    `pv`). `entity` is resolved here (not a raw/template value) because the
+    gauge's swept angle is derived from the percentage in plain Python -
+    doing that math in Jinja would mean embedding one template's output
+    inside another, which isn't valid Jinja.
+    """
+    entity_id = page.get("entity")
+    label = page.get("label")
+    value = _read_percentage(hass, entity_id)
+    end_angle = (value * 3.6) if value is not None else 0
+
+    components: list[dict[str, Any]] = [
+        {"type": "rectangle", "position": [0, 0], "size": [64, 64], "color": _BG_COLOR, "filled": True},
+        {
+            "type": "arc",
+            "center": [32, 28],
+            "radius": 20,
+            "start_angle": 0,
+            "end_angle": end_angle,
+            "thickness": 4,
+            "value": value,
+            "color_thresholds": _BATTERY_COLOR_THRESHOLDS,
+        },
+        {
+            "type": "text",
+            "position": [32, 24],
+            "align": "center",
+            "content": f"{value:.0f}%" if value is not None else "",
+            "color": _TEXT_COLOR,
+        },
+    ]
+
+    if label is not None:
+        components.append(
+            {"type": "text", "position": [32, 54], "align": "center", "content": str(label), "color": "grey"}
         )
 
     return components

@@ -22,6 +22,8 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
   - [Page : PV (solaire)](#page--pv-solaire)
   - [Page : Fuel (station-service)](#page--fuel-station-service)
   - [Page : Pihole (bloqueur de pubs)](#page--pihole-bloqueur-de-pubs)
+  - [Page : Weather (météo)](#page--weather-météo)
+  - [Page : Battery (jauge de charge générique)](#page--battery-jauge-de-charge-générique)
 - [Rotation automatique des pages](#rotation-automatique-des-pages)
 - [Service : afficher une page à la demande](#service--afficher-une-page-à-la-demande)
 - [Service : faire sonner le buzzer](#service--faire-sonner-le-buzzer)
@@ -116,7 +118,7 @@ sous forme de liste :
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
 | `name` | Oui | | Nom de la page (utilisé pour l'appeler via le service `render_page`). |
-| `page_type` | Non | `components` | `components`, `clock`, `channel`, `visualizer`, `sound_meter`, `pv`, `fuel`, `pihole`. |
+| `page_type` | Non | `components` | `components`, `clock`, `channel`, `visualizer`, `sound_meter`, `pv`, `fuel`, `pihole`, `weather`, `battery`. |
 | `enabled` | Non | activée | `true`/`false` ou template `{{ }}` — pages désactivées sautées par la rotation. |
 | `duration` | Non | (le réglage global) | Secondes d'affichage avant de passer à la page suivante, en rotation. |
 | `scan_interval` | Non | | Secondes entre rafraîchissements pendant que la page est affichée (utile pour des valeurs qui changent souvent). |
@@ -543,6 +545,42 @@ le français. Testée sur device réel.
   percentage: "{{ states('sensor.pi_hole_ads_percentage_blocked_today') | round(1) }}"
   queries: "{{ states('sensor.pi_hole_dns_queries_today') }}"
   status_entity: binary_sensor.pi_hole_status
+```
+
+### Page : Weather (météo)
+
+Page prête à l'emploi pour une entité `weather.*` native de Home Assistant — l'icône et
+sa couleur changent automatiquement selon la condition (`sunny`, `rainy`, `cloudy`...).
+Contrairement à `pv`/`fuel`/`pihole`, un seul champ suffit : la température et
+l'humidité sont lues directement sur l'entité (toute plateforme météo HA les expose en
+attributs), donc rien d'autre à configurer pour le cas courant.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `entity` | Oui | | `entity_id` d'une entité `weather.*`. Contrairement aux autres champs de ce tableau, c'est un `entity_id` brut, pas un template : condition/température/humidité en sont lues directement. |
+
+```yaml
+- name: Météo
+  page_type: weather
+  entity: weather.home
+```
+
+### Page : Battery (jauge de charge générique)
+
+Page prête à l'emploi pour n'importe quelle entité dont l'état est un pourcentage de
+charge 0-100 (robot aspirateur, téléphone synchronisé, capteur de pile...) — jauge
+circulaire avec le composant `arc`, colorée par palier (rouge → orange → vert).
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `entity` | Oui | | `entity_id` dont l'état est un pourcentage 0-100. Comme pour `weather`, c'est un `entity_id` brut : l'angle de la jauge est calculé ici en Python, pas en Jinja. |
+| `label` | Non | | Texte libre affiché sous la jauge (n'importe quelle langue), ex. `Robot`. |
+
+```yaml
+- name: Batterie robot
+  page_type: battery
+  entity: sensor.robot_aspirateur_batterie
+  label: Robot
 ```
 
 ## Rotation automatique des pages
