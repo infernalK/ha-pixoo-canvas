@@ -77,6 +77,28 @@ async def test_icon_color_thresholds_pick_bracket_color(hass):
     )
 
 
+async def test_icon_name_supports_templates(hass):
+    """A Jinja template in 'icon' is rendered before resolving the glyph."""
+    ctx = RenderContext()
+
+    await icon.draw(
+        {
+            "type": "icon",
+            "icon": "{{ 'mdi:battery' }}",
+            "position": [0, 0],
+            "size": 16,
+            "color": [0, 255, 0],
+        },
+        ctx,
+        hass,
+        None,
+    )
+
+    assert any(
+        ctx.image.getpixel((x, y)) == (0, 255, 0) for x in range(16) for y in range(16)
+    )
+
+
 async def test_icon_missing_name_is_noop(hass):
     """No 'icon' field leaves the buffer untouched."""
     ctx = RenderContext()

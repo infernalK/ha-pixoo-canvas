@@ -6,6 +6,8 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import TemplateError
+from homeassistant.helpers.template import Template
 
 from ..colors import resolve_color
 from ..mdi import load_icon_font, resolve_glyph
@@ -27,6 +29,12 @@ async def draw(
 ) -> None:
     """Draw an MDI icon glyph, tinted per `color`/`color_thresholds`."""
     icon = str(component.get("icon", ""))
+    if "{{" in icon:
+        try:
+            icon = str(Template(icon, hass).async_render(variables=variables))
+        except TemplateError as err:
+            _LOGGER.warning("Icon template failed to render, skipping: %s", err)
+            return
     name = icon.split(":", 1)[-1]
     glyph = await hass.async_add_executor_job(resolve_glyph, name)
     if glyph is None:
