@@ -372,6 +372,83 @@ Home Assistant.
     {{ output.list }}
 ```
 
+#### Exemple : Tableau de bord Pi-hole
+
+Une page prête à copier, inspirée de [kmplngj/pixoo-ha](https://github.com/kmplngj/pixoo-ha/blob/main/examples/page_templates/pihole_dashboard.yaml)
+et adaptée à nos composants (`progress_bar` + `color_thresholds` à la place d'un calcul
+manuel de largeur/couleur en Jinja). Testée sur device réel avec l'intégration
+[Pi-hole](https://www.home-assistant.io/integrations/pi_hole/) — nécessite les entités
+`binary_sensor.pi_hole_status`, `sensor.pi_hole_ads_blocked_today`,
+`sensor.pi_hole_ads_percentage_blocked_today` et `sensor.pi_hole_dns_queries_today`
+(ajuste les noms selon les tiens).
+
+```yaml
+- name: Pi-hole
+  page_type: components
+  duration: 15
+  components:
+    - type: rectangle
+      position: [0, 0]
+      size: [64, 64]
+      color: black
+
+    # Logo Pi-hole + bouclier de statut (vert = actif, rouge = en pause)
+    - type: icon
+      position: [4, 2]
+      icon: mdi:pi-hole
+      size: 16
+      color: "#96060B"
+    - type: text
+      position: [22, 4]
+      content: "Pi"
+      color: white
+    - type: icon
+      position: [44, 2]
+      icon: "{{ 'mdi:shield-check' if is_state('binary_sensor.pi_hole_status', 'on') else 'mdi:shield-off' }}"
+      size: 16
+      color: "{{ '#00FF00' if is_state('binary_sensor.pi_hole_status', 'on') else '#FF0000' }}"
+
+    # Nombre de publicités bloquées
+    - type: text
+      position: [32, 18]
+      align: center
+      content: "{{ states('sensor.pi_hole_ads_blocked_today') }}"
+      color: "#FF4444"
+    - type: text
+      position: [32, 27]
+      align: center
+      content: "bloquées"
+      color: "#888888"
+
+    # Barre de progression du taux de blocage, colorée par palier
+    - type: progress_bar
+      position: [4, 40]
+      size: [56, 6]
+      min: 0
+      max: 50
+      value: "{{ states('sensor.pi_hole_ads_percentage_blocked_today') }}"
+      background_color: "#333333"
+      color_thresholds:
+        - value: 0
+          color: "#FF4444"
+        - value: 10
+          color: "#FFAA00"
+        - value: 20
+          color: "#00FF00"
+    - type: text
+      position: [32, 49]
+      align: center
+      content: "{{ states('sensor.pi_hole_ads_percentage_blocked_today') | round(1) }}% bloqué"
+      color: white
+
+    # Total de requêtes DNS du jour
+    - type: text
+      position: [32, 57]
+      align: center
+      content: "{{ states('sensor.pi_hole_dns_queries_today') }} DNS"
+      color: "#666666"
+```
+
 #### Polices
 
 Le composant `text` accepte un champ `font` optionnel :
