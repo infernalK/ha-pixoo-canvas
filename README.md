@@ -185,6 +185,19 @@ Champs suivants, utilisés uniquement quand `scroll: true` :
 | `divoom_font` | Non | `0` | Police native du Pixoo (0-7), utilisée par le firmware pour le rendu défilant. |
 | `text_id` | Non | | Identifiant du slot (0-19), pour superposer plusieurs textes défilants. |
 
+**Aperçu des polices natives (`divoom_font`)**, confirmé sur device réel (Pixoo 64) :
+
+| `divoom_font` | Style observé |
+| --- | --- |
+| `0` | Taille normale (~11px), traits fins, majuscules/minuscules distinctes — la plus sobre. |
+| `1` | Grande et grasse, occupe presque toute la hauteur de la ligne. |
+| `2` | Taille proche de `0`, mais lettres plus condensées/serrées. |
+| `3` | Quasi identique à `0`. |
+| `4` | Grande et grasse, quasi identique à `1`. |
+| `5` | Encore plus grande/blocky que `1`/`4` — la plus épaisse. |
+| `6` | Grande, style penché/dynamique, traits épais. |
+| `7` | Grande, droite, nette, sans empattement — très lisible. |
+
 #### Composant : `image`
 
 | Champ | Obligatoire | Défaut | Valeurs |
