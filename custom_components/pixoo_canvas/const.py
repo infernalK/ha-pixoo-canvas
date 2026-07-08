@@ -30,11 +30,20 @@ CMD_SET_STOPWATCH = "Tools/SetStopWatch"
 # integration used, copied from kmplngj/pixoo-ha without hardware
 # verification): confirmed on real hardware to be accepted (the device
 # flashes a generic "Save Setting" screen) but never actually rings.
-# "Alarm/Set" is the command name found in Divoom's decompiled
-# APK/firmware command list (alongside Alarm/Get, Alarm/Del, Alarm/DelAll,
-# Alarm/Change) - still unverified end-to-end on real hardware as of this
-# change (does it actually ring, sent locally rather than through Divoom's
-# cloud API the way github.com/Grayda/pixoo_api's setAlarm() does).
+# "Alarm/Set" is the command name found in Divoom's decompiled APK/firmware
+# command list (alongside Alarm/Get, Alarm/Del, Alarm/DelAll, Alarm/Change),
+# and IS validated by the device - confirmed on real hardware to reject a
+# Status/Hour/Minute payload with error_code "Request data illegal json for
+# Alarm/Set", rather than accepting it blindly like Device/SetAlarm did.
+# _alarm_payload's current EnableFlag/AlarmTime ("HH:MM" string) shape,
+# guessed from the field names in github.com/Grayda/pixoo_api's setAlarm()
+# (which sends Alarm/Set to Divoom's authenticated *cloud* API, not the
+# local device this integration talks to - AlarmTime there is a Unix
+# timestamp, adapted to "HH:MM" here since nothing else in this local API
+# uses timestamps), is UNVERIFIED and may also be rejected - no known
+# source documents this command's real local payload shape; even
+# divoom.2a03.party/api/app.html (a community Divoom API reference) lists
+# Alarm/Set as a wholly undocumented endpoint.
 CMD_SET_ALARM = "Alarm/Set"
 
 DEFAULT_SCAN_INTERVAL = 15

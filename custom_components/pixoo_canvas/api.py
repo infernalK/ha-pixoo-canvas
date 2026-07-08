@@ -73,7 +73,11 @@ def _channel_payload(channel: int) -> dict[str, Any]:
 
 
 def _alarm_payload(hour: int, minute: int, enabled: bool) -> dict[str, Any]:
-    return {"Command": CMD_SET_ALARM, "Status": 1 if enabled else 0, "Hour": hour, "Minute": minute}
+    return {
+        "Command": CMD_SET_ALARM,
+        "EnableFlag": 1 if enabled else 0,
+        "AlarmTime": f"{hour:02d}:{minute:02d}",
+    }
 
 
 def _gif_payload(pic_id: int, width: int, rgb_bytes: bytes) -> dict[str, Any]:
