@@ -1036,3 +1036,77 @@ async def test_stop_sound_meter_unknown_device_id(hass, aioclient_mock):
             {"device_id": "does-not-exist"},
             blocking=True,
         )
+
+
+async def test_set_alarm_sends_status_1_with_hour_and_minute(hass, aioclient_mock):
+    """set_alarm posts Device/SetAlarm with Status: 1 and the hour/minute parsed from 'time'."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "set_alarm",
+        {"device_id": _device_id(hass, entry), "time": "07:30:00"},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Device/SetAlarm", "Status": 1, "Hour": 7, "Minute": 30}
+
+
+async def test_set_alarm_enabled_false_sends_status_0(hass, aioclient_mock):
+    """set_alarm with enabled: false posts Status: 0 while still sending the given hour/minute."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "set_alarm",
+        {"device_id": _device_id(hass, entry), "time": "07:30:00", "enabled": False},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Device/SetAlarm", "Status": 0, "Hour": 7, "Minute": 30}
+
+
+async def test_set_alarm_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "set_alarm",
+            {"device_id": "does-not-exist", "time": "07:30:00"},
+            blocking=True,
+        )
+
+
+async def test_stop_alarm_sends_status_0_with_zeroed_time(hass, aioclient_mock):
+    """stop_alarm posts Device/SetAlarm with Status: 0, Hour: 0, Minute: 0."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_alarm",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Device/SetAlarm", "Status": 0, "Hour": 0, "Minute": 0}
+
+
+async def test_stop_alarm_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "stop_alarm",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )

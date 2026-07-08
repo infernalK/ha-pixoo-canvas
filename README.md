@@ -32,6 +32,7 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
 - [Service : chronomètre (start_stopwatch / pause_stopwatch / stop_stopwatch / reset_stopwatch)](#service--chronomètre-start_stopwatch--pause_stopwatch--stop_stopwatch--reset_stopwatch)
 - [Service : visualiseur audio (start_visualizer / stop_visualizer)](#service--visualiseur-audio-start_visualizer--stop_visualizer)
 - [Service : sonomètre (start_sound_meter / stop_sound_meter)](#service--sonomètre-start_sound_meter--stop_sound_meter)
+- [Service : alarme (set_alarm / stop_alarm)](#service--alarme-set_alarm--stop_alarm)
 - [Licence](#licence)
 
 ## Installation
@@ -813,6 +814,28 @@ data:
 
 ```yaml
 service: pixoo_canvas.stop_sound_meter
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+## Service : alarme (set_alarm / stop_alarm)
+
+Les services `pixoo_canvas.set_alarm` et `pixoo_canvas.stop_alarm` pilotent l'alarme
+intégrée au Pixoo (`Device/SetAlarm`). Contrairement au minuteur/chronomètre/visualiseur/
+sonomètre, l'alarme ne prend pas l'écran immédiatement — c'est un réveil programmé, géré
+entièrement par le firmware de l'appareil — donc `set_alarm` ne met pas
+`switch.pixoo_page_rotation` en pause.
+
+```yaml
+service: pixoo_canvas.set_alarm
+data:
+  device_id: <ton appareil Pixoo Canvas>
+  time: "07:30"
+  enabled: true   # optionnel, défaut true
+```
+
+```yaml
+service: pixoo_canvas.stop_alarm
 data:
   device_id: <ton appareil Pixoo Canvas>
 ```

@@ -21,10 +21,12 @@ from .const import (
     SERVICE_REBOOT_DEVICE,
     SERVICE_RENDER_PAGE,
     SERVICE_RESET_STOPWATCH,
+    SERVICE_SET_ALARM,
     SERVICE_START_SOUND_METER,
     SERVICE_START_STOPWATCH,
     SERVICE_START_TIMER,
     SERVICE_START_VISUALIZER,
+    SERVICE_STOP_ALARM,
     SERVICE_STOP_SOUND_METER,
     SERVICE_STOP_STOPWATCH,
     SERVICE_STOP_TIMER,
@@ -106,6 +108,15 @@ SERVICE_STOP_VISUALIZER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.strin
 
 SERVICE_START_SOUND_METER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 SERVICE_STOP_SOUND_METER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+
+SERVICE_SET_ALARM_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): cv.string,
+        vol.Required("time"): cv.time,
+        vol.Optional("enabled", default=True): cv.boolean,
+    }
+)
+SERVICE_STOP_ALARM_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 
 
 def _get_coordinator(hass: HomeAssistant, device_id: str) -> PixooCoordinator:
@@ -270,6 +281,23 @@ async def _async_handle_stop_sound_meter(hass: HomeAssistant, call: ServiceCall)
     await coordinator.rotator.async_resume_after_tool()
 
 
+async def _async_handle_set_alarm(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.set_alarm service call.
+
+    Unlike start_timer/start_visualizer/etc., the alarm doesn't take over the
+    screen immediately, so there's no page rotation to pause here.
+    """
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    alarm_time = call.data["time"]
+    await coordinator.client.set_alarm(alarm_time.hour, alarm_time.minute, call.data["enabled"])
+
+
+async def _async_handle_stop_alarm(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.stop_alarm service call."""
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.stop_alarm()
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register Pixoo Canvas services (idempotent across multiple config entries)."""
     if hass.services.has_service(DOMAIN, SERVICE_RENDER_PAGE):
@@ -313,6 +341,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def _handle_stop_sound_meter(call: ServiceCall) -> None:
         await _async_handle_stop_sound_meter(hass, call)
+
+    async def _handle_set_alarm(call: ServiceCall) -> None:
+        await _async_handle_set_alarm(hass, call)
+
+    async def _handle_stop_alarm(call: ServiceCall) -> None:
+        await _async_handle_stop_alarm(hass, call)
 
     hass.services.async_register(
         DOMAIN, SERVICE_RENDER_PAGE, _handle_render_page, schema=SERVICE_RENDER_PAGE_SCHEMA
@@ -374,6 +408,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         _handle_stop_sound_meter,
         schema=SERVICE_STOP_SOUND_METER_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SET_ALARM, _handle_set_alarm, schema=SERVICE_SET_ALARM_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_STOP_ALARM, _handle_stop_alarm, schema=SERVICE_STOP_ALARM_SCHEMA
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -392,3 +432,5 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         hass.services.async_remove(DOMAIN, SERVICE_STOP_VISUALIZER)
         hass.services.async_remove(DOMAIN, SERVICE_START_SOUND_METER)
         hass.services.async_remove(DOMAIN, SERVICE_STOP_SOUND_METER)
+        hass.services.async_remove(DOMAIN, SERVICE_SET_ALARM)
+        hass.services.async_remove(DOMAIN, SERVICE_STOP_ALARM)

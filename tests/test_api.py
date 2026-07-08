@@ -618,6 +618,39 @@ async def test_stop_sound_meter_still_stops_if_the_channel_read_fails(hass, aioc
     }
 
 
+async def test_set_alarm_sends_status_1_with_hour_and_minute(hass, aioclient_mock):
+    """set_alarm posts Device/SetAlarm with Status: 1 and the given hour/minute."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_alarm(7, 30)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Device/SetAlarm", "Status": 1, "Hour": 7, "Minute": 30}
+
+
+async def test_set_alarm_enabled_false_sends_status_0(hass, aioclient_mock):
+    """set_alarm(enabled=False) still posts the given hour/minute, but with Status: 0."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.set_alarm(7, 30, enabled=False)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Device/SetAlarm", "Status": 0, "Hour": 7, "Minute": 30}
+
+
+async def test_stop_alarm_sends_status_0_with_zeroed_time(hass, aioclient_mock):
+    """stop_alarm posts Device/SetAlarm with Status: 0, Hour: 0, Minute: 0."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.stop_alarm()
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {"Command": "Device/SetAlarm", "Status": 0, "Hour": 0, "Minute": 0}
+
+
 async def test_set_mirror_mode_sends_mode_1(hass, aioclient_mock):
     """set_mirror_mode(True) posts Device/SetMirrorMode with Mode: 1."""
     aioclient_mock.post(URL, json={"error_code": 0})

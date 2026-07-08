@@ -8,5 +8,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/infernalK/ha-pixoo-canvas/issues",
   "requirements": ["Pillow"],
-  "version": "1.23.0"
+  "version": "1.24.0"
 }

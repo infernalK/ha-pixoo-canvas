@@ -347,6 +347,34 @@
           "description": "The Pixoo Canvas device to stop the sound meter on."
         }
       }
+    },
+    "set_alarm": {
+      "name": "Set the alarm",
+      "description": "Sets the Pixoo's built-in alarm clock (Device/SetAlarm) to ring at the given time. Unlike start_timer/start_stopwatch/start_visualizer, this doesn't take over the screen immediately and doesn't need page rotation paused - it's a scheduled wake handled entirely by the device's own firmware.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to set the alarm on."
+        },
+        "time": {
+          "name": "Time",
+          "description": "Alarm time (24-hour). Only the hour and minute are used."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "Whether the alarm is enabled. Defaults to true."
+        }
+      }
+    },
+    "stop_alarm": {
+      "name": "Stop the alarm",
+      "description": "Disables the Pixoo's built-in alarm clock (Device/SetAlarm, Status: 0).",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to disable the alarm on."
+        }
+      }
     }
   }
 }

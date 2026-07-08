@@ -26,6 +26,7 @@ CMD_SYS_REBOOT = "Device/SysReboot"
 CMD_SET_MIRROR_MODE = "Device/SetMirrorMode"
 CMD_SET_TIMER = "Tools/SetTimer"
 CMD_SET_STOPWATCH = "Tools/SetStopWatch"
+CMD_SET_ALARM = "Device/SetAlarm"
 
 DEFAULT_SCAN_INTERVAL = 15
 DEFAULT_TIMEOUT = 10
@@ -67,6 +68,8 @@ SERVICE_START_VISUALIZER = "start_visualizer"
 SERVICE_STOP_VISUALIZER = "stop_visualizer"
 SERVICE_START_SOUND_METER = "start_sound_meter"
 SERVICE_STOP_SOUND_METER = "stop_sound_meter"
+SERVICE_SET_ALARM = "set_alarm"
+SERVICE_STOP_ALARM = "stop_alarm"
 
 DEFAULT_BUZZER_ACTIVE_TIME_MS = 500
 DEFAULT_BUZZER_OFF_TIME_MS = 500
