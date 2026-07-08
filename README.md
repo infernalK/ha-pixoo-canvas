@@ -486,6 +486,9 @@ plein). Pas de champ `id` : il n'y en a qu'un seul.
 Page prête à l'emploi pour un système solaire/batterie — l'icône batterie et la barre
 de charge changent de couleur automatiquement (rouge → orange → vert) selon le niveau.
 
+![Aperçu de la page PV](docs/img/pages/pv.png)
+*Aperçu généré par le moteur de rendu (pas une photo du device réel).*
+
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
 | `power` | Non | | Puissance actuelle (affichée en W), brute ou template. |
@@ -504,6 +507,9 @@ de charge changent de couleur automatiquement (rouge → orange → vert) selon 
 ### Page : Fuel (station-service)
 
 Page prête à l'emploi pour afficher jusqu'à 3 prix de carburant.
+
+![Aperçu de la page Fuel](docs/img/pages/fuel.png)
+*Aperçu généré par le moteur de rendu (pas une photo du device réel).*
 
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
@@ -533,6 +539,9 @@ libre (le petit libellé sous le nombre de pubs bloquées) suit la langue config
 Home Assistant (`fr`/`en` pour l'instant, repli sur l'anglais sinon) plutôt que d'imposer
 le français. Testée sur device réel.
 
+![Aperçu de la page Pihole](docs/img/pages/pihole.png)
+*Aperçu généré par le moteur de rendu (pas une photo du device réel).*
+
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
 | `blocked` | Non | | Nombre de publicités bloquées, brut ou template. |
@@ -557,6 +566,9 @@ Contrairement à `pv`/`fuel`/`pihole`, un seul champ suffit : la température et
 l'humidité sont lues directement sur l'entité (toute plateforme météo HA les expose en
 attributs), donc rien d'autre à configurer pour le cas courant.
 
+![Aperçu de la page Weather](docs/img/pages/weather.png)
+*Aperçu généré par le moteur de rendu (pas une photo du device réel).*
+
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
 | `entity` | Oui | | `entity_id` d'une entité `weather.*`. Contrairement aux autres champs de ce tableau, c'est un `entity_id` brut, pas un template : condition/température/humidité en sont lues directement. |
@@ -572,6 +584,9 @@ attributs), donc rien d'autre à configurer pour le cas courant.
 Page prête à l'emploi pour n'importe quelle entité dont l'état est un pourcentage de
 charge 0-100 (robot aspirateur, téléphone synchronisé, capteur de pile...) — jauge
 circulaire avec le composant `arc`, colorée par palier (rouge → orange → vert).
+
+![Aperçu de la page Battery](docs/img/pages/battery.png)
+*Aperçu généré par le moteur de rendu (pas une photo du device réel).*
 
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
