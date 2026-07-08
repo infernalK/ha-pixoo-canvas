@@ -52,8 +52,8 @@ async def test_render_page_with_inline_components(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf+GetIndex (setup) + one batched ClearHttpText+SendHttpGif request
-    assert len(aioclient_mock.mock_calls) == 3
+    # initial GetAllConf+GetIndex+ResetHttpGifId (setup) + one batched ClearHttpText+SendHttpGif request
+    assert len(aioclient_mock.mock_calls) == 4
 
 
 async def test_render_page_with_named_page(hass, aioclient_mock):
@@ -75,8 +75,8 @@ async def test_render_page_with_named_page(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf+GetIndex (setup) + one batched ClearHttpText+SendHttpGif request
-    assert len(aioclient_mock.mock_calls) == 3
+    # initial GetAllConf+GetIndex+ResetHttpGifId (setup) + one batched ClearHttpText+SendHttpGif request
+    assert len(aioclient_mock.mock_calls) == 4
 
 
 async def test_render_page_with_native_clock_page(hass, aioclient_mock):
@@ -92,8 +92,8 @@ async def test_render_page_with_native_clock_page(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf+GetIndex (setup) + one batched Draw/CommandList request
-    assert len(aioclient_mock.mock_calls) == 3
+    # initial GetAllConf+GetIndex+ResetHttpGifId (setup) + one batched Draw/CommandList request
+    assert len(aioclient_mock.mock_calls) == 4
     payload = aioclient_mock.mock_calls[-1][2]
     assert payload == {
         "Command": "Draw/CommandList",
@@ -118,8 +118,8 @@ async def test_render_page_with_inline_page_type_clock(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf+GetIndex (setup) + one batched Draw/CommandList request
-    assert len(aioclient_mock.mock_calls) == 3
+    # initial GetAllConf+GetIndex+ResetHttpGifId (setup) + one batched Draw/CommandList request
+    assert len(aioclient_mock.mock_calls) == 4
     payload = aioclient_mock.mock_calls[-1][2]
     assert payload == {
         "Command": "Draw/CommandList",
@@ -149,8 +149,8 @@ async def test_render_page_with_inline_page_type_pv(hass, aioclient_mock):
         blocking=True,
     )
 
-    # initial GetAllConf+GetIndex (setup) + one batched ClearHttpText+SendHttpGif request
-    assert len(aioclient_mock.mock_calls) == 3
+    # initial GetAllConf+GetIndex+ResetHttpGifId (setup) + one batched ClearHttpText+SendHttpGif request
+    assert len(aioclient_mock.mock_calls) == 4
 
 
 async def test_render_page_rejects_invalid_inline_page_type(hass, aioclient_mock):

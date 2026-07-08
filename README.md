@@ -159,6 +159,12 @@ Par défaut, le texte est dessiné une fois dans le buffer de l'image (statique)
 `scroll: true`, il défile à la place, animé nativement par l'écran (pas par nous) —
 utile pour un message plus long que l'écran.
 
+⚠️ **En mode `scroll: true`, `font`/`font_size` (nos polices bitmap) sont ignorés.** Le
+texte n'est alors plus dessiné par l'intégration : il est envoyé tel quel au firmware du
+Pixoo (`Draw/SendHttpText`), qui l'anime et le rend lui-même avec une de ses polices
+natives (`divoom_font`, 0-7 — voir l'aperçu ci-dessous). Nos polices bitmap ne peuvent
+pas s'appliquer sur ce chemin : c'est le device qui dessine les pixels, pas nous.
+
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
 | `position` | Oui | | `[x, y]` |
