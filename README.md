@@ -243,9 +243,9 @@ Barre de progression horizontale ou verticale.
 | `background_color` | Non | gris foncé | `[R, G, B]` ou nom de couleur. |
 | `color` + `color_thresholds` | Non | vert | Couleur de la barre — voir ci-dessous. |
 
-**`color_thresholds`** (commun à `icon` et `progress_bar`) : une liste croissante de
-paliers `{value, color}`. La couleur retenue est celle du palier le plus élevé encore
-inférieur ou égal à `value` :
+**`color_thresholds`** (commun à `icon`, `progress_bar`, `line`, `circle`, `arc`, `arrow`
+et `graph`) : une liste croissante de paliers `{value, color}`. La couleur retenue est
+celle du palier le plus élevé encore inférieur ou égal à `value` :
 
 ```yaml
 - type: progress_bar
@@ -260,6 +260,101 @@ inférieur ou égal à `value` :
     - value: 90
       color: green
 ```
+
+#### Composant : `line`
+
+Segment de droite, épaisseur configurable — traits de séparation, croix de repère,
+barres de graphique fait main.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `start` | Oui | | `[x, y]` |
+| `end` | Oui | | `[x, y]` |
+| `color` | Non | `white` | `[R, G, B]` ou nom de couleur. |
+| `thickness` | Non | `1` | Épaisseur en pixels. |
+| `value` + `color_thresholds` | Non | | Colore la ligne selon une valeur — voir ci-dessus. |
+
+#### Composant : `circle`
+
+Cercle plein ou en contour — point de repère, centre de jauge circulaire.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `center` | Oui | | `[x, y]` |
+| `radius` | Oui | | Rayon en pixels. |
+| `color` | Non | `white` | `[R, G, B]` ou nom de couleur. |
+| `filled` | Non | `true` | `true` (plein) ou `false` (contour seul). |
+| `thickness` | Non | `1` | Épaisseur du contour (si `filled: false`). |
+| `value` + `color_thresholds` | Non | | Colore le cercle selon une valeur — voir ci-dessus. |
+
+#### Composant : `arc`
+
+Arc de cercle ou camembert — jauges circulaires, anneaux de progression. Les angles se
+comptent à partir du haut (`0` = midi), sens horaire.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `center` | Oui | | `[x, y]` |
+| `radius` | Oui | | Rayon en pixels. |
+| `start_angle` | Non | `0` | Degrés, `0` = haut, sens horaire. Accepte un template. |
+| `end_angle` | Non | `90` | Degrés. Accepte un template, ex. `{{ (value \| float) * 3.6 }}` pour un pourcentage. |
+| `color` | Non | `white` | `[R, G, B]` ou nom de couleur. |
+| `filled` | Non | `false` | `true` (camembert plein) ou `false` (arc en contour). |
+| `thickness` | Non | `2` | Épaisseur de l'arc (si `filled: false`). |
+| `value` + `color_thresholds` | Non | | Colore l'arc selon une valeur — voir ci-dessus. |
+
+```yaml
+# Anneau de batterie
+- type: arc
+  center: [32, 32]
+  radius: 20
+  start_angle: 0
+  end_angle: "{{ (states('sensor.batterie') | float) * 3.6 }}"
+  thickness: 3
+  value: "{{ states('sensor.batterie') }}"
+  color_thresholds:
+    - value: 0
+      color: red
+    - value: 20
+      color: orange
+    - value: 50
+      color: green
+```
+
+#### Composant : `arrow`
+
+Flèche directionnelle avec rotation — boussole, direction du vent, cap GPS. L'angle se
+compte comme pour `arc` : `0` = haut (nord), sens horaire.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `center` | Oui | | `[x, y]`, point de départ de la flèche. |
+| `length` | Oui | | Longueur en pixels. |
+| `angle` | Non | `0` | Degrés, `0` = haut, sens horaire. Accepte un template. |
+| `color` | Non | `white` | `[R, G, B]` ou nom de couleur. |
+| `thickness` | Non | `2` | Épaisseur du corps de la flèche. |
+| `head_size` | Non | `4` | Taille de la pointe en pixels. |
+| `value` + `color_thresholds` | Non | | Colore la flèche selon une valeur — voir ci-dessus. |
+
+#### Composant : `graph`
+
+Historique d'une entité, tracé en ligne, aire remplie ou barres.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `position` | Oui | | `[x, y]` |
+| `size` | Oui | | `[largeur, hauteur]` |
+| `entity_id` | Oui | | Entité dont l'historique est lu via le recorder de Home Assistant. |
+| `hours` | Non | `24` | Fenêtre d'historique en heures. |
+| `points` | Non | `largeur` | Nombre de points affichés (les valeurs brutes sont regroupées par paquets). |
+| `aggregate_func` | Non | `avg` | `avg`, `min`, `max`, `last` — fonction d'agrégation par paquet. |
+| `style` | Non | `line` | `line`, `area` (aire remplie), `bar` (barres). |
+| `line_color` | Non | bleu | Couleur du tracé — voir ci-dessus pour `color_thresholds`. |
+| `fill_color` | Non | bleu foncé | Couleur de remplissage sous la courbe (style `area`, ou `show_fill: true`). |
+| `background_color` | Non | gris très foncé | `[R, G, B]` ou nom de couleur. |
+| `show_fill` | Non | `false` | Remplit sous la courbe même en style `line`. |
+| `min_value` / `max_value` | Non | auto (min/max des données) | Bornes de l'axe Y. |
+| `color_thresholds` | Non | | Colore chaque point selon sa valeur — voir ci-dessus. |
 
 #### Composant : `templatable`
 
