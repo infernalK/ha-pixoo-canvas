@@ -100,5 +100,209 @@
         "name": "Reboot"
       }
     }
+  },
+  "services": {
+    "render_page": {
+      "name": "Render page",
+      "description": "Composes a page (a list of components, or a page configured in the integration's options) onto the Pixoo 64 and pushes it to the screen.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to render on."
+        },
+        "page": {
+          "name": "Page name",
+          "description": "Name of a page configured in the integration's options, of any page_type (components, clock, channel, visualizer, sound_meter, pv, fuel, pihole, weather, battery). Provide this, or an inline page (page_type/components/id/etc.), not both."
+        },
+        "page_type": {
+          "name": "Page type",
+          "description": "Only used for an inline page (omit when using 'page'). One of components (the default), clock, channel, visualizer, sound_meter, pv, fuel, pihole, weather, battery. clock/channel/visualizer also need an 'id'; sound_meter takes no extra field; pv/fuel/pihole/weather/battery take their own fields (power/storage/discharge/time for pv; title/name1/price1/name2/price2/name3/price3/status for fuel; blocked/percentage/queries/status_entity for pihole; entity for weather, reading condition/temperature/humidity from that one weather entity; entity/label for battery, a generic 0-100 charge gauge for any entity) passed as extra service data alongside page_type. See the README for field details."
+        },
+        "components": {
+          "name": "Components",
+          "description": "Inline list of page components (text/image/rectangle/icon/progress_bar/templatable). Text components draw static buffer text by default, with an optional `font` (pico_8, the default bitmap font; gicko, wider; matrix_chunky_6/matrix_chunky_8, with real lowercase and French accents); with `scroll: true` they instead queue a native, device-animated scrolling overlay (Draw/SendHttpText) rather than static buffer text. Used for an inline page_type: components page (the default page_type); provide this or 'page', not both."
+        },
+        "id": {
+          "name": "Id",
+          "description": "Native screen/channel index to switch to. Required when page_type is clock, channel, or visualizer. Accepts a number or a Jinja template."
+        },
+        "power": {
+          "name": "Power",
+          "description": "Solar power, e.g. \"1200\" (rendered with a \"W\" suffix). Used when page_type is pv."
+        },
+        "storage": {
+          "name": "Storage",
+          "description": "Battery charge percentage (0-100). Used when page_type is pv."
+        },
+        "discharge": {
+          "name": "Discharge",
+          "description": "Optional discharge power, e.g. \"300\" (rendered with a \"W\" suffix). Omit to hide the discharge readout. Used when page_type is pv."
+        },
+        "time": {
+          "name": "Time",
+          "description": "Optional time label; defaults to the current HH:MM if omitted. Used when page_type is pv."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Used when page_type is fuel."
+        },
+        "name1": {
+          "name": "Row 1 name",
+          "description": "Used when page_type is fuel."
+        },
+        "price1": {
+          "name": "Row 1 price",
+          "description": "Used when page_type is fuel."
+        },
+        "name2": {
+          "name": "Row 2 name",
+          "description": "Used when page_type is fuel."
+        },
+        "price2": {
+          "name": "Row 2 price",
+          "description": "Used when page_type is fuel."
+        },
+        "name3": {
+          "name": "Row 3 name",
+          "description": "Used when page_type is fuel."
+        },
+        "price3": {
+          "name": "Row 3 price",
+          "description": "Used when page_type is fuel."
+        },
+        "status": {
+          "name": "Status",
+          "description": "Optional status line. Used when page_type is fuel."
+        },
+        "blocked": {
+          "name": "Blocked",
+          "description": "Ads blocked today. Used when page_type is pihole."
+        },
+        "percentage": {
+          "name": "Percentage",
+          "description": "Blocking rate, 0-100. Used when page_type is pihole."
+        },
+        "queries": {
+          "name": "Queries",
+          "description": "Optional DNS queries today. Used when page_type is pihole."
+        },
+        "status_entity": {
+          "name": "Status entity",
+          "description": "Optional binary_sensor reflecting whether Pi-hole is active, used to switch the on/off shield icon+color. Used when page_type is pihole."
+        },
+        "entity": {
+          "name": "Entity",
+          "description": "Required for both page_type weather (a weather.* entity - its condition/temperature/humidity are read directly from that entity) and page_type battery (any entity whose state is a 0-100 charge percentage)."
+        },
+        "label": {
+          "name": "Label",
+          "description": "Optional short name shown under the gauge, e.g. \"Robot\". Used when page_type is battery."
+        },
+        "variables": {
+          "name": "Variables",
+          "description": "Extra variables made available to the page's Jinja templates."
+        }
+      }
+    },
+    "play_buzzer": {
+      "name": "Play the buzzer",
+      "description": "Plays the Pixoo's built-in buzzer. Use at your own risk - repeated/rapid use of the buzzer could stress the device's hardware over time.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to buzz."
+        },
+        "active_time_ms": {
+          "name": "Buzz time per cycle",
+          "description": "How long the buzzer is on for each cycle."
+        },
+        "off_time_ms": {
+          "name": "Idle time per cycle",
+          "description": "How long the buzzer is off for between cycles."
+        },
+        "total_time_ms": {
+          "name": "Total time",
+          "description": "Total duration the buzzer keeps cycling on/off."
+        }
+      }
+    },
+    "reboot_device": {
+      "name": "Reboot the device",
+      "description": "Reboots the Pixoo (Device/SysReboot). The screen goes dark for a while and any active rotation resumes once the device comes back online. Use for recovery automations (e.g. after a device becomes unresponsive), not as a routine action.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to reboot."
+        }
+      }
+    },
+    "start_timer": {
+      "name": "Start the countdown timer",
+      "description": "Starts the Pixoo's built-in countdown timer tool (Tools/SetTimer), switching the screen to it. It takes over the screen until stop_timer is called or another page/service switches the device away from it - handy to call from an iOS/Android Shortcut (Home Assistant's app exposes any service as a \"Perform action\" step) for a quick kitchen timer.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to start the timer on."
+        },
+        "minutes": {
+          "name": "Minutes",
+          "description": "Countdown minutes (0-59). At least one of minutes/seconds must be non-zero."
+        },
+        "seconds": {
+          "name": "Seconds",
+          "description": "Countdown seconds (0-59). At least one of minutes/seconds must be non-zero."
+        }
+      }
+    },
+    "stop_timer": {
+      "name": "Stop the countdown timer",
+      "description": "Stops the Pixoo's built-in countdown timer tool, if running, restores the channel that was on screen before start_timer (Channel/SetIndex, for a clean exit instead of leaving the timer's own frame on screen), and resumes page rotation if start_timer had paused it. There's no pause_timer: confirmed on real hardware (and in Divoom's own app) that stopping a countdown timer always resets it to 0, so a temporary pause that resumes mid-countdown isn't possible.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to stop the timer on."
+        }
+      }
+    },
+    "start_stopwatch": {
+      "name": "Start the stopwatch",
+      "description": "Starts the Pixoo's built-in stopwatch tool (Tools/SetStopWatch), switching the screen to it. It takes over the screen until stop_stopwatch is called or another page/service switches the device away from it - handy to call from an iOS/Android Shortcut for timing something on the fly.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to start the stopwatch on."
+        }
+      }
+    },
+    "stop_stopwatch": {
+      "name": "Stop the stopwatch",
+      "description": "Stops the Pixoo's built-in stopwatch tool, if running, restores the channel that was on screen before start_stopwatch (Channel/SetIndex, for a clean exit instead of leaving the stopwatch's own frame on screen), and resumes page rotation if start_stopwatch had paused it - use this when you're done with the stopwatch. For a temporary pause you intend to resume shortly (without page rotation kicking back in, and keeping the elapsed time on screen), use pause_stopwatch instead.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to stop the stopwatch on."
+        }
+      }
+    },
+    "pause_stopwatch": {
+      "name": "Pause the stopwatch",
+      "description": "Pauses the Pixoo's built-in stopwatch tool without restoring the channel active before start_stopwatch or resuming page rotation, keeping the elapsed time on screen so start_stopwatch can resume it later. Same underlying command as stop_stopwatch, minus the channel restore and page rotation resume - use stop_stopwatch instead when you're done with the stopwatch for good.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to pause the stopwatch on."
+        }
+      }
+    },
+    "reset_stopwatch": {
+      "name": "Reset the stopwatch",
+      "description": "Resets the Pixoo's built-in stopwatch back to zero (Tools/SetStopWatch, Status: 2). Whether this also stops it if it was running is untested on real hardware - call stop_stopwatch afterwards if it doesn't.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The Pixoo Canvas device to reset the stopwatch on."
+        }
+      }
+    }
   }
 }

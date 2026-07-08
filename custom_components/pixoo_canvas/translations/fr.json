@@ -100,5 +100,209 @@
         "name": "Redémarrer"
       }
     }
+  },
+  "services": {
+    "render_page": {
+      "name": "Afficher une page",
+      "description": "Compose une page (une liste de composants, ou une page configurée dans les options de l'intégration) et l'envoie au Pixoo 64.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel afficher la page."
+        },
+        "page": {
+          "name": "Nom de la page",
+          "description": "Nom d'une page configurée dans les options de l'intégration, de n'importe quel page_type (components, clock, channel, visualizer, sound_meter, pv, fuel, pihole, weather, battery). Fournis ce champ, ou une page en ligne (page_type/components/id/etc.), pas les deux."
+        },
+        "page_type": {
+          "name": "Type de page",
+          "description": "Utilisé uniquement pour une page en ligne (à omettre avec 'page'). Un parmi components (par défaut), clock, channel, visualizer, sound_meter, pv, fuel, pihole, weather, battery. clock/channel/visualizer ont aussi besoin d'un 'id' ; sound_meter ne prend aucun champ supplémentaire ; pv/fuel/pihole/weather/battery ont leurs propres champs (power/storage/discharge/time pour pv ; title/name1/price1/name2/price2/name3/price3/status pour fuel ; blocked/percentage/queries/status_entity pour pihole ; entity pour weather, qui lit condition/temperature/humidity directement sur cette entité météo ; entity/label pour battery, une jauge de charge générique 0-100 pour n'importe quelle entité) passés en plus de page_type. Voir le README pour le détail des champs."
+        },
+        "components": {
+          "name": "Composants",
+          "description": "Liste en ligne de composants de page (text/image/rectangle/icon/progress_bar/templatable). Les composants text dessinent du texte statique par défaut, avec une `font` optionnelle (pico_8, la police bitmap par défaut ; gicko, plus large ; matrix_chunky_6/matrix_chunky_8, avec de vraies minuscules et les accents français) ; avec `scroll: true`, ils déclenchent plutôt un défilement natif animé par l'appareil (Draw/SendHttpText) au lieu de texte statique. Utilisé pour une page en ligne de page_type components (le type par défaut) ; fournis ce champ ou 'page', pas les deux."
+        },
+        "id": {
+          "name": "Id",
+          "description": "Index natif de l'écran/channel à afficher. Requis quand page_type vaut clock, channel ou visualizer. Accepte un nombre ou un template Jinja."
+        },
+        "power": {
+          "name": "Puissance",
+          "description": "Puissance solaire, par ex. \"1200\" (affichée avec un suffixe \"W\"). Utilisé quand page_type vaut pv."
+        },
+        "storage": {
+          "name": "Stockage",
+          "description": "Pourcentage de charge de la batterie (0-100). Utilisé quand page_type vaut pv."
+        },
+        "discharge": {
+          "name": "Décharge",
+          "description": "Puissance de décharge optionnelle, par ex. \"300\" (affichée avec un suffixe \"W\"). Omets ce champ pour masquer l'indicateur de décharge. Utilisé quand page_type vaut pv."
+        },
+        "time": {
+          "name": "Heure",
+          "description": "Libellé d'heure optionnel ; par défaut l'heure actuelle au format HH:MM si omis. Utilisé quand page_type vaut pv."
+        },
+        "title": {
+          "name": "Titre",
+          "description": "Utilisé quand page_type vaut fuel."
+        },
+        "name1": {
+          "name": "Nom ligne 1",
+          "description": "Utilisé quand page_type vaut fuel."
+        },
+        "price1": {
+          "name": "Prix ligne 1",
+          "description": "Utilisé quand page_type vaut fuel."
+        },
+        "name2": {
+          "name": "Nom ligne 2",
+          "description": "Utilisé quand page_type vaut fuel."
+        },
+        "price2": {
+          "name": "Prix ligne 2",
+          "description": "Utilisé quand page_type vaut fuel."
+        },
+        "name3": {
+          "name": "Nom ligne 3",
+          "description": "Utilisé quand page_type vaut fuel."
+        },
+        "price3": {
+          "name": "Prix ligne 3",
+          "description": "Utilisé quand page_type vaut fuel."
+        },
+        "status": {
+          "name": "Statut",
+          "description": "Ligne de statut optionnelle. Utilisé quand page_type vaut fuel."
+        },
+        "blocked": {
+          "name": "Bloquées",
+          "description": "Publicités bloquées aujourd'hui. Utilisé quand page_type vaut pihole."
+        },
+        "percentage": {
+          "name": "Pourcentage",
+          "description": "Taux de blocage, 0-100. Utilisé quand page_type vaut pihole."
+        },
+        "queries": {
+          "name": "Requêtes",
+          "description": "Nombre de requêtes DNS aujourd'hui (optionnel). Utilisé quand page_type vaut pihole."
+        },
+        "status_entity": {
+          "name": "Entité de statut",
+          "description": "binary_sensor optionnel reflétant si Pi-hole est actif, utilisé pour basculer l'icône bouclier on/off et sa couleur. Utilisé quand page_type vaut pihole."
+        },
+        "entity": {
+          "name": "Entité",
+          "description": "Requis à la fois pour page_type weather (une entité weather.* - sa condition/température/humidité sont lues directement sur cette entité) et pour page_type battery (n'importe quelle entité dont l'état est un pourcentage de charge 0-100)."
+        },
+        "label": {
+          "name": "Libellé",
+          "description": "Nom court optionnel affiché sous la jauge, par ex. \"Robot\". Utilisé quand page_type vaut battery."
+        },
+        "variables": {
+          "name": "Variables",
+          "description": "Variables supplémentaires mises à disposition des templates Jinja de la page."
+        }
+      }
+    },
+    "play_buzzer": {
+      "name": "Faire sonner le buzzer",
+      "description": "Fait sonner le buzzer intégré au Pixoo. À utiliser avec précaution : un usage répété/rapide du buzzer pourrait fatiguer le matériel de l'appareil sur la durée.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas à faire sonner."
+        },
+        "active_time_ms": {
+          "name": "Durée de sonnerie par cycle",
+          "description": "Durée pendant laquelle le buzzer sonne à chaque cycle."
+        },
+        "off_time_ms": {
+          "name": "Durée de silence par cycle",
+          "description": "Durée de silence entre chaque cycle."
+        },
+        "total_time_ms": {
+          "name": "Durée totale",
+          "description": "Durée totale pendant laquelle le buzzer enchaîne les cycles marche/arrêt."
+        }
+      }
+    },
+    "reboot_device": {
+      "name": "Redémarrer l'appareil",
+      "description": "Redémarre le Pixoo (Device/SysReboot). L'écran s'éteint un moment et la rotation en cours reprend une fois l'appareil de nouveau en ligne. À réserver aux automatisations de récupération (par ex. après qu'un appareil devienne injoignable), pas à un usage courant.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas à redémarrer."
+        }
+      }
+    },
+    "start_timer": {
+      "name": "Démarrer le minuteur",
+      "description": "Démarre l'outil minuteur intégré au Pixoo (Tools/SetTimer) et bascule l'écran dessus. Il occupe l'écran jusqu'à l'appel de stop_timer ou jusqu'à ce qu'une autre page/service fasse basculer l'appareil ailleurs - pratique à appeler depuis un raccourci iOS/Android (l'app Home Assistant expose n'importe quel service comme étape \"Exécuter une action\") pour un minuteur de cuisine rapide.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel démarrer le minuteur."
+        },
+        "minutes": {
+          "name": "Minutes",
+          "description": "Minutes du compte à rebours (0-59). Au moins un des deux champs minutes/secondes doit être non nul."
+        },
+        "seconds": {
+          "name": "Secondes",
+          "description": "Secondes du compte à rebours (0-59). Au moins un des deux champs minutes/secondes doit être non nul."
+        }
+      }
+    },
+    "stop_timer": {
+      "name": "Arrêter le minuteur",
+      "description": "Arrête l'outil minuteur intégré au Pixoo s'il est en cours, restaure le channel affiché avant start_timer (Channel/SetIndex, pour sortir proprement au lieu de laisser l'écran du minuteur affiché), et reprend la rotation des pages si start_timer l'avait mise en pause. Il n'existe pas de pause_timer : confirmé sur du matériel réel (et dans l'app Divoom elle-même) qu'arrêter un compte à rebours le remet toujours à 0, une pause temporaire reprenant en cours de compte n'est donc pas possible.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel arrêter le minuteur."
+        }
+      }
+    },
+    "start_stopwatch": {
+      "name": "Démarrer le chronomètre",
+      "description": "Démarre l'outil chronomètre intégré au Pixoo (Tools/SetStopWatch) et bascule l'écran dessus. Il occupe l'écran jusqu'à l'appel de stop_stopwatch ou jusqu'à ce qu'une autre page/service fasse basculer l'appareil ailleurs - pratique à appeler depuis un raccourci iOS/Android pour chronométrer quelque chose à la volée.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel démarrer le chronomètre."
+        }
+      }
+    },
+    "stop_stopwatch": {
+      "name": "Arrêter le chronomètre",
+      "description": "Arrête l'outil chronomètre intégré au Pixoo s'il est en cours, restaure le channel affiché avant start_stopwatch (Channel/SetIndex, pour sortir proprement au lieu de laisser l'écran du chronomètre affiché), et reprend la rotation des pages si start_stopwatch l'avait mise en pause - à utiliser quand tu en as fini avec le chronomètre. Pour une pause temporaire que tu comptes reprendre bientôt (sans que la rotation des pages reprenne, et en gardant le temps écoulé affiché), utilise plutôt pause_stopwatch.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel arrêter le chronomètre."
+        }
+      }
+    },
+    "pause_stopwatch": {
+      "name": "Mettre le chronomètre en pause",
+      "description": "Met en pause l'outil chronomètre intégré au Pixoo sans restaurer le channel actif avant start_stopwatch ni reprendre la rotation des pages, en gardant le temps écoulé affiché pour que start_stopwatch puisse le reprendre plus tard. Même commande sous-jacente que stop_stopwatch, sans la restauration du channel ni la reprise de la rotation des pages - utilise stop_stopwatch quand tu en as fini pour de bon avec le chronomètre.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel mettre le chronomètre en pause."
+        }
+      }
+    },
+    "reset_stopwatch": {
+      "name": "Réinitialiser le chronomètre",
+      "description": "Remet à zéro l'outil chronomètre intégré au Pixoo (Tools/SetStopWatch, Status: 2). Le fait que cela l'arrête aussi s'il était en cours n'a pas été testé sur du matériel réel - appelle stop_stopwatch ensuite si ce n'est pas le cas.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel réinitialiser le chronomètre."
+        }
+      }
+    }
   }
 }
