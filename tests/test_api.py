@@ -497,6 +497,127 @@ async def test_reset_stopwatch_sends_status_2(hass, aioclient_mock):
     assert payload == {"Command": "Tools/SetStopWatch", "Status": 2}
 
 
+async def test_start_visualizer_reads_channel_then_switches(hass, aioclient_mock):
+    """start_visualizer captures the current channel, then batches Tools/* stops with SetEqPosition."""
+    with patch.object(PixooClient, "get_channel", new=AsyncMock(return_value=1)) as mock_get_channel:
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+
+        await client.start_visualizer(2)
+
+    mock_get_channel.assert_awaited_once()
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
+            {"Command": "Channel/SetEqPosition", "EqPosition": 2},
+        ],
+    }
+
+
+async def test_start_visualizer_does_not_recapture_channel_on_a_second_call(hass, aioclient_mock):
+    """Switching visualizer positions without an intervening stop doesn't overwrite the saved channel."""
+    with patch.object(PixooClient, "get_channel", new=AsyncMock(return_value=1)) as mock_get_channel:
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+        await client.start_visualizer(2)
+
+        await client.start_visualizer(3)
+
+    mock_get_channel.assert_awaited_once()
+
+
+async def test_start_visualizer_still_switches_if_the_channel_read_fails(hass, aioclient_mock):
+    """start_visualizer's switch still goes out even if the Channel/GetIndex read errors."""
+    with patch.object(
+        PixooClient, "get_channel", new=AsyncMock(side_effect=PixooConnectionError("boom"))
+    ):
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+
+        await client.start_visualizer(2)
+
+    payload = aioclient_mock.mock_calls[0][2]
+    commands = [c["Command"] for c in payload["CommandList"]]
+    assert commands[-1] == "Channel/SetEqPosition"
+
+
+async def test_stop_visualizer_restores_the_channel_captured_by_start_visualizer(hass, aioclient_mock):
+    """stop_visualizer restores the channel captured when start_visualizer first switched."""
+    with patch.object(PixooClient, "get_channel", new=AsyncMock(return_value=1)):
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+        await client.start_visualizer(2)
+
+        await client.stop_visualizer()
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {"Command": "Channel/SetIndex", "SelectIndex": 1}
+
+
+async def test_stop_visualizer_is_a_noop_without_a_captured_channel(hass, aioclient_mock):
+    """stop_visualizer sends nothing if start_visualizer never captured a channel (cold call, or the read failed)."""
+    aioclient_mock.post(URL, json={"error_code": 0})
+    client = PixooClient(async_get_clientsession(hass), HOST)
+
+    await client.stop_visualizer()
+
+    assert len(aioclient_mock.mock_calls) == 0
+
+
+async def test_start_visualizer_recaptures_channel_after_a_stop_visualizer(hass, aioclient_mock):
+    """A start_visualizer after stop_visualizer captures the channel again (a fresh session)."""
+    with patch.object(PixooClient, "get_channel", new=AsyncMock(return_value=1)) as mock_get_channel:
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+        await client.start_visualizer(2)
+        await client.stop_visualizer()
+
+        await client.start_visualizer(3)
+
+    assert mock_get_channel.await_count == 2
+
+
+async def test_stop_sound_meter_reads_then_restores_the_current_channel(hass, aioclient_mock):
+    """stop_sound_meter fetches Channel/GetIndex first, then stops the noise tool and restores it."""
+    with patch.object(PixooClient, "get_channel", new=AsyncMock(return_value=3)) as mock_get_channel:
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+
+        await client.stop_sound_meter()
+
+    mock_get_channel.assert_awaited_once()
+    assert len(aioclient_mock.mock_calls) == 1
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Channel/SetIndex", "SelectIndex": 3},
+        ],
+    }
+
+
+async def test_stop_sound_meter_still_stops_if_the_channel_read_fails(hass, aioclient_mock):
+    """stop_sound_meter's stop still goes out even if the Channel/GetIndex read errors."""
+    with patch.object(
+        PixooClient, "get_channel", new=AsyncMock(side_effect=PixooConnectionError("boom"))
+    ):
+        aioclient_mock.post(URL, json={"error_code": 0})
+        client = PixooClient(async_get_clientsession(hass), HOST)
+
+        await client.stop_sound_meter()
+
+    payload = aioclient_mock.mock_calls[0][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [{"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0}],
+    }
+
+
 async def test_set_mirror_mode_sends_mode_1(hass, aioclient_mock):
     """set_mirror_mode(True) posts Device/SetMirrorMode with Mode: 1."""
     aioclient_mock.post(URL, json={"error_code": 0})

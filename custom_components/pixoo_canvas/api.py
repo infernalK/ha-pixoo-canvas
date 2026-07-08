@@ -126,6 +126,13 @@ class PixooClient:
         self._noise_may_be_active = True
         self._timer_may_be_active = True
         self._stopwatch_may_be_active = True
+        # Unlike the above (Tools/* overlays, which don't alter the device's
+        # own notion of "current channel" - see get_channel), start_visualizer
+        # switches the channel itself, so the channel to restore on
+        # stop_visualizer must be captured up front rather than read fresh at
+        # stop time.
+        self._visualizer_may_be_active = False
+        self._pre_visualizer_channel: int | None = None
 
     async def _send(self, payload: dict[str, Any]) -> dict[str, Any]:
         """POST a command payload and return the parsed JSON response."""
@@ -255,6 +262,33 @@ class PixooClient:
             [*self._stop_active_tools(), {"Command": CMD_SET_VISUALIZER, "EqPosition": position}]
         )
 
+    async def start_visualizer(self, position: int) -> None:
+        """Switch to a built-in audio visualizer, remembering the channel to restore.
+
+        Unlike set_visualizer's plain channel switch, this captures the
+        channel active *before* switching (unless one is already captured
+        from an earlier start_visualizer, so cycling between visualizer
+        positions without an intervening stop_visualizer doesn't overwrite
+        it with the visualizer's own channel) so stop_visualizer can put it
+        back - see the docstring on _pre_visualizer_channel for why this
+        can't just be read fresh at stop time the way stop_timer/
+        stop_stopwatch do.
+        """
+        if not self._visualizer_may_be_active:
+            try:
+                self._pre_visualizer_channel = await self.get_channel()
+            except PixooApiError:
+                self._pre_visualizer_channel = None
+            self._visualizer_may_be_active = True
+        await self.set_visualizer(position)
+
+    async def stop_visualizer(self) -> None:
+        """Restore the channel that was active before start_visualizer, if captured."""
+        if self._pre_visualizer_channel is not None:
+            await self.set_channel(self._pre_visualizer_channel)
+        self._visualizer_may_be_active = False
+        self._pre_visualizer_channel = None
+
     async def set_noise_status(self, on: bool) -> None:
         """Start or stop the device's built-in sound meter (decibel) tool."""
         await self._send(_noise_status_payload(on))
@@ -283,6 +317,25 @@ class PixooClient:
             ]
         )
         self._noise_may_be_active = True
+
+    async def stop_sound_meter(self) -> None:
+        """Stop the sound meter and restore whatever channel is active underneath.
+
+        Same channel-restore rationale as stop_timer/stop_stopwatch: a
+        Tools/* overlay doesn't alter the device's own notion of "current
+        channel", so it's read fresh here rather than needing to be
+        captured at start time (contrast start_visualizer/stop_visualizer,
+        a Channel/* switch that does alter it).
+        """
+        try:
+            channel = await self.get_channel()
+        except PixooApiError:
+            channel = None
+        commands = [_noise_status_payload(False)]
+        if channel is not None:
+            commands.append(_channel_payload(channel))
+        await self.send_command_list(commands)
+        self._noise_may_be_active = False
 
     async def start_timer(self, minutes: int, seconds: int) -> None:
         """Start a countdown timer, forcing a 0->1 edge in a single request.

@@ -303,6 +303,50 @@
           "description": "L'appareil Pixoo Canvas sur lequel réinitialiser le chronomètre."
         }
       }
+    },
+    "start_visualizer": {
+      "name": "Démarrer le visualiseur",
+      "description": "Bascule le Pixoo sur un de ses visualiseurs audio intégrés (Channel/SetEqPosition), en mettant d'abord la rotation des pages en pause si elle est active - pratique à appeler depuis un raccourci iOS/Android sans construire une page en ligne pour render_page. Appelle stop_visualizer pour revenir à ce qui était affiché avant.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel basculer sur le visualiseur."
+        },
+        "id": {
+          "name": "Id",
+          "description": "Index du visualiseur, tel qu'affiché dans l'app Divoom (à partir de 0)."
+        }
+      }
+    },
+    "stop_visualizer": {
+      "name": "Arrêter le visualiseur",
+      "description": "Restaure le channel qui était actif avant start_visualizer, et reprend la rotation des pages si start_visualizer l'avait mise en pause.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel arrêter le visualiseur."
+        }
+      }
+    },
+    "start_sound_meter": {
+      "name": "Démarrer le sonomètre",
+      "description": "Bascule le Pixoo sur son outil sonomètre intégré (Tools/SetNoiseStatus), en mettant d'abord la rotation des pages en pause si elle est active - pratique à appeler depuis un raccourci iOS/Android. Appelle stop_sound_meter pour revenir à ce qui était affiché avant.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel démarrer le sonomètre."
+        }
+      }
+    },
+    "stop_sound_meter": {
+      "name": "Arrêter le sonomètre",
+      "description": "Arrête l'outil sonomètre, restaure le channel qui était actif avant start_sound_meter (Channel/SetIndex, pour sortir proprement au lieu de laisser l'écran du sonomètre affiché), et reprend la rotation des pages si start_sound_meter l'avait mise en pause.",
+      "fields": {
+        "device_id": {
+          "name": "Appareil",
+          "description": "L'appareil Pixoo Canvas sur lequel arrêter le sonomètre."
+        }
+      }
     }
   }
 }

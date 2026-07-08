@@ -400,3 +400,74 @@ reset_stopwatch:
       selector:
         device:
           integration: pixoo_canvas
+
+start_visualizer:
+  name: Start the visualizer
+  description: >-
+    Switches the Pixoo to one of its built-in audio visualizers
+    (Channel/SetEqPosition), pausing page rotation first if it's running -
+    handy to call from an iOS/Android Shortcut without building an inline
+    render_page page. Call stop_visualizer to return to whatever was on
+    screen before.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to switch to the visualizer.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+    id:
+      name: Id
+      description: Index of the visualizer, as shown in the Divoom app (starting at 0).
+      required: true
+      selector:
+        number:
+          min: 0
+          mode: box
+
+stop_visualizer:
+  name: Stop the visualizer
+  description: >-
+    Restores the channel that was active before start_visualizer, and
+    resumes page rotation if start_visualizer had paused it.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to stop the visualizer on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+
+start_sound_meter:
+  name: Start the sound meter
+  description: >-
+    Switches the Pixoo to its built-in sound meter (decibel) tool
+    (Tools/SetNoiseStatus), pausing page rotation first if it's running -
+    handy to call from an iOS/Android Shortcut. Call stop_sound_meter to
+    return to whatever was on screen before.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to start the sound meter on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas
+
+stop_sound_meter:
+  name: Stop the sound meter
+  description: >-
+    Stops the sound meter tool, restores the channel that was active before
+    start_sound_meter (Channel/SetIndex, for a clean exit instead of leaving
+    the sound meter's own frame on screen), and resumes page rotation if
+    start_sound_meter had paused it.
+  fields:
+    device_id:
+      name: Device
+      description: The Pixoo Canvas device to stop the sound meter on.
+      required: true
+      selector:
+        device:
+          integration: pixoo_canvas

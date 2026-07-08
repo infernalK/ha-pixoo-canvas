@@ -30,6 +30,8 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
 - [Service : redémarrer l'appareil](#service--redémarrer-lappareil)
 - [Service : minuteur (start_timer / stop_timer)](#service--minuteur-start_timer--stop_timer)
 - [Service : chronomètre (start_stopwatch / pause_stopwatch / stop_stopwatch / reset_stopwatch)](#service--chronomètre-start_stopwatch--pause_stopwatch--stop_stopwatch--reset_stopwatch)
+- [Service : visualiseur audio (start_visualizer / stop_visualizer)](#service--visualiseur-audio-start_visualizer--stop_visualizer)
+- [Service : sonomètre (start_sound_meter / stop_sound_meter)](#service--sonomètre-start_sound_meter--stop_sound_meter)
 - [Licence](#licence)
 
 ## Installation
@@ -453,7 +455,9 @@ elle-même (le rythme de défilement des images du channel se règle dans l'app,
 
 ### Page : Visualizer (visualiseur audio)
 
-Bascule sur un des visualiseurs audio intégrés au Pixoo.
+Bascule sur un des visualiseurs audio intégrés au Pixoo. Pour un déclenchement ponctuel
+depuis un Raccourci plutôt qu'une page de rotation, voir aussi les services
+[`start_visualizer`/`stop_visualizer`](#service--visualiseur-audio-start_visualizer--stop_visualizer).
 
 | Champ | Obligatoire | Valeurs |
 | --- | :---: | --- |
@@ -468,7 +472,9 @@ Bascule sur un des visualiseurs audio intégrés au Pixoo.
 ### Page : Sound meter (sonomètre)
 
 Bascule sur l'outil sonomètre intégré au Pixoo (mesure de niveau sonore en dB, écran
-plein). Pas de champ `id` : il n'y en a qu'un seul.
+plein). Pas de champ `id` : il n'y en a qu'un seul. Pour un déclenchement ponctuel depuis
+un Raccourci plutôt qu'une page de rotation, voir aussi les services
+[`start_sound_meter`/`stop_sound_meter`](#service--sonomètre-start_sound_meter--stop_sound_meter).
 
 ```yaml
 - name: Sonomètre
@@ -757,6 +763,56 @@ data:
 
 ```yaml
 service: pixoo_canvas.stop_stopwatch
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+## Service : visualiseur audio (start_visualizer / stop_visualizer)
+
+Les services `pixoo_canvas.start_visualizer` et `pixoo_canvas.stop_visualizer` offrent un
+raccourci pour basculer sur un [visualiseur audio](#page--visualizer-visualiseur-audio) sans
+construire une page en ligne pour `render_page` — pratique pour un Raccourci iOS/Android
+qui n'a qu'un `id` à renseigner. Même logique que le minuteur/chronomètre :
+`start_visualizer` met `switch.pixoo_page_rotation` en pause si elle est active (sans
+changer ta préférence on/off) ; `stop_visualizer` restaure le channel qui était affiché
+avant le démarrage et relance la rotation seulement si c'est `start_visualizer` qui
+l'avait mise en pause.
+
+```yaml
+service: pixoo_canvas.start_visualizer
+data:
+  device_id: <ton appareil Pixoo Canvas>
+  id: 2   # index du visualiseur, tel qu'affiché dans l'app Divoom (à partir de 0)
+```
+
+```yaml
+service: pixoo_canvas.stop_visualizer
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+> ⚠️ `stop_visualizer` appelé sans `start_visualizer` préalable (par ex. depuis un
+> Raccourci "au cas où") ne fait rien : contrairement au minuteur/chronomètre, le
+> visualiseur ne laisse pas de trace de channel à restaurer tant que `start_visualizer`
+> n'a pas capturé le channel actif avant lui.
+
+## Service : sonomètre (start_sound_meter / stop_sound_meter)
+
+Les services `pixoo_canvas.start_sound_meter` et `pixoo_canvas.stop_sound_meter` pilotent
+le [sonomètre](#page--sound-meter-sonomètre) intégré au Pixoo avec la même ergonomie que le
+minuteur/chronomètre : `start_sound_meter` met `switch.pixoo_page_rotation` en pause si
+elle est active, et `stop_sound_meter` restaure le channel qui était affiché avant le
+démarrage et relance la rotation seulement si c'est `start_sound_meter` qui l'avait mise
+en pause. Aucun champ requis à part `device_id`.
+
+```yaml
+service: pixoo_canvas.start_sound_meter
+data:
+  device_id: <ton appareil Pixoo Canvas>
+```
+
+```yaml
+service: pixoo_canvas.stop_sound_meter
 data:
   device_id: <ton appareil Pixoo Canvas>
 ```

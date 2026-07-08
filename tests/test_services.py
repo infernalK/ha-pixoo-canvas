@@ -797,3 +797,242 @@ async def test_render_page_unknown_device_id(hass, aioclient_mock):
             },
             blocking=True,
         )
+
+
+async def test_start_visualizer_pauses_running_page_rotation(hass, aioclient_mock):
+    """start_visualizer pauses page rotation if it was running, same rationale as start_timer."""
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await coordinator.rotator.async_start()
+    assert coordinator.rotator.is_running is True
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_visualizer",
+        {"device_id": _device_id(hass, entry), "id": 2},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is False
+
+
+async def test_start_visualizer_sends_eq_position(hass, aioclient_mock):
+    """start_visualizer posts Channel/SetEqPosition with the given id."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "start_visualizer",
+        {"device_id": _device_id(hass, entry), "id": 2},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
+            {"Command": "Channel/SetEqPosition", "EqPosition": 2},
+        ],
+    }
+
+
+async def test_start_visualizer_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "start_visualizer",
+            {"device_id": "does-not-exist", "id": 2},
+            blocking=True,
+        )
+
+
+async def test_stop_visualizer_resumes_page_rotation_it_paused(hass, aioclient_mock):
+    """stop_visualizer resumes page rotation that start_visualizer had paused."""
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await coordinator.rotator.async_start()
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_visualizer",
+        {"device_id": _device_id(hass, entry), "id": 2},
+        blocking=True,
+    )
+    assert coordinator.rotator.is_running is False
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_visualizer",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is True
+
+
+async def test_stop_visualizer_restores_channel_active_before_start_visualizer(hass, aioclient_mock):
+    """stop_visualizer restores the channel active before a preceding start_visualizer."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_visualizer",
+        {"device_id": _device_id(hass, entry), "id": 2},
+        blocking=True,
+    )
+
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_visualizer",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Channel/SetIndex",
+        "SelectIndex": GET_ALL_CONF_RESPONSE["SelectIndex"],
+    }
+
+
+async def test_stop_visualizer_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "stop_visualizer",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )
+
+
+async def test_start_sound_meter_pauses_running_page_rotation(hass, aioclient_mock):
+    """start_sound_meter pauses page rotation if it was running, same rationale as start_timer."""
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await coordinator.rotator.async_start()
+    assert coordinator.rotator.is_running is True
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_sound_meter",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is False
+
+
+async def test_start_sound_meter_batches_stop_and_start(hass, aioclient_mock):
+    """start_sound_meter forces the 0->1 edge on Tools/SetNoiseStatus, same as restart_noise_status."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "start_sound_meter",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetTimer", "Minute": 0, "Second": 0, "Status": 0},
+            {"Command": "Tools/SetStopWatch", "Status": 0},
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 1},
+        ],
+    }
+
+
+async def test_start_sound_meter_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "start_sound_meter",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )
+
+
+async def test_stop_sound_meter_resumes_page_rotation_it_paused(hass, aioclient_mock):
+    """stop_sound_meter resumes page rotation that start_sound_meter had paused."""
+    entry = await _setup_entry(hass, aioclient_mock, options={CONF_PAGES_YAML: _ONE_PAGE})
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await coordinator.rotator.async_start()
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "start_sound_meter",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+    assert coordinator.rotator.is_running is False
+
+    aioclient_mock.post(URL, json={"error_code": 0})
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_sound_meter",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    assert coordinator.rotator.is_running is True
+
+
+async def test_stop_sound_meter_sends_status_0_and_restores_channel(hass, aioclient_mock):
+    """stop_sound_meter stops the noise tool and restores the current channel."""
+    entry = await _setup_entry(hass, aioclient_mock)
+    aioclient_mock.post(URL, json={"error_code": 0})
+
+    await hass.services.async_call(
+        DOMAIN,
+        "stop_sound_meter",
+        {"device_id": _device_id(hass, entry)},
+        blocking=True,
+    )
+
+    payload = aioclient_mock.mock_calls[-1][2]
+    assert payload == {
+        "Command": "Draw/CommandList",
+        "CommandList": [
+            {"Command": "Tools/SetNoiseStatus", "NoiseStatus": 0},
+            {"Command": "Channel/SetIndex", "SelectIndex": GET_ALL_CONF_RESPONSE["SelectIndex"]},
+        ],
+    }
+
+
+async def test_stop_sound_meter_unknown_device_id(hass, aioclient_mock):
+    """An unknown device_id raises."""
+    await _setup_entry(hass, aioclient_mock)
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            DOMAIN,
+            "stop_sound_meter",
+            {"device_id": "does-not-exist"},
+            blocking=True,
+        )

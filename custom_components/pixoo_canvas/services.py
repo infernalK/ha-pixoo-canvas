@@ -21,10 +21,14 @@ from .const import (
     SERVICE_REBOOT_DEVICE,
     SERVICE_RENDER_PAGE,
     SERVICE_RESET_STOPWATCH,
+    SERVICE_START_SOUND_METER,
     SERVICE_START_STOPWATCH,
     SERVICE_START_TIMER,
+    SERVICE_START_VISUALIZER,
+    SERVICE_STOP_SOUND_METER,
     SERVICE_STOP_STOPWATCH,
     SERVICE_STOP_TIMER,
+    SERVICE_STOP_VISUALIZER,
 )
 from .coordinator import PixooCoordinator
 from .page_render import render_configured_page
@@ -91,6 +95,17 @@ SERVICE_START_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.strin
 SERVICE_STOP_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 SERVICE_PAUSE_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 SERVICE_RESET_STOPWATCH_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+
+SERVICE_START_VISUALIZER_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): cv.string,
+        vol.Required("id"): vol.All(vol.Coerce(int), vol.Range(min=0)),
+    }
+)
+SERVICE_STOP_VISUALIZER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+
+SERVICE_START_SOUND_METER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
+SERVICE_STOP_SOUND_METER_SCHEMA = vol.Schema({vol.Required("device_id"): cv.string})
 
 
 def _get_coordinator(hass: HomeAssistant, device_id: str) -> PixooCoordinator:
@@ -215,6 +230,46 @@ async def _async_handle_reset_stopwatch(hass: HomeAssistant, call: ServiceCall) 
     await coordinator.client.reset_stopwatch()
 
 
+async def _async_handle_start_visualizer(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.start_visualizer service call.
+
+    See _async_handle_start_timer for why page rotation is paused first.
+    """
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.rotator.async_pause_for_tool()
+    await coordinator.client.start_visualizer(call.data["id"])
+
+
+async def _async_handle_stop_visualizer(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.stop_visualizer service call.
+
+    Resumes page rotation afterwards, if start_visualizer paused it.
+    """
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.stop_visualizer()
+    await coordinator.rotator.async_resume_after_tool()
+
+
+async def _async_handle_start_sound_meter(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.start_sound_meter service call.
+
+    See _async_handle_start_timer for why page rotation is paused first.
+    """
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.rotator.async_pause_for_tool()
+    await coordinator.client.restart_noise_status()
+
+
+async def _async_handle_stop_sound_meter(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the pixoo_canvas.stop_sound_meter service call.
+
+    Resumes page rotation afterwards, if start_sound_meter paused it.
+    """
+    coordinator = _get_coordinator(hass, call.data["device_id"])
+    await coordinator.client.stop_sound_meter()
+    await coordinator.rotator.async_resume_after_tool()
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register Pixoo Canvas services (idempotent across multiple config entries)."""
     if hass.services.has_service(DOMAIN, SERVICE_RENDER_PAGE):
@@ -246,6 +301,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def _handle_reset_stopwatch(call: ServiceCall) -> None:
         await _async_handle_reset_stopwatch(hass, call)
+
+    async def _handle_start_visualizer(call: ServiceCall) -> None:
+        await _async_handle_start_visualizer(hass, call)
+
+    async def _handle_stop_visualizer(call: ServiceCall) -> None:
+        await _async_handle_stop_visualizer(hass, call)
+
+    async def _handle_start_sound_meter(call: ServiceCall) -> None:
+        await _async_handle_start_sound_meter(hass, call)
+
+    async def _handle_stop_sound_meter(call: ServiceCall) -> None:
+        await _async_handle_stop_sound_meter(hass, call)
 
     hass.services.async_register(
         DOMAIN, SERVICE_RENDER_PAGE, _handle_render_page, schema=SERVICE_RENDER_PAGE_SCHEMA
@@ -283,6 +350,30 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         _handle_reset_stopwatch,
         schema=SERVICE_RESET_STOPWATCH_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_START_VISUALIZER,
+        _handle_start_visualizer,
+        schema=SERVICE_START_VISUALIZER_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_STOP_VISUALIZER,
+        _handle_stop_visualizer,
+        schema=SERVICE_STOP_VISUALIZER_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_START_SOUND_METER,
+        _handle_start_sound_meter,
+        schema=SERVICE_START_SOUND_METER_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_STOP_SOUND_METER,
+        _handle_stop_sound_meter,
+        schema=SERVICE_STOP_SOUND_METER_SCHEMA,
+    )
 
 
 async def async_unload_services(hass: HomeAssistant) -> None:
@@ -297,3 +388,7 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         hass.services.async_remove(DOMAIN, SERVICE_STOP_STOPWATCH)
         hass.services.async_remove(DOMAIN, SERVICE_PAUSE_STOPWATCH)
         hass.services.async_remove(DOMAIN, SERVICE_RESET_STOPWATCH)
+        hass.services.async_remove(DOMAIN, SERVICE_START_VISUALIZER)
+        hass.services.async_remove(DOMAIN, SERVICE_STOP_VISUALIZER)
+        hass.services.async_remove(DOMAIN, SERVICE_START_SOUND_METER)
+        hass.services.async_remove(DOMAIN, SERVICE_STOP_SOUND_METER)
