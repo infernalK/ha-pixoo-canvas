@@ -323,10 +323,12 @@ def build_battery_components(page: dict[str, Any], hass: HomeAssistant) -> list[
 
     Unlike `pv`'s battery icon+bar, this draws a circular gauge with the
     `arc` component - a deliberate showcase now that `arc` exists (it postdates
-    `pv`). `entity` is resolved here (not a raw/template value) because the
-    gauge's swept angle is derived from the percentage in plain Python -
-    doing that math in Jinja would mean embedding one template's output
-    inside another, which isn't valid Jinja.
+    `pv`), with a light-gray `background_color` track so the swept portion
+    reads as "part of a 0-100 ring" rather than a stray colored mark,
+    especially at low percentages. `entity` is resolved here (not a
+    raw/template value) because the gauge's swept angle is derived from the
+    percentage in plain Python - doing that math in Jinja would mean
+    embedding one template's output inside another, which isn't valid Jinja.
     """
     entity_id = page.get("entity")
     label = page.get("label")
@@ -344,6 +346,7 @@ def build_battery_components(page: dict[str, Any], hass: HomeAssistant) -> list[
             "thickness": 4,
             "value": value,
             "color_thresholds": _BATTERY_COLOR_THRESHOLDS,
+            "background_color": [60, 60, 60],
         },
         {
             "type": "text",

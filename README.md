@@ -305,6 +305,7 @@ comptent à partir du haut (`0` = midi), sens horaire.
 | `filled` | Non | `false` | `true` (camembert plein) ou `false` (arc en contour). |
 | `thickness` | Non | `2` | Épaisseur de l'arc (si `filled: false`). |
 | `value` + `color_thresholds` | Non | | Colore l'arc selon une valeur — voir ci-dessus. |
+| `background_color` | Non | | Dessine un cercle complet dans cette couleur avant l'arc — la "piste" de fond d'une jauge, pour que le tracé se lise comme "une portion de 0-100" même à faible valeur. Même idée que `background_color` sur `progress_bar`. |
 
 ```yaml
 # Anneau de batterie
@@ -315,6 +316,7 @@ comptent à partir du haut (`0` = midi), sens horaire.
   end_angle: "{{ (states('sensor.batterie') | float) * 3.6 }}"
   thickness: 3
   value: "{{ states('sensor.batterie') }}"
+  background_color: [60, 60, 60]
   color_thresholds:
     - value: 0
       color: red

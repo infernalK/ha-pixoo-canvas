@@ -41,11 +41,25 @@ async def draw(
         color = default_color
 
     box = (center_x - radius, center_y - radius, center_x + radius, center_y + radius)
+    filled = bool(component.get("filled", False))
+    thickness = int(component.get("thickness", 2))
+
+    background = component.get("background_color")
+    if background is not None:
+        # A full circle (any start/end 360 degrees apart draws the same complete
+        # ring), so it always represents the gauge's full range regardless of
+        # this arc's own start_angle/end_angle - the "track" a partial sweep
+        # reads against, same idea as progress_bar's background_color.
+        bg_color = resolve_color(background, hass, variables, default=(40, 40, 40))
+        if filled:
+            ctx.draw.pieslice(box, start=-90, end=270, fill=bg_color)
+        else:
+            ctx.draw.arc(box, start=-90, end=270, fill=bg_color, width=thickness)
+
     pillow_start = start_angle - _ANGLE_OFFSET
     pillow_end = end_angle - _ANGLE_OFFSET
 
-    if bool(component.get("filled", False)):
+    if filled:
         ctx.draw.pieslice(box, start=pillow_start, end=pillow_end, fill=color)
     else:
-        thickness = int(component.get("thickness", 2))
         ctx.draw.arc(box, start=pillow_start, end=pillow_end, fill=color, width=thickness)

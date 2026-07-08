@@ -66,3 +66,24 @@ async def test_color_thresholds_override_default_color(hass):
     await arc.draw(component, ctx, hass, None)
 
     assert ctx.image.getpixel((20, 12)) == (255, 0, 0)
+
+
+async def test_background_color_draws_full_track_behind_the_sweep(hass):
+    """background_color draws a full ring first, so the (small) sweep sits over a full track."""
+    ctx = RenderContext()
+    component = {
+        "type": "arc",
+        "center": [20, 20],
+        "radius": 10,
+        "start_angle": 0,
+        "end_angle": 10,  # a small sweep near the top only
+        "color": [255, 0, 0],
+        "filled": False,
+        "thickness": 2,
+        "background_color": [60, 60, 60],
+    }
+
+    await arc.draw(component, ctx, hass, None)
+
+    assert ctx.image.getpixel((20, 10)) == (255, 0, 0)  # inside the sweep (top)
+    assert ctx.image.getpixel((10, 20)) == (60, 60, 60)  # outside the sweep (west), still on the track
