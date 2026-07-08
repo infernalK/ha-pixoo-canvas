@@ -187,16 +187,16 @@ Champs suivants, utilisés uniquement quand `scroll: true` :
 
 **Aperçu des polices natives (`divoom_font`)**, confirmé sur device réel (Pixoo 64) :
 
-| `divoom_font` | Style observé |
-| --- | --- |
-| `0` | Taille normale (~11px), traits fins, majuscules/minuscules distinctes — la plus sobre. |
-| `1` | Grande et grasse, occupe presque toute la hauteur de la ligne. |
-| `2` | Taille proche de `0`, mais lettres plus condensées/serrées. |
-| `3` | Quasi identique à `0`. |
-| `4` | Grande et grasse, quasi identique à `1`. |
-| `5` | Encore plus grande/blocky que `1`/`4` — la plus épaisse. |
-| `6` | Grande, style penché/dynamique, traits épais. |
-| `7` | Grande, droite, nette, sans empattement — très lisible. |
+| `divoom_font` | Taille (L×H, px) | Style observé |
+| --- | :---: | --- |
+| `0` | 10×7 | Traits fins, majuscules/minuscules distinctes — la plus sobre. |
+| `1` | 11×10 | Grande et grasse, la plus haute. |
+| `2` | 8×7 | La plus compacte/condensée. |
+| `3` | 10×10 | Même largeur que `0` mais nettement plus haute. |
+| `4` | 11×8 | Grande et grasse, un peu moins haute que `1`. |
+| `5` | 13×9 | La plus large, blocky. |
+| `6` | 13×8 | Aussi large que `5`, style penché/dynamique. |
+| `7` | 11×8 | Grande, droite, nette, sans empattement — très lisible. |
 
 #### Composant : `image`
 
