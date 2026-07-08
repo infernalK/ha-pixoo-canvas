@@ -1,4 +1,4 @@
-"""Prebuilt page layouts (`page_type: pv`/`fuel`) built from existing components.
+"""Prebuilt page layouts (`page_type: pv`/`fuel`/`pihole`) built from existing components.
 
 Unlike `page_type: components`, these page types don't take a `components`
 list - just a handful of named fields - and are expanded here into the
@@ -100,5 +100,76 @@ def build_fuel_components(page: dict[str, Any]) -> list[dict[str, Any]]:
 
     if status is not None:
         components.append({"type": "text", "position": [2, 54], "content": str(status), "color": "grey"})
+
+    return components
+
+
+_PIHOLE_COLOR_THRESHOLDS = [
+    {"value": 0, "color": "red"},
+    {"value": 10, "color": "orange"},
+    {"value": 20, "color": "green"},
+]
+
+
+def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build the components for a `page_type: pihole` (ad-blocking dashboard) page.
+
+    Fields: `blocked` (ads blocked today), `percentage` (blocking rate, 0-100),
+    `queries` (DNS queries today, optional). `status_entity` (optional) is the
+    only field that's an entity_id rather than a raw/template value: it's a
+    binary_sensor reflecting whether Pi-hole is active, used to build the
+    on/off shield icon+color switch (`is_state(...)`) here rather than asking
+    the caller to hand-write that ternary themselves.
+    """
+    blocked = page.get("blocked", "")
+    percentage = page.get("percentage", "")
+    queries = page.get("queries")
+    status_entity = page.get("status_entity")
+
+    components: list[dict[str, Any]] = [
+        {"type": "rectangle", "position": [0, 0], "size": [64, 64], "color": _BG_COLOR, "filled": True},
+        {"type": "icon", "icon": "mdi:pi-hole", "position": [4, 2], "size": 16, "color": "#96060B"},
+        {"type": "text", "position": [22, 4], "content": "Pi", "color": _TEXT_COLOR},
+    ]
+
+    if status_entity is not None:
+        components.append(
+            {
+                "type": "icon",
+                "position": [44, 2],
+                "size": 16,
+                "icon": f"{{{{ 'mdi:shield-check' if is_state('{status_entity}', 'on') else 'mdi:shield-off' }}}}",
+                "color": f"{{{{ '#00FF00' if is_state('{status_entity}', 'on') else '#FF0000' }}}}",
+            }
+        )
+
+    components.extend(
+        [
+            {"type": "text", "position": [32, 18], "align": "center", "content": f"{blocked}", "color": "#FF4444"},
+            {"type": "text", "position": [32, 27], "align": "center", "content": "bloquées", "color": "#888888"},
+            {
+                "type": "progress_bar",
+                "position": [4, 40],
+                "size": [56, 6],
+                "min": 0,
+                "max": 50,
+                "value": percentage,
+                "background_color": [40, 40, 40],
+                "color_thresholds": _PIHOLE_COLOR_THRESHOLDS,
+            },
+            {
+                "type": "text",
+                "position": [32, 49],
+                "align": "center",
+                "content": f"{percentage}% bloqué",
+                "color": _TEXT_COLOR,
+            },
+        ]
+    )
+
+    if queries is not None:
+        components.append(
+            {"type": "text", "position": [32, 57], "align": "center", "content": f"{queries} DNS", "color": "grey"}
+        )
 
     return components

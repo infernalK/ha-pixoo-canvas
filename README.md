@@ -21,6 +21,7 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
   - [Page : Sound meter (sonomètre)](#page--sound-meter-sonomètre)
   - [Page : PV (solaire)](#page--pv-solaire)
   - [Page : Fuel (station-service)](#page--fuel-station-service)
+  - [Page : Pihole (bloqueur de pubs)](#page--pihole-bloqueur-de-pubs)
 - [Rotation automatique des pages](#rotation-automatique-des-pages)
 - [Service : afficher une page à la demande](#service--afficher-une-page-à-la-demande)
 - [Service : faire sonner le buzzer](#service--faire-sonner-le-buzzer)
@@ -115,7 +116,7 @@ sous forme de liste :
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
 | `name` | Oui | | Nom de la page (utilisé pour l'appeler via le service `render_page`). |
-| `page_type` | Non | `components` | `components`, `clock`, `channel`, `visualizer`, `sound_meter`, `pv`, `fuel`. |
+| `page_type` | Non | `components` | `components`, `clock`, `channel`, `visualizer`, `sound_meter`, `pv`, `fuel`, `pihole`. |
 | `enabled` | Non | activée | `true`/`false` ou template `{{ }}` — pages désactivées sautées par la rotation. |
 | `duration` | Non | (le réglage global) | Secondes d'affichage avant de passer à la page suivante, en rotation. |
 | `scan_interval` | Non | | Secondes entre rafraîchissements pendant que la page est affichée (utile pour des valeurs qui changent souvent). |
@@ -372,83 +373,6 @@ Home Assistant.
     {{ output.list }}
 ```
 
-#### Exemple : Tableau de bord Pi-hole
-
-Une page prête à copier, inspirée de [kmplngj/pixoo-ha](https://github.com/kmplngj/pixoo-ha/blob/main/examples/page_templates/pihole_dashboard.yaml)
-et adaptée à nos composants (`progress_bar` + `color_thresholds` à la place d'un calcul
-manuel de largeur/couleur en Jinja). Testée sur device réel avec l'intégration
-[Pi-hole](https://www.home-assistant.io/integrations/pi_hole/) — nécessite les entités
-`binary_sensor.pi_hole_status`, `sensor.pi_hole_ads_blocked_today`,
-`sensor.pi_hole_ads_percentage_blocked_today` et `sensor.pi_hole_dns_queries_today`
-(ajuste les noms selon les tiens).
-
-```yaml
-- name: Pi-hole
-  page_type: components
-  duration: 15
-  components:
-    - type: rectangle
-      position: [0, 0]
-      size: [64, 64]
-      color: black
-
-    # Logo Pi-hole + bouclier de statut (vert = actif, rouge = en pause)
-    - type: icon
-      position: [4, 2]
-      icon: mdi:pi-hole
-      size: 16
-      color: "#96060B"
-    - type: text
-      position: [22, 4]
-      content: "Pi"
-      color: white
-    - type: icon
-      position: [44, 2]
-      icon: "{{ 'mdi:shield-check' if is_state('binary_sensor.pi_hole_status', 'on') else 'mdi:shield-off' }}"
-      size: 16
-      color: "{{ '#00FF00' if is_state('binary_sensor.pi_hole_status', 'on') else '#FF0000' }}"
-
-    # Nombre de publicités bloquées
-    - type: text
-      position: [32, 18]
-      align: center
-      content: "{{ states('sensor.pi_hole_ads_blocked_today') }}"
-      color: "#FF4444"
-    - type: text
-      position: [32, 27]
-      align: center
-      content: "bloquées"
-      color: "#888888"
-
-    # Barre de progression du taux de blocage, colorée par palier
-    - type: progress_bar
-      position: [4, 40]
-      size: [56, 6]
-      min: 0
-      max: 50
-      value: "{{ states('sensor.pi_hole_ads_percentage_blocked_today') }}"
-      background_color: "#333333"
-      color_thresholds:
-        - value: 0
-          color: "#FF4444"
-        - value: 10
-          color: "#FFAA00"
-        - value: 20
-          color: "#00FF00"
-    - type: text
-      position: [32, 49]
-      align: center
-      content: "{{ states('sensor.pi_hole_ads_percentage_blocked_today') | round(1) }}% bloqué"
-      color: white
-
-    # Total de requêtes DNS du jour
-    - type: text
-      position: [32, 57]
-      align: center
-      content: "{{ states('sensor.pi_hole_dns_queries_today') }} DNS"
-      color: "#666666"
-```
-
 #### Polices
 
 Le composant `text` accepte un champ `font` optionnel :
@@ -592,6 +516,29 @@ Page prête à l'emploi pour afficher jusqu'à 3 prix de carburant.
   name2: SP95
   price2: "{{ states('sensor.prix_sp95') }}"
   status: "{{ 'Ouvert' if is_state('binary_sensor.station_ouverte', 'on') else 'Fermé' }}"
+```
+
+### Page : Pihole (bloqueur de pubs)
+
+Page prête à l'emploi pour un tableau de bord [Pi-hole](https://www.home-assistant.io/integrations/pi_hole/)
+— inspirée de [kmplngj/pixoo-ha](https://github.com/kmplngj/pixoo-ha/blob/main/examples/page_templates/pihole_dashboard.yaml),
+adaptée à nos composants (`progress_bar` + `color_thresholds` à la place d'un calcul
+manuel de largeur/couleur en Jinja). Testée sur device réel.
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `blocked` | Non | | Nombre de publicités bloquées, brut ou template. |
+| `percentage` | Non | | Taux de blocage en % (0-100) — colore la barre (rouge → orange → vert). |
+| `queries` | Non | | Nombre de requêtes DNS du jour — n'apparaît que si renseigné. |
+| `status_entity` | Non | | `entity_id` d'un `binary_sensor` (ex. `binary_sensor.pi_hole_status`) — si renseigné, ajoute un bouclier vert/rouge selon qu'il est `on`/autre. Contrairement aux autres champs, c'est un `entity_id` brut, pas un template : la page construit elle-même le `is_state(...)`. |
+
+```yaml
+- name: Pi-hole
+  page_type: pihole
+  blocked: "{{ states('sensor.pi_hole_ads_blocked_today') }}"
+  percentage: "{{ states('sensor.pi_hole_ads_percentage_blocked_today') | round(1) }}"
+  queries: "{{ states('sensor.pi_hole_dns_queries_today') }}"
+  status_entity: binary_sensor.pi_hole_status
 ```
 
 ## Rotation automatique des pages

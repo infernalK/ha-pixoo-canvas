@@ -15,8 +15,8 @@ render_page:
       name: Page name
       description: >-
         Name of a page configured in the integration's options, of any page_type
-        (components, clock, channel, visualizer, sound_meter, pv, fuel). Provide
-        this, or an inline page (page_type/components/id/etc.), not both.
+        (components, clock, channel, visualizer, sound_meter, pv, fuel, pihole).
+        Provide this, or an inline page (page_type/components/id/etc.), not both.
       required: false
       selector:
         text:
@@ -24,11 +24,12 @@ render_page:
       name: Page type
       description: >-
         Only used for an inline page (omit when using 'page'). One of components
-        (the default), clock, channel, visualizer, sound_meter, pv, fuel.
+        (the default), clock, channel, visualizer, sound_meter, pv, fuel, pihole.
         clock/channel/visualizer also need an 'id'; sound_meter takes no extra
-        field; pv/fuel take their own fields (power/storage/discharge/time for
-        pv; title/name1/price1/name2/price2/name3/price3/status for fuel) passed
-        as extra service data alongside page_type. See the README for field details.
+        field; pv/fuel/pihole take their own fields (power/storage/discharge/time
+        for pv; title/name1/price1/name2/price2/name3/price3/status for fuel;
+        blocked/percentage/queries/status_entity for pihole) passed as extra
+        service data alongside page_type. See the README for field details.
       required: false
       selector:
         select:
@@ -40,6 +41,7 @@ render_page:
             - sound_meter
             - pv
             - fuel
+            - pihole
     components:
       name: Components
       description: >-

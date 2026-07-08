@@ -6,9 +6,9 @@ device). `clock`/`channel`/`visualizer` instead switch the device to one of
 its built-in native screens - no buffer is composed or pushed for those.
 `sound_meter` switches the device to its built-in sound meter (decibel) tool -
 also no buffer, and unlike clock/channel/visualizer it takes no `id` since the
-device only has the one sound meter. `pv`/`fuel` are prebuilt layouts: their
-fields are expanded into a `components` list (see `render.page_templates`) and
-rendered like any other `components` page.
+device only has the one sound meter. `pv`/`fuel`/`pihole` are prebuilt layouts:
+their fields are expanded into a `components` list (see `render.page_templates`)
+and rendered like any other `components` page.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from homeassistant.helpers.template import Template
 from .api import PixooClient
 from .const import DEFAULT_PAGE_TYPE, NATIVE_CHANNEL_PAGE_TYPES
 from .render.engine import render_page
-from .render.page_templates import build_fuel_components, build_pv_components
+from .render.page_templates import build_fuel_components, build_pihole_components, build_pv_components
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,5 +96,7 @@ async def render_configured_page(
         await render_page(hass, client, build_pv_components(page), variables)
     elif page_type == "fuel":
         await render_page(hass, client, build_fuel_components(page), variables)
+    elif page_type == "pihole":
+        await render_page(hass, client, build_pihole_components(page), variables)
     else:
         _LOGGER.warning("Unknown page_type %r, skipping page %r", page_type, page.get("name"))
