@@ -523,7 +523,9 @@ Page prête à l'emploi pour afficher jusqu'à 3 prix de carburant.
 Page prête à l'emploi pour un tableau de bord [Pi-hole](https://www.home-assistant.io/integrations/pi_hole/)
 — inspirée de [kmplngj/pixoo-ha](https://github.com/kmplngj/pixoo-ha/blob/main/examples/page_templates/pihole_dashboard.yaml),
 adaptée à nos composants (`progress_bar` + `color_thresholds` à la place d'un calcul
-manuel de largeur/couleur en Jinja). Testée sur device réel.
+manuel de largeur/couleur en Jinja). Comme `pv`/`fuel`, chaque libellé est une icône ou
+un chiffre/unité (`%`, `DNS`) plutôt qu'un mot en dur — l'affichage reste donc identique
+quelle que soit la langue de l'utilisateur Home Assistant. Testée sur device réel.
 
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |

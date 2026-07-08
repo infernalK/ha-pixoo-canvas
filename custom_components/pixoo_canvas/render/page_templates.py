@@ -120,6 +120,10 @@ def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
     binary_sensor reflecting whether Pi-hole is active, used to build the
     on/off shield icon+color switch (`is_state(...)`) here rather than asking
     the caller to hand-write that ternary themselves.
+
+    Like `build_pv_components`/`build_fuel_components`, every label here is an
+    icon or a number/unit (`%`, `DNS`) rather than a hardcoded word - so it
+    reads the same regardless of the Home Assistant user's language.
     """
     blocked = page.get("blocked", "")
     percentage = page.get("percentage", "")
@@ -145,15 +149,8 @@ def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
 
     components.extend(
         [
-            {"type": "text", "position": [32, 18], "align": "center", "content": f"{blocked}", "color": "#FF4444"},
-            {
-                "type": "text",
-                "position": [32, 27],
-                "align": "center",
-                "content": "bloquées",
-                "color": "#888888",
-                "font": "matrix_chunky_6",
-            },
+            {"type": "icon", "icon": "mdi:block-helper", "position": [26, 15], "size": 12, "color": "#FF4444"},
+            {"type": "text", "position": [32, 29], "align": "center", "content": f"{blocked}", "color": "#FF4444"},
             {
                 "type": "progress_bar",
                 "position": [4, 40],
@@ -164,14 +161,7 @@ def build_pihole_components(page: dict[str, Any]) -> list[dict[str, Any]]:
                 "background_color": [40, 40, 40],
                 "color_thresholds": _PIHOLE_COLOR_THRESHOLDS,
             },
-            {
-                "type": "text",
-                "position": [32, 49],
-                "align": "center",
-                "content": f"{percentage}% bloqué",
-                "color": _TEXT_COLOR,
-                "font": "matrix_chunky_6",
-            },
+            {"type": "text", "position": [32, 49], "align": "center", "content": f"{percentage}%", "color": _TEXT_COLOR},
         ]
     )
 
