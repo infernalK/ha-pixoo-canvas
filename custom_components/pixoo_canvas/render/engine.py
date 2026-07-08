@@ -15,11 +15,31 @@ from .components import icon as icon_component
 from .components import image as image_component
 from .components import progress_bar as progress_bar_component
 from .components import rectangle as rectangle_component
-from .components import scroll_text as scroll_text_component
 from .components import templatable as templatable_component
 from .components import text as text_component
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def _draw_legacy_scroll_text(
+    component: dict[str, Any],
+    ctx: RenderContext,
+    hass: HomeAssistant,
+    variables: dict[str, Any] | None,
+) -> None:
+    """Adapt a pre-merge `type: scroll_text` component to the unified `text` drawer.
+
+    `scroll_text` was folded into `text` (with `scroll: true`) so pages only need
+    one text component. This keeps existing `scroll_text` pages working with
+    their old field names (speed/direction/width) unchanged.
+    """
+    adapted = dict(component)
+    adapted["scroll"] = True
+    adapted.setdefault("scroll_speed", component.get("speed", 100))
+    adapted.setdefault("scroll_direction", component.get("direction", "left"))
+    adapted.setdefault("text_width", component.get("width", ctx.size))
+    await text_component.draw(adapted, ctx, hass, variables)
+
 
 _COMPONENT_DRAWERS = {
     "text": text_component.draw,
@@ -27,7 +47,7 @@ _COMPONENT_DRAWERS = {
     "image": image_component.draw,
     "icon": icon_component.draw,
     "progress_bar": progress_bar_component.draw,
-    "scroll_text": scroll_text_component.draw,
+    "scroll_text": _draw_legacy_scroll_text,
 }
 
 

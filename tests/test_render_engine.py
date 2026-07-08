@@ -114,23 +114,24 @@ async def test_render_page_pushed_via_real_client(hass, aioclient_mock):
 
 
 async def test_render_page_builds_scroll_text_with_hex_color(hass):
-    """scroll_text components are passed to send_page with an RGB->hex converted color."""
+    """A `text` component with `scroll: true` is passed to send_page with a hex color."""
     client = _FakeClient()
     components = [
         {"type": "rectangle", "position": [0, 0], "size": [64, 64], "color": [0, 0, 0]},
         {
-            "type": "scroll_text",
+            "type": "text",
             "position": [0, 40],
             "content": "hello",
             "color": [255, 255, 0],
-            "direction": "right",
+            "scroll": True,
+            "scroll_direction": "right",
             "align": "center",
         },
     ]
 
     await render_page(hass, client, components)
 
-    assert len(client.calls) == 1  # exactly one send_page call, same as without scroll_text
+    assert len(client.calls) == 1  # exactly one send_page call, same as without a scroll text
     _, _, scroll_texts = client.calls[0]
     assert len(scroll_texts) == 1
     entry = scroll_texts[0]
@@ -140,3 +141,31 @@ async def test_render_page_builds_scroll_text_with_hex_color(hass):
     assert entry["direction"] == 1  # right
     assert entry["align"] == 2  # center
     assert entry["text_id"] == 0
+
+
+async def test_render_page_legacy_scroll_text_type_still_works(hass):
+    """A pre-merge `type: scroll_text` component still scrolls, via its old field names."""
+    client = _FakeClient()
+    components = [
+        {
+            "type": "scroll_text",
+            "position": [0, 40],
+            "content": "hello",
+            "color": [255, 255, 0],
+            "direction": "right",
+            "align": "center",
+            "speed": 50,
+            "width": 40,
+        },
+    ]
+
+    await render_page(hass, client, components)
+
+    _, _, scroll_texts = client.calls[0]
+    assert len(scroll_texts) == 1
+    entry = scroll_texts[0]
+    assert entry["text"] == "hello"
+    assert entry["direction"] == 1  # right
+    assert entry["align"] == 2  # center
+    assert entry["speed"] == 50
+    assert entry["width"] == 40

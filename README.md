@@ -155,13 +155,29 @@ gauche, `(63, 63)` le coin en bas à droite.
 
 #### Composant : `text`
 
+Par défaut, le texte est dessiné une fois dans le buffer de l'image (statique). Avec
+`scroll: true`, il défile à la place, animé nativement par l'écran (pas par nous) —
+utile pour un message plus long que l'écran.
+
 | Champ | Obligatoire | Défaut | Valeurs |
 | --- | :---: | :---: | --- |
 | `position` | Oui | | `[x, y]` |
 | `content` | Oui | | Texte, avec support des templates `{{ }}` et des retours à la ligne. |
-| `font` | Non | `pico_8` | Voir [Polices](#polices) ci-dessous. |
 | `color` | Non | `white` | `[R, G, B]` ou nom de couleur — voir [Couleurs](#couleurs). |
 | `align` | Non | `left` | `left`, `center`, `right`. |
+| `font` | Non | `pico_8` | Police bitmap — voir [Polices](#polices) ci-dessous. Ignoré si `scroll: true`. |
+| `font_size` | Non | `1` | Échelle entière de la police bitmap. Ignoré si `scroll: true`. |
+| `scroll` | Non | `false` | `true` pour un défilement natif (matériel) plutôt qu'un dessin statique. |
+
+Champs suivants, utilisés uniquement quand `scroll: true` :
+
+| Champ | Obligatoire | Défaut | Valeurs |
+| --- | :---: | :---: | --- |
+| `scroll_direction` | Non | `left` | `left`, `right` |
+| `scroll_speed` | Non | `100` | Millisecondes par pas — plus petit = plus rapide. |
+| `text_width` | Non | `64` | Largeur de la zone de défilement en pixels. |
+| `divoom_font` | Non | `0` | Police native du Pixoo (0-7), utilisée par le firmware pour le rendu défilant. |
+| `text_id` | Non | | Identifiant du slot (0-19), pour superposer plusieurs textes défilants. |
 
 #### Composant : `image`
 
@@ -225,22 +241,6 @@ inférieur ou égal à `value` :
     - value: 90
       color: green
 ```
-
-#### Composant : `scroll_text`
-
-Texte défilant, animé nativement par l'écran (pas par nous) — utile pour un message plus
-long que l'écran.
-
-| Champ | Obligatoire | Défaut | Valeurs |
-| --- | :---: | :---: | --- |
-| `position` | Oui | | `[x, y]` |
-| `content` | Oui | | Texte, avec support des templates. |
-| `color` | Non | `white` | `[R, G, B]` ou nom de couleur. |
-| `direction` | Non | `left` | `left`, `right` |
-| `width` | Non | `64` | Largeur de la zone de défilement en pixels. |
-| `speed` | Non | `100` | Millisecondes par pas — plus petit = plus rapide. |
-| `align` | Non | `left` | `left`, `center`, `right` |
-| `text_id` | Non | | Identifiant du slot (0-19), pour superposer plusieurs textes défilants. |
 
 #### Composant : `templatable`
 
