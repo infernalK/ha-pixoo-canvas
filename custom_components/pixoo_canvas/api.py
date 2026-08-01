@@ -16,7 +16,6 @@ from .const import (
     CMD_GET_CHANNEL,
     CMD_ON_OFF_SCREEN,
     CMD_PLAY_BUZZER,
-    CMD_SET_ALARM,
     CMD_RESET_HTTP_GIF_ID,
     CMD_SEND_HTTP_GIF,
     CMD_SEND_HTTP_TEXT,
@@ -70,14 +69,6 @@ def _stopwatch_payload(status: int) -> dict[str, Any]:
 
 def _channel_payload(channel: int) -> dict[str, Any]:
     return {"Command": CMD_SET_CHANNEL, "SelectIndex": channel}
-
-
-def _alarm_payload(hour: int, minute: int, enabled: bool) -> dict[str, Any]:
-    return {
-        "Command": CMD_SET_ALARM,
-        "EnableFlag": 1 if enabled else 0,
-        "AlarmTime": f"{hour:02d}:{minute:02d}",
-    }
 
 
 def _gif_payload(pic_id: int, width: int, rgb_bytes: bytes) -> dict[str, Any]:
@@ -467,23 +458,6 @@ class PixooClient:
         risking clearing it while the stopwatch might still be active.
         """
         await self._send(_stopwatch_payload(2))
-
-    async def set_alarm(self, hour: int, minute: int, enabled: bool = True) -> None:
-        """Set the device's built-in alarm clock to ring at hour:minute (24h).
-
-        Unlike start_timer/start_stopwatch/start_visualizer, the alarm
-        doesn't take over the screen immediately - it's a scheduled wake
-        handled entirely by the device's own firmware - so this is a plain
-        one-shot Alarm/Set call: no _stop_active_tools batching, no
-        page-rotation pause needed. See the CMD_SET_ALARM comment in
-        const.py - the command name and field shape are still unverified
-        end-to-end on real hardware.
-        """
-        await self._send(_alarm_payload(hour, minute, enabled))
-
-    async def stop_alarm(self) -> None:
-        """Disable the alarm clock (Alarm/Set, Status: 0)."""
-        await self._send(_alarm_payload(0, 0, False))
 
     async def reboot(self) -> None:
         """Reboot the device (Device/SysReboot). The screen goes dark for a while."""
