@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from homeassistant.const import CONF_HOST
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.pixoo_canvas.const import DOMAIN

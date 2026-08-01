@@ -28,12 +28,12 @@ class PixooBrightnessLight(CoordinatorEntity[PixooCoordinator], LightEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "brightness"
     _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
     def __init__(self, coordinator: PixooCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_brightness"
         self._attr_device_info = coordinator.device_info
+        self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
     @property
     def is_on(self) -> bool:

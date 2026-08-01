@@ -8,10 +8,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
-from PIL import Image, UnidentifiedImageError
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from PIL import Image, UnidentifiedImageError
 
 from ...const import DEFAULT_TIMEOUT
 

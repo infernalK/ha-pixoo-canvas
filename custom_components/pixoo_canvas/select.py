@@ -29,12 +29,12 @@ class PixooScreenOrientationSelect(CoordinatorEntity[PixooCoordinator], SelectEn
 
     _attr_has_entity_name = True
     _attr_translation_key = "screen_orientation"
-    _attr_options = list(_MODE_TO_OPTION.values())
 
     def __init__(self, coordinator: PixooCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_screen_orientation"
         self._attr_device_info = coordinator.device_info
+        self._attr_options = list(_MODE_TO_OPTION.values())
 
     @property
     def current_option(self) -> str | None:

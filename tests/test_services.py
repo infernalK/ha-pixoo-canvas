@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 import voluptuous as vol
-
 from homeassistant.const import CONF_HOST
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr

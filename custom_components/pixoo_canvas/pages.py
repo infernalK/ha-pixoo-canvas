@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import yaml
-
 from homeassistant.config_entries import ConfigEntry
 
 from .const import CONF_PAGES_YAML, DEFAULT_PAGE_TYPE, NATIVE_CHANNEL_PAGE_TYPES

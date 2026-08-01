@@ -61,7 +61,9 @@ async def test_render_page_skips_component_that_raises(hass, monkeypatch):
     and abort the whole page - now every component's failure is contained, so
     the rest of the page still renders and gets pushed.
     """
-    from custom_components.pixoo_canvas.render.components import rectangle as rectangle_component
+    from custom_components.pixoo_canvas.render.components import (
+        rectangle as rectangle_component,
+    )
 
     async def _boom(component, ctx, hass, variables):
         raise RuntimeError("boom")

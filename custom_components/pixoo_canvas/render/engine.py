@@ -5,9 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from PIL import Image, ImageDraw
-
 from homeassistant.core import HomeAssistant
+from PIL import Image, ImageDraw
 
 from ..api import PixooClient
 from ..const import PIC_WIDTH
@@ -105,7 +104,7 @@ async def render_page(
 
         try:
             await drawer(component, ctx, hass, variables)
-        except Exception:  # noqa: BLE001 - one bad component must not blank out the whole page
+        except Exception:
             _LOGGER.exception("Component %r failed to render, skipping", comp_type)
         index += 1
 

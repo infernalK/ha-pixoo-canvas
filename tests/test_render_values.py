@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from custom_components.pixoo_canvas.render.values import resolve_threshold_color, resolve_value
+from custom_components.pixoo_canvas.render.values import (
+    resolve_threshold_color,
+    resolve_value,
+)
 
 
 async def test_resolve_value_literal(hass):

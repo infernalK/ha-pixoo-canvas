@@ -6,10 +6,10 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 
 from .const import (
     DEFAULT_BUZZER_ACTIVE_TIME_MS,

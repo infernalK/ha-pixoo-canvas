@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from itertools import pairwise
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
@@ -26,14 +27,16 @@ async def _fetch_history(hass: HomeAssistant, entity_id: str, hours: float) -> l
     """Numeric states for `entity_id` over the last `hours`, oldest first."""
     try:
         from homeassistant.components.recorder import get_instance
-        from homeassistant.components.recorder.history import state_changes_during_period
+        from homeassistant.components.recorder.history import (
+            state_changes_during_period,
+        )
 
         end_time = dt_util.utcnow()
         start_time = end_time - timedelta(hours=hours)
         history = await get_instance(hass).async_add_executor_job(
             state_changes_during_period, hass, start_time, end_time, entity_id
         )
-    except Exception:  # noqa: BLE001 - recorder may be unavailable/unloaded
+    except Exception:
         _LOGGER.warning("Graph: failed to fetch history for %s", entity_id, exc_info=True)
         return []
 
@@ -131,5 +134,5 @@ async def draw(
             if px_y < bottom_y:
                 ctx.draw.line([(px_x, px_y), (px_x, bottom_y)], fill=fill_color)
 
-    for (x1, y1, v1), (x2, y2, v2) in zip(points_px, points_px[1:]):
+    for (x1, y1, v1), (x2, y2, v2) in pairwise(points_px):
         ctx.draw.line([(x1, y1), (x2, y2)], fill=color_for((v1 + v2) / 2))

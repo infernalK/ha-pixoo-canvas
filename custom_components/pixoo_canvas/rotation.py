@@ -167,7 +167,7 @@ class PageRotator:
             _LOGGER.warning(
                 "Failed to render page %r during rotation: %s", page.get("name"), err
             )
-        except Exception:  # noqa: BLE001 - a single bad page must not stall rotation forever
+        except Exception:
             _LOGGER.exception(
                 "Unexpected error rendering page %r during rotation", page.get("name")
             )

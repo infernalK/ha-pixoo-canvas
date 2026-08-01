@@ -5,11 +5,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from PIL import ImageColor
-
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import TemplateError
 from homeassistant.helpers.template import Template
+from PIL import ImageColor
 
 _LOGGER = logging.getLogger(__name__)
 

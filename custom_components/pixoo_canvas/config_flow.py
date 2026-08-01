@@ -8,7 +8,6 @@ from typing import Any
 import aiohttp
 import voluptuous as vol
 import yaml
-
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST
@@ -27,7 +26,12 @@ from homeassistant.helpers.selector import (
 )
 
 from .api import PixooApiError, PixooClient
-from .const import CONF_DEFAULT_PAGE_DURATION, CONF_PAGES_YAML, DEFAULT_PAGE_DURATION, DOMAIN
+from .const import (
+    CONF_DEFAULT_PAGE_DURATION,
+    CONF_PAGES_YAML,
+    DEFAULT_PAGE_DURATION,
+    DOMAIN,
+)
 from .pages import is_valid_page_shape
 
 _LOGGER = logging.getLogger(__name__)
@@ -114,7 +118,7 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 DISCOVERY_URL, timeout=aiohttp.ClientTimeout(total=5)
             ) as resp:
                 data = await resp.json(content_type=None)
-        except Exception:  # noqa: BLE001 - discovery is optional, never blocks setup
+        except Exception:
             _LOGGER.debug("Pixoo LAN discovery failed, falling back to manual IP", exc_info=True)
             return []
 
