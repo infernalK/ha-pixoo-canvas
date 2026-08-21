@@ -29,7 +29,8 @@ async def test_image_from_url(hass, aioclient_mock):
 
 
 async def test_image_from_path(hass, tmp_path):
-    """An image_path is read from disk and pasted onto the buffer."""
+    """An image_path under an allowlisted directory is read from disk and pasted onto the buffer."""
+    hass.config.allowlist_external_dirs = {str(tmp_path)}
     path = tmp_path / "pic.png"
     path.write_bytes(_png_bytes((255, 0, 0)))
     ctx = RenderContext()
@@ -39,6 +40,19 @@ async def test_image_from_path(hass, tmp_path):
     )
 
     assert ctx.image.getpixel((10, 10)) == (255, 0, 0)
+
+
+async def test_image_from_disallowed_path_is_skipped_not_raised(hass, tmp_path):
+    """An image_path outside hass.config's allowlisted directories is logged and skipped."""
+    path = tmp_path / "pic.png"
+    path.write_bytes(_png_bytes((255, 0, 0)))
+    ctx = RenderContext()
+
+    await image.draw(
+        {"type": "image", "position": [10, 10], "image_path": str(path)}, ctx, hass, None
+    )
+
+    assert ctx.image.getpixel((10, 10)) == (0, 0, 0)
 
 
 async def test_image_missing_source_is_noop(hass):
