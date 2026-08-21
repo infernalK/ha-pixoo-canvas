@@ -13,6 +13,10 @@ if TYPE_CHECKING:
     from ..engine import RenderContext
 
 
+def _paint(ctx: RenderContext, points: list[tuple[int, int]], color: Any, thickness: int) -> None:
+    ctx.draw.line(points, fill=color, width=thickness)
+
+
 async def draw(
     component: dict[str, Any],
     ctx: RenderContext,
@@ -32,6 +36,5 @@ async def draw(
         color = default_color
 
     thickness = int(component.get("thickness", 1))
-    ctx.draw.line(
-        [(int(start_x), int(start_y)), (int(end_x), int(end_y))], fill=color, width=thickness
-    )
+    points = [(int(start_x), int(start_y)), (int(end_x), int(end_y))]
+    await hass.async_add_executor_job(_paint, ctx, points, color, thickness)

@@ -20,6 +20,17 @@ def _point(origin_x: float, origin_y: float, length: float, angle_degrees: float
     return origin_x + length * math.sin(rad), origin_y - length * math.cos(rad)
 
 
+def _paint(
+    ctx: RenderContext,
+    shaft: list[tuple[float, float]],
+    head: list[tuple[float, float]],
+    color: Any,
+    thickness: int,
+) -> None:
+    ctx.draw.line(shaft, fill=color, width=thickness)
+    ctx.draw.polygon(head, fill=color)
+
+
 async def draw(
     component: dict[str, Any],
     ctx: RenderContext,
@@ -44,8 +55,9 @@ async def draw(
     head_size = resolve_value(component.get("head_size", 4), hass, variables, default=4.0)
 
     tip_x, tip_y = _point(center_x, center_y, length, angle)
-    ctx.draw.line([(center_x, center_y), (tip_x, tip_y)], fill=color, width=thickness)
-
     head1 = _point(tip_x, tip_y, head_size, angle + 150)
     head2 = _point(tip_x, tip_y, head_size, angle - 150)
-    ctx.draw.polygon([(tip_x, tip_y), head1, head2], fill=color)
+
+    shaft = [(center_x, center_y), (tip_x, tip_y)]
+    head = [(tip_x, tip_y), head1, head2]
+    await hass.async_add_executor_job(_paint, ctx, shaft, head, color, thickness)

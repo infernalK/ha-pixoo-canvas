@@ -7,7 +7,12 @@ from typing import Any
 import yaml
 from homeassistant.config_entries import ConfigEntry
 
-from .const import CONF_PAGES_YAML, DEFAULT_PAGE_TYPE, NATIVE_CHANNEL_PAGE_TYPES
+from .const import (
+    CONF_PAGES_YAML,
+    DEFAULT_PAGE_TYPE,
+    NATIVE_CHANNEL_PAGE_TYPES,
+    PREBUILT_PAGE_TYPES,
+)
 
 
 class PagesYamlError(Exception):
@@ -20,9 +25,12 @@ def is_valid_page_shape(page: Any) -> bool:
     `components` (the default, for full backward compatibility) requires a
     `components` list. `clock`/`channel`/`visualizer` instead switch the
     device to one of its built-in screens and require an `id` instead.
-    `sound_meter`/`pv`/`fuel` are prebuilt layouts with their own optional
-    fields - no structural requirement here, same as we don't validate
-    `components` list contents.
+    `sound_meter`/`pv`/`fuel`/`pihole`/`weather`/`battery` are prebuilt
+    layouts with their own optional fields - no structural requirement here,
+    same as we don't validate `components` list contents. Any other
+    `page_type` is rejected: page_render.render_configured_page only knows
+    how to dispatch the types listed above, so an unrecognised one must not
+    pass through unvalidated to a builder that isn't expecting it.
     """
     if not isinstance(page, dict):
         return False
@@ -32,7 +40,7 @@ def is_valid_page_shape(page: Any) -> bool:
         return "id" in page
     if page_type == DEFAULT_PAGE_TYPE:
         return isinstance(page.get("components"), list)
-    return True
+    return page_type in PREBUILT_PAGE_TYPES
 
 
 def parse_pages(entry: ConfigEntry) -> list[dict[str, Any]]:

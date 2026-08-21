@@ -21,6 +21,10 @@ _LOGGER = logging.getLogger(__name__)
 _DEFAULT_SIZE = 16
 
 
+def _paint(ctx: RenderContext, position: tuple[int, int], glyph: str, font: Any, color: Any) -> None:
+    ctx.draw.text(position, glyph, font=font, fill=color)
+
+
 async def draw(
     component: dict[str, Any],
     ctx: RenderContext,
@@ -52,4 +56,4 @@ async def draw(
     size = int(component.get("size", _DEFAULT_SIZE))
     font = await hass.async_add_executor_job(load_icon_font, size)
     x, y = component.get("position", [0, 0])
-    ctx.draw.text((int(x), int(y)), glyph, font=font, fill=color)
+    await hass.async_add_executor_job(_paint, ctx, (int(x), int(y)), glyph, font, color)

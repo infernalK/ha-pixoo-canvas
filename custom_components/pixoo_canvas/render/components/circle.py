@@ -13,6 +13,15 @@ if TYPE_CHECKING:
     from ..engine import RenderContext
 
 
+def _paint(
+    ctx: RenderContext, box: tuple[int, int, int, int], color: Any, filled: bool, thickness: int
+) -> None:
+    if filled:
+        ctx.draw.ellipse(box, fill=color)
+    else:
+        ctx.draw.ellipse(box, outline=color, width=thickness)
+
+
 async def draw(
     component: dict[str, Any],
     ctx: RenderContext,
@@ -33,8 +42,6 @@ async def draw(
         color = default_color
 
     box = (center_x - radius, center_y - radius, center_x + radius, center_y + radius)
-    if bool(component.get("filled", True)):
-        ctx.draw.ellipse(box, fill=color)
-    else:
-        thickness = int(component.get("thickness", 1))
-        ctx.draw.ellipse(box, outline=color, width=thickness)
+    filled = bool(component.get("filled", True))
+    thickness = int(component.get("thickness", 1))
+    await hass.async_add_executor_job(_paint, ctx, box, color, filled, thickness)

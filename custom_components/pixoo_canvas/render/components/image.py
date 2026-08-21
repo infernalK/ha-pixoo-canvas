@@ -53,6 +53,9 @@ async def draw(
                 resp.raise_for_status()
                 raw = await resp.read()
         elif image_path:
+            if not hass.config.is_allowed_path(image_path):
+                _LOGGER.warning("Image component's image_path %r is not an allowed path, skipping", image_path)
+                return
             raw = await hass.async_add_executor_job(Path(image_path).read_bytes)
         else:
             _LOGGER.warning("Image component missing image_url/image_path, skipping")
@@ -66,4 +69,4 @@ async def draw(
         return
 
     x, y = component.get("position", [0, 0])
-    ctx.image.paste(img, (int(x), int(y)))
+    await hass.async_add_executor_job(ctx.image.paste, img, (int(x), int(y)))

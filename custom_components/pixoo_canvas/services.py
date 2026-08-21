@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.service import async_register_admin_service
 
 from .const import (
     DEFAULT_BUZZER_ACTIVE_TIME_MS,
@@ -320,8 +321,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_PLAY_BUZZER, _handle_play_buzzer, schema=SERVICE_PLAY_BUZZER_SCHEMA
     )
-    hass.services.async_register(
-        DOMAIN, SERVICE_REBOOT_DEVICE, _handle_reboot_device, schema=SERVICE_REBOOT_DEVICE_SCHEMA
+    # Power-cycles the physical device: gated to admins, unlike the other
+    # services above, since it's a disruptive device action rather than
+    # something scoped by the calling user's normal entity permissions (this
+    # service's schema takes a raw device_id field, not a target selector,
+    # so it isn't covered by HA's automatic per-entity permission checks).
+    async_register_admin_service(
+        hass, DOMAIN, SERVICE_REBOOT_DEVICE, _handle_reboot_device, schema=SERVICE_REBOOT_DEVICE_SCHEMA
     )
     hass.services.async_register(
         DOMAIN, SERVICE_START_TIMER, _handle_start_timer, schema=SERVICE_START_TIMER_SCHEMA

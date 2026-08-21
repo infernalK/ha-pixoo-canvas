@@ -18,6 +18,40 @@ def _blend(fill: RGB, background: RGB, ratio: float) -> RGB:
     return tuple(round(f * ratio + b * (1 - ratio)) for f, b in zip(fill, background))  # type: ignore[return-value]
 
 
+def _paint(
+    ctx: RenderContext,
+    x: int,
+    y: int,
+    width: int,
+    height: int,
+    background: RGB,
+    fill_color: RGB,
+    orientation: str,
+    filled: int,
+    fraction: float,
+) -> None:
+    ctx.draw.rectangle((x, y, x + width - 1, y + height - 1), fill=background)
+
+    if orientation == "vertical":
+        if filled > 0:
+            ctx.draw.rectangle(
+                (x, y + height - filled, x + width - 1, y + height - 1), fill=fill_color
+            )
+        if fraction > 0 and filled < height:
+            edge_y = y + height - filled - 1
+            ctx.draw.rectangle(
+                (x, edge_y, x + width - 1, edge_y), fill=_blend(fill_color, background, fraction)
+            )
+    else:
+        if filled > 0:
+            ctx.draw.rectangle((x, y, x + filled - 1, y + height - 1), fill=fill_color)
+        if fraction > 0 and filled < width:
+            edge_x = x + filled
+            ctx.draw.rectangle(
+                (edge_x, y, edge_x, y + height - 1), fill=_blend(fill_color, background, fraction)
+            )
+
+
 async def draw(
     component: dict[str, Any],
     ctx: RenderContext,
@@ -50,28 +84,11 @@ async def draw(
         else fill_default
     )
 
-    ctx.draw.rectangle((x, y, x + width - 1, y + height - 1), fill=background)
-
     length = height if orientation == "vertical" else width
     exact_fill = length * ratio
     filled = int(exact_fill)
     fraction = exact_fill - filled if transition == "smooth" else 0.0
 
-    if orientation == "vertical":
-        if filled > 0:
-            ctx.draw.rectangle(
-                (x, y + height - filled, x + width - 1, y + height - 1), fill=fill_color
-            )
-        if fraction > 0 and filled < height:
-            edge_y = y + height - filled - 1
-            ctx.draw.rectangle(
-                (x, edge_y, x + width - 1, edge_y), fill=_blend(fill_color, background, fraction)
-            )
-    else:
-        if filled > 0:
-            ctx.draw.rectangle((x, y, x + filled - 1, y + height - 1), fill=fill_color)
-        if fraction > 0 and filled < width:
-            edge_x = x + filled
-            ctx.draw.rectangle(
-                (edge_x, y, edge_x, y + height - 1), fill=_blend(fill_color, background, fraction)
-            )
+    await hass.async_add_executor_job(
+        _paint, ctx, x, y, width, height, background, fill_color, orientation, filled, fraction
+    )

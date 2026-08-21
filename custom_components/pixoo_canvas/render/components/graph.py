@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from itertools import pairwise
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
@@ -65,6 +64,49 @@ def _aggregate(values: list[float], num_points: int, func: str) -> list[float]:
     return aggregated[-num_points:]
 
 
+def _paint(
+    ctx: RenderContext,
+    x: int,
+    y: int,
+    width: int,
+    height: int,
+    background: Any,
+    style: str,
+    show_fill: bool,
+    fill_color: Any,
+    points_px: list[tuple[int, int]],
+    point_colors: list[Any],
+    segment_colors: list[Any],
+) -> None:
+    """Paint the pre-resolved (color-free of any templating) chart data.
+
+    `point_colors`/`segment_colors` are plain RGB tuples resolved by the
+    caller on the event loop - color_thresholds can be Jinja templates, and
+    HA's Template.async_render() must run on the event loop, so none of that
+    resolution can happen in here (this runs in the executor thread).
+    """
+    bottom_y = y + height - 1
+    ctx.draw.rectangle((x, y, x + width - 1, y + height - 1), fill=background)
+
+    if style == "bar":
+        bar_width = max(1, width // len(points_px) - 1)
+        for (px_x, px_y), color in zip(points_px, point_colors):
+            if px_y < bottom_y:
+                ctx.draw.rectangle(
+                    (px_x, px_y, min(px_x + bar_width - 1, x + width - 1), bottom_y),
+                    fill=color,
+                )
+        return
+
+    if style == "area" or show_fill:
+        for px_x, px_y in points_px:
+            if px_y < bottom_y:
+                ctx.draw.line([(px_x, px_y), (px_x, bottom_y)], fill=fill_color)
+
+    for (x1, y1), (x2, y2), color in zip(points_px, points_px[1:], segment_colors):
+        ctx.draw.line([(x1, y1), (x2, y2)], fill=color)
+
+
 async def draw(
     component: dict[str, Any],
     ctx: RenderContext,
@@ -79,18 +121,23 @@ async def draw(
     background = resolve_color(
         component.get("background_color"), hass, variables, default=_DEFAULT_BACKGROUND_COLOR
     )
-    ctx.draw.rectangle((x, y, x + width - 1, y + height - 1), fill=background)
 
     entity_id = str(component.get("entity_id", ""))
     hours = resolve_value(component.get("hours", 24), hass, variables, default=24.0)
     values = await _fetch_history(hass, entity_id, hours)
     if not values:
+        await hass.async_add_executor_job(
+            _paint, ctx, x, y, width, height, background, "line", False, None, [], [], []
+        )
         return
 
     num_points = int(component.get("points") or width)
     aggregate_func = str(component.get("aggregate_func", "avg")).lower()
     aggregated = _aggregate(values, max(1, num_points), aggregate_func)
     if not aggregated:
+        await hass.async_add_executor_job(
+            _paint, ctx, x, y, width, height, background, "line", False, None, [], [], []
+        )
         return
 
     min_value = component.get("min_value")
@@ -108,31 +155,38 @@ async def draw(
         return default_color
 
     x_step = (width - 1) / (len(aggregated) - 1) if len(aggregated) > 1 else 0
-    points_px = []
+    points_px: list[tuple[int, int]] = []
+    values_at: list[float] = []
     for i, val in enumerate(aggregated):
         px_x = x + (round(i * x_step) if x_step else i)
         normalized_y = (val - y_min) / y_range
         px_y = y + height - 1 - round(normalized_y * (height - 1))
-        points_px.append((px_x, px_y, val))
+        points_px.append((px_x, px_y))
+        values_at.append(val)
 
     style = str(component.get("style", "line")).lower()
-    bottom_y = y + height - 1
-
-    if style == "bar":
-        bar_width = max(1, width // len(aggregated) - 1)
-        for px_x, px_y, val in points_px:
-            if px_y < bottom_y:
-                ctx.draw.rectangle(
-                    (px_x, px_y, min(px_x + bar_width - 1, x + width - 1), bottom_y),
-                    fill=color_for(val),
-                )
-        return
-
-    if style == "area" or bool(component.get("show_fill", False)):
+    show_fill = bool(component.get("show_fill", False))
+    fill_color = None
+    if style == "area" or show_fill:
         fill_color = resolve_color(component.get("fill_color"), hass, variables, default=_DEFAULT_FILL_COLOR)
-        for px_x, px_y, _val in points_px:
-            if px_y < bottom_y:
-                ctx.draw.line([(px_x, px_y), (px_x, bottom_y)], fill=fill_color)
 
-    for (x1, y1, v1), (x2, y2, v2) in pairwise(points_px):
-        ctx.draw.line([(x1, y1), (x2, y2)], fill=color_for((v1 + v2) / 2))
+    point_colors = [color_for(val) for val in values_at]
+    segment_colors = [
+        color_for((v1 + v2) / 2) for v1, v2 in zip(values_at, values_at[1:])
+    ]
+
+    await hass.async_add_executor_job(
+        _paint,
+        ctx,
+        x,
+        y,
+        width,
+        height,
+        background,
+        style,
+        show_fill,
+        fill_color,
+        points_px,
+        point_colors,
+        segment_colors,
+    )

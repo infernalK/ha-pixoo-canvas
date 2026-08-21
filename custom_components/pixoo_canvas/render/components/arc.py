@@ -18,6 +18,28 @@ if TYPE_CHECKING:
 _ANGLE_OFFSET = 90
 
 
+def _paint(
+    ctx: RenderContext,
+    box: tuple[int, int, int, int],
+    filled: bool,
+    thickness: int,
+    background: Any,
+    pillow_start: float,
+    pillow_end: float,
+    color: Any,
+) -> None:
+    if background is not None:
+        if filled:
+            ctx.draw.pieslice(box, start=-90, end=270, fill=background)
+        else:
+            ctx.draw.arc(box, start=-90, end=270, fill=background, width=thickness)
+
+    if filled:
+        ctx.draw.pieslice(box, start=pillow_start, end=pillow_end, fill=color)
+    else:
+        ctx.draw.arc(box, start=pillow_start, end=pillow_end, fill=color, width=thickness)
+
+
 async def draw(
     component: dict[str, Any],
     ctx: RenderContext,
@@ -45,21 +67,17 @@ async def draw(
     thickness = int(component.get("thickness", 2))
 
     background = component.get("background_color")
+    bg_color = None
     if background is not None:
         # A full circle (any start/end 360 degrees apart draws the same complete
         # ring), so it always represents the gauge's full range regardless of
         # this arc's own start_angle/end_angle - the "track" a partial sweep
         # reads against, same idea as progress_bar's background_color.
         bg_color = resolve_color(background, hass, variables, default=(40, 40, 40))
-        if filled:
-            ctx.draw.pieslice(box, start=-90, end=270, fill=bg_color)
-        else:
-            ctx.draw.arc(box, start=-90, end=270, fill=bg_color, width=thickness)
 
     pillow_start = start_angle - _ANGLE_OFFSET
     pillow_end = end_angle - _ANGLE_OFFSET
 
-    if filled:
-        ctx.draw.pieslice(box, start=pillow_start, end=pillow_end, fill=color)
-    else:
-        ctx.draw.arc(box, start=pillow_start, end=pillow_end, fill=color, width=thickness)
+    await hass.async_add_executor_job(
+        _paint, ctx, box, filled, thickness, bg_color, pillow_start, pillow_end, color
+    )

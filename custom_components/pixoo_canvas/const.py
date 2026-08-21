@@ -37,6 +37,12 @@ DEFAULT_PAGE_TYPE = "components"
 # Page types that switch the device to a built-in Divoom screen instead of
 # pushing a buffer composed by our render engine.
 NATIVE_CHANNEL_PAGE_TYPES = frozenset({"clock", "channel", "visualizer"})
+# Page types with no structural requirement of their own (prebuilt layouts,
+# expanded into a components list by render.page_templates, plus
+# sound_meter which takes no fields at all). Kept in sync with
+# page_render.render_configured_page's dispatch and render.page_templates'
+# build_* functions.
+PREBUILT_PAGE_TYPES = frozenset({"sound_meter", "pv", "fuel", "pihole", "weather", "battery"})
 
 PIC_WIDTH = 64
 PIC_ID_MAX = 30

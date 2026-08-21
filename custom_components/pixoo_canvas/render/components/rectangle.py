@@ -12,6 +12,13 @@ if TYPE_CHECKING:
     from ..engine import RenderContext
 
 
+def _paint(ctx: RenderContext, box: tuple[int, int, int, int], color: Any, filled: bool) -> None:
+    if filled:
+        ctx.draw.rectangle(box, fill=color)
+    else:
+        ctx.draw.rectangle(box, outline=color)
+
+
 async def draw(
     component: dict[str, Any],
     ctx: RenderContext,
@@ -24,7 +31,5 @@ async def draw(
     color = resolve_color(component.get("color"), hass, variables, default=(255, 255, 255))
 
     box = (int(x), int(y), int(x) + int(width) - 1, int(y) + int(height) - 1)
-    if bool(component.get("filled", True)):
-        ctx.draw.rectangle(box, fill=color)
-    else:
-        ctx.draw.rectangle(box, outline=color)
+    filled = bool(component.get("filled", True))
+    await hass.async_add_executor_job(_paint, ctx, box, color, filled)

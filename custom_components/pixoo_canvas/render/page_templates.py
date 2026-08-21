@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, valid_entity_id
 
 _BG_COLOR = "black"
 _TEXT_COLOR = "white"
@@ -155,6 +155,8 @@ def build_pihole_components(page: dict[str, Any], hass: HomeAssistant) -> list[d
     percentage = page.get("percentage", "")
     queries = page.get("queries")
     status_entity = page.get("status_entity")
+    if status_entity is not None and not valid_entity_id(str(status_entity)):
+        status_entity = None
 
     components: list[dict[str, Any]] = [
         {"type": "rectangle", "position": [0, 0], "size": [64, 64], "color": _BG_COLOR, "filled": True},

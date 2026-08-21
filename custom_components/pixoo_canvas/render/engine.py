@@ -83,7 +83,7 @@ async def render_page(
     variables: dict[str, Any] | None = None,
 ) -> None:
     """Compose a page's components onto a buffer and push it to the device."""
-    ctx = RenderContext()
+    ctx = await hass.async_add_executor_job(RenderContext)
     pending = list(components)
     index = 0
     while index < len(pending):
@@ -122,4 +122,5 @@ async def render_page(
         }
         for scroll_text in ctx.scroll_texts
     ]
-    await client.send_page(ctx.size, ctx.to_rgb_bytes(), scroll_texts)
+    rgb_bytes = await hass.async_add_executor_job(ctx.to_rgb_bytes)
+    await client.send_page(ctx.size, rgb_bytes, scroll_texts)
