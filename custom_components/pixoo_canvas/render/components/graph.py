@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from itertools import pairwise
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
@@ -171,9 +172,7 @@ async def draw(
         fill_color = resolve_color(component.get("fill_color"), hass, variables, default=_DEFAULT_FILL_COLOR)
 
     point_colors = [color_for(val) for val in values_at]
-    segment_colors = [
-        color_for((v1 + v2) / 2) for v1, v2 in zip(values_at, values_at[1:])
-    ]
+    segment_colors = [color_for((v1 + v2) / 2) for v1, v2 in pairwise(values_at)]
 
     await hass.async_add_executor_job(
         _paint,
