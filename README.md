@@ -35,16 +35,32 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
 
 ## Installation
 
-**Via HACS** :
+L'intégration est référencée officiellement dans HACS (Home Assistant Community Store).
 
-1. Dans HACS, recherche "Pixoo Canvas" et installe-la.
-2. Redémarre Home Assistant.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=infernalK&repository=ha-pixoo-canvas&category=integration)
 
-**Manuellement**, si tu n'utilises pas HACS :
-
-1. Copie le dossier `custom_components/pixoo_canvas` de ce dépôt dans le dossier
-   `custom_components` de ta config Home Assistant.
-2. Redémarre Home Assistant.
+<details>
+    <summary>Cliquez ici pour afficher les instructions détaillées</summary>
+    <ol>
+        <li>Installation</li>
+        <ul>
+            <li>
+                <u>Via HACS</u><br />
+                <ol>
+                    <li>Cliquer sur le badge ci-dessus (ouvre directement la fiche du dépôt dans HACS), ou ouvrir HACS manuellement et aller dans les Intégrations.</li>
+                    <li>Chercher "Pixoo Canvas" si vous n'êtes pas passé par le badge.</li>
+                    <li>Cliquer sur le résultat puis sur "Télécharger".</li>
+                </ol>
+            </li>
+            <li>
+                <u>Manuellement</u><br />
+                Télécharger la <a href="https://github.com/infernalK/ha-pixoo-canvas/releases">dernière release</a> au format ZIP et l'extraire dans le répertoire <code>custom_components</code> de votre installation HA.
+            </li>
+        </ul>
+        <li>Redémarrer HA pour qu'il charge l'intégration.</li>
+        <li>Aller dans 'Paramètres > Appareils et services' et cliquer sur le bouton bleu '+ Ajouter une intégration'. Chercher 'Pixoo Canvas' et le sélectionner.</li>
+    </ol>
+</details>
 
 ## Configuration de base
 
