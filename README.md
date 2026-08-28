@@ -472,6 +472,10 @@ Bascule sur un des visualiseurs audio intégrés au Pixoo. Pour un déclenchemen
 depuis un Raccourci plutôt qu'une page de rotation, voir aussi les services
 [`start_visualizer`/`stop_visualizer`](#service--visualiseur-audio-start_visualizer--stop_visualizer).
 
+![Visualiseurs disponibles dans l'app Divoom](docs/img/pages/visualizer.png)
+*Les visualiseurs intégrés tels qu'affichés dans l'app Divoom, dans l'ordre : `id: 0`
+en haut à gauche, puis de gauche à droite et de haut en bas.*
+
 | Champ | Obligatoire | Valeurs |
 | --- | :---: | --- |
 | `id` | Oui | Index du visualiseur, tel qu'affiché dans l'app Divoom (à partir de 0). |
