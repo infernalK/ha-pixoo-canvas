@@ -1,5 +1,7 @@
 # Pixoo Canvas — Intégration Home Assistant pour Divoom Pixoo 64
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
+
 Intégration Home Assistant (custom component, compatible HACS) pour piloter un Divoom
 Pixoo 64 depuis Home Assistant : allumage/luminosité, et surtout un système de **pages**
 personnalisées affichant tes capteurs, textes et images, avec rotation automatique entre
