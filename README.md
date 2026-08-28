@@ -5,9 +5,6 @@ Pixoo 64 depuis Home Assistant : allumage/luminosité, et surtout un système de
 personnalisées affichant tes capteurs, textes et images, avec rotation automatique entre
 elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/pixoo-homeassistant).
 
-> ⚠️ Pas encore publiée sur le store par défaut HACS (voir [Installation](#installation)
-> pour l'installer quand même dès maintenant).
-
 ## Sommaire
 
 - [Installation](#installation)
@@ -36,12 +33,10 @@ elles. Inspirée de [gickowtf/pixoo-homeassistant](https://github.com/gickowtf/p
 
 ## Installation
 
-**Via HACS** (dépôt personnalisé, en attendant la publication sur le store par défaut) :
+**Via HACS** :
 
-1. Dans HACS → menu (⋮) → **Dépôts personnalisés**, ajoute
-   `https://github.com/infernalK/ha-pixoo-canvas` en catégorie **Intégration**.
-2. Installe "Pixoo Canvas" depuis HACS.
-3. Redémarre Home Assistant.
+1. Dans HACS, recherche "Pixoo Canvas" et installe-la.
+2. Redémarre Home Assistant.
 
 **Manuellement**, si tu n'utilises pas HACS :
 

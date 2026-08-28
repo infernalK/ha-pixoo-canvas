@@ -19,13 +19,24 @@ def _png_bytes(color: tuple[int, int, int], size: tuple[int, int] = (4, 4)) -> b
 
 
 async def test_image_from_url(hass, aioclient_mock):
-    """An image_url is fetched and pasted onto the buffer."""
+    """An image_url matching hass's allowlisted external URLs is fetched and pasted onto the buffer."""
+    hass.config.allowlist_external_urls = {"http://example.com/"}
     aioclient_mock.get(URL, content=_png_bytes((0, 0, 255)))
     ctx = RenderContext()
 
     await image.draw({"type": "image", "position": [0, 0], "image_url": URL}, ctx, hass, None)
 
     assert ctx.image.getpixel((0, 0)) == (0, 0, 255)
+
+
+async def test_image_from_disallowed_url_is_skipped_not_raised(hass, aioclient_mock):
+    """An image_url outside hass.config's allowlisted external URLs is logged and skipped."""
+    aioclient_mock.get(URL, content=_png_bytes((0, 0, 255)))
+    ctx = RenderContext()
+
+    await image.draw({"type": "image", "position": [0, 0], "image_url": URL}, ctx, hass, None)
+
+    assert ctx.image.getpixel((0, 0)) == (0, 0, 0)
 
 
 async def test_image_from_path(hass, tmp_path):
@@ -66,6 +77,7 @@ async def test_image_missing_source_is_noop(hass):
 
 async def test_image_unreachable_url_is_skipped_not_raised(hass, aioclient_mock):
     """An unreachable image_url (e.g. during an internet outage) is logged and skipped."""
+    hass.config.allowlist_external_urls = {"http://example.com/"}
     aioclient_mock.get(URL, exc=TimeoutError)
     ctx = RenderContext()
 
@@ -90,6 +102,7 @@ async def test_image_missing_path_is_skipped_not_raised(hass, tmp_path):
 
 async def test_image_corrupt_data_is_skipped_not_raised(hass, aioclient_mock):
     """Non-image bytes at image_url are logged and skipped instead of raising."""
+    hass.config.allowlist_external_urls = {"http://example.com/"}
     aioclient_mock.get(URL, content=b"not an image")
     ctx = RenderContext()
 

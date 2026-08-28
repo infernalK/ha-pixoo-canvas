@@ -46,6 +46,12 @@ async def draw(
 
     try:
         if image_url:
+            if not hass.config.is_allowed_external_url(image_url):
+                _LOGGER.warning(
+                    "Image component's image_url %r is not an allowed external URL, skipping",
+                    image_url,
+                )
+                return
             session = async_get_clientsession(hass)
             async with session.get(
                 image_url, timeout=aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT)
