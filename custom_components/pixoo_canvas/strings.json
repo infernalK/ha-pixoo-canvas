@@ -23,6 +23,13 @@
       "already_configured": "Device is already configured"
     }
   },
+  "selector": {
+    "pick_device": {
+      "options": {
+        "manual": "Enter IP manually"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {

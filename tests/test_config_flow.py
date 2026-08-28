@@ -65,6 +65,25 @@ async def test_user_flow_shows_discovered_devices(hass, aioclient_mock):
     values = {opt["value"] for opt in schema_options}
     assert HOST in values
     assert MANUAL_ENTRY_VALUE in values
+    labels = {opt["value"]: opt["label"] for opt in schema_options}
+    assert labels[MANUAL_ENTRY_VALUE] == "Enter IP manually"
+
+
+async def test_user_flow_manual_entry_label_is_translated(hass, aioclient_mock):
+    """The 'Enter IP manually' option label follows hass's configured language."""
+    hass.config.language = "fr"
+    aioclient_mock.get(
+        DISCOVERY_URL,
+        json={"DeviceList": [{"DeviceName": "Pixoo64", "DevicePrivateIP": HOST}]},
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    schema_options = result["data_schema"].schema[CONF_HOST].config["options"]
+    labels = {opt["value"]: opt["label"] for opt in schema_options}
+    assert labels[MANUAL_ENTRY_VALUE] == "Saisir l'IP manuellement"
 
 
 async def test_user_flow_picking_discovered_device_tests_connection(hass, aioclient_mock):

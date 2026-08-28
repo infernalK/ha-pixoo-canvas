@@ -2,6 +2,8 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 
+*[Read in English](README.en.md)*
+
 Intégration Home Assistant (custom component, compatible HACS) pour piloter un Divoom
 Pixoo 64 depuis Home Assistant : allumage/luminosité, et surtout un système de **pages**
 personnalisées affichant tes capteurs, textes et images, avec rotation automatique entre
@@ -66,8 +68,8 @@ L'intégration est référencée officiellement dans HACS (Home Assistant Commun
 
 **Paramètres → Appareils et services → Ajouter une intégration → Pixoo Canvas.**
 
-Si un Pixoo est détecté sur ton réseau, choisis-le dans la liste (ou "Enter IP
-manually" sinon). Une fois ajoutée, clique sur **Configurer** sur la carte Pixoo Canvas
+Si un Pixoo est détecté sur ton réseau, choisis-le dans la liste (ou "Saisir l'IP
+manuellement" sinon). Une fois ajoutée, clique sur **Configurer** sur la carte Pixoo Canvas
 pour régler :
 
 | Réglage | Description |

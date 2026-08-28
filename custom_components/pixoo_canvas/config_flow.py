@@ -24,6 +24,7 @@ from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
 )
+from homeassistant.helpers.translation import async_get_translations
 
 from .api import PixooApiError, PixooClient
 from .const import (
@@ -72,9 +73,15 @@ class PixooCanvasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_manual()
             return await self.async_step_manual({CONF_HOST: selected})
 
+        translations = await async_get_translations(
+            self.hass, self.hass.config.language, "selector", [DOMAIN], config_flow=True
+        )
+        manual_label = translations.get(
+            f"component.{DOMAIN}.selector.pick_device.options.manual", "Enter IP manually"
+        )
         options: list[SelectOptionDict] = [
             *self._discovered,
-            SelectOptionDict(value=MANUAL_ENTRY_VALUE, label="Enter IP manually"),
+            SelectOptionDict(value=MANUAL_ENTRY_VALUE, label=manual_label),
         ]
         schema = vol.Schema(
             {

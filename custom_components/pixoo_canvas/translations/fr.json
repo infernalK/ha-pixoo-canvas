@@ -23,6 +23,13 @@
       "already_configured": "Cet appareil est déjà configuré"
     }
   },
+  "selector": {
+    "pick_device": {
+      "options": {
+        "manual": "Saisir l'IP manuellement"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {
