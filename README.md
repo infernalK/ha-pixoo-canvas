@@ -715,6 +715,9 @@ pas écrasé au tour suivant ; `stop_timer` relance la rotation seulement si c'e
 préalable (pratique pour un Raccourci "au cas où") et laisse toujours l'écran propre,
 sans le cadre du minuteur qui traîne.
 
+![Minuteur affiché sur le Pixoo](docs/img/services/timer.jpg)
+*Photo du device réel (minuteur à 90 secondes).*
+
 ```yaml
 service: pixoo_canvas.start_timer
 data:
