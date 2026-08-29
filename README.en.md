@@ -223,6 +223,17 @@ The following fields are only used when `scroll: true`:
 | `position` | Yes | | `[x, y]` |
 | `image_url` or `image_path` | Yes (one of the two) | | URL (or `{{ }}` template) or local path, e.g. `/config/www/logo.png`. |
 
+> **Getting an "is not an allowed external URL" warning?**
+> Home Assistant blocks images from external URLs that aren't explicitly allow-listed by
+> default — this is a core HA safeguard, not specific to this integration. Add the URL (or
+> its domain/IP) to `allowlist_external_urls` in `configuration.yaml`, then restart Home
+> Assistant:
+> ```yaml
+> homeassistant:
+>   allowlist_external_urls:
+>     - "http://192.168.1.200:6942/"
+> ```
+
 #### Component: `rectangle`
 
 | Field | Required | Default | Values |
