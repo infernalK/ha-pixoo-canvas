@@ -231,7 +231,7 @@ The following fields are only used when `scroll: true`:
 > ```yaml
 > homeassistant:
 >   allowlist_external_urls:
->     - "http://192.168.1.200:6942/"
+>     - "http://192.0.2.10:6942/"
 > ```
 
 #### Component: `rectangle`
