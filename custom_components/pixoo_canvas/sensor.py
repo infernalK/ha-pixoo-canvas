@@ -9,7 +9,6 @@ from homeassistant.components.sensor import SensorEntity, SensorEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -54,7 +53,7 @@ async def async_setup_entry(
     coordinator: PixooCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities(
         [PixooSensor(coordinator, entry, description) for description in SENSOR_DESCRIPTIONS]
-        + [PixooDeviceIdSensor(hass, entry, coordinator)]
+        + [PixooDeviceIdSensor(entry, coordinator)]
     )
 
 
@@ -96,13 +95,10 @@ class PixooDeviceIdSensor(SensorEntity):
     _attr_icon = "mdi:identifier"
     _attr_should_poll = False
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: PixooCoordinator) -> None:
-        self._hass = hass
-        self._entry = entry
+    def __init__(self, entry: ConfigEntry, coordinator: PixooCoordinator) -> None:
         self._attr_unique_id = f"{entry.entry_id}_device_id"
         self._attr_device_info = coordinator.device_info
 
     @property
     def native_value(self) -> str | None:
-        device = dr.async_get(self._hass).async_get_device(identifiers={(DOMAIN, self._entry.entry_id)})
-        return device.id if device else None
+        return self.device_entry.id if self.device_entry else None
